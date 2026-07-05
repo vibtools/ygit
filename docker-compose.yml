@@ -7,11 +7,11 @@ services:
     command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
     env_file:
       - .env
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     depends_on:
-      - postgres
-      - redis
+      ygit-migrate:
+        condition: service_completed_successfully
 
   ygit-worker:
     build:
@@ -22,8 +22,22 @@ services:
     env_file:
       - .env
     depends_on:
-      - postgres
-      - redis
+      ygit-migrate:
+        condition: service_completed_successfully
+
+  ygit-migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: alembic upgrade head
+    env_file:
+      - .env
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   postgres:
     image: postgres:16-alpine
@@ -32,19 +46,25 @@ services:
       POSTGRES_USER: ygit
       POSTGRES_PASSWORD: ygit_password
       POSTGRES_DB: ygit
-    ports:
-      - "5432:5432"
     volumes:
       - ygit_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ygit -d ygit"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
     container_name: ygit-redis
-    ports:
-      - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - ygit_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   ygit_postgres_data:
