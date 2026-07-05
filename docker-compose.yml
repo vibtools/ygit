@@ -1,0 +1,51 @@
+services:
+  ygit-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ygit-api
+    command: uvicorn backend.app.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+  ygit-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ygit-worker
+    command: python -m backend.workers.main
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ygit-postgres
+    environment:
+      POSTGRES_USER: ygit
+      POSTGRES_PASSWORD: ygit_password
+      POSTGRES_DB: ygit
+    ports:
+      - "5432:5432"
+    volumes:
+      - ygit_postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: ygit-redis
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ygit_redis_data:/data
+
+volumes:
+  ygit_postgres_data:
+  ygit_redis_data:

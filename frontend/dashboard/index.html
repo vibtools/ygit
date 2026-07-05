@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>YGIT Dashboard</title>
+  <link rel="stylesheet" href="/dashboard/assets/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar" aria-label="Dashboard navigation">
+      <a class="brand" href="/dashboard" aria-label="YGIT Dashboard home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img" focusable="false">
+            <path d="M13 8l11 14L35 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M24 22v18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            <circle cx="13" cy="8" r="4" />
+            <circle cx="35" cy="8" r="4" />
+            <circle cx="24" cy="40" r="4" />
+          </svg>
+        </span>
+        <span class="brand-copy"><strong>ygit</strong><em>.net</em></span>
+      </a>
+
+      <nav class="nav" id="primary-nav">
+        <a href="#dashboard" data-view="dashboard" class="active">Dashboard</a>
+        <a href="#projects" data-view="projects">Projects</a>
+        <a href="#deployments" data-view="deployments">Deployments</a>
+        <a href="#connected-accounts" data-view="connected-accounts">Connected Accounts</a>
+        <a href="#templates" data-view="templates">Templates Beta</a>
+        <a href="#settings" data-view="settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-section">
+        <p>Coming Soon</p>
+        <a href="#ai" data-view="ai">AI Builder</a>
+        <a href="#marketplace" data-view="marketplace">Marketplace</a>
+        <a href="#plugins" data-view="plugins">Plugins</a>
+        <a href="#teams" data-view="teams">Teams</a>
+        <a href="#analytics" data-view="analytics">Analytics</a>
+        <a href="https://ygit.dev" target="_blank" rel="noreferrer">Developer Portal ↗</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Open Source Deployment Platform</p>
+          <h1 id="view-title">Dashboard</h1>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="/api/v1/auth/login">Login</a>
+          <button class="primary-button" id="quick-create" type="button">New Project</button>
+        </div>
+      </header>
+
+      <section id="system-alert" class="system-alert hidden" aria-live="polite"></section>
+
+      <section class="hero" id="dashboard-view" data-view-panel="dashboard">
+        <div class="hero-copy">
+          <p class="eyebrow">Core Flow</p>
+          <h2>Paste Repository → Analyze → Connect Accounts → Deploy</h2>
+          <p>YGIT automates Git repository deployment to the user’s own Cloudflare Pages account. The dashboard remains a client: all business decisions stay in engine APIs.</p>
+          <div class="hero-actions">
+            <button class="primary-button" data-view-trigger="projects" type="button">Create Project</button>
+            <button class="secondary-button" data-view-trigger="connected-accounts" type="button">Connect Accounts</button>
+          </div>
+        </div>
+        <div class="flow-card" aria-label="Deployment flow">
+          <span>Paste Repository</span>
+          <span>Analyze Repository</span>
+          <span>Connect Accounts</span>
+          <span>Deploy</span>
+          <span>Website Live</span>
+        </div>
+      </section>
+
+      <section class="grid metrics" id="metric-grid" aria-label="Dashboard metrics">
+        <article class="metric-card"><span>Projects</span><strong id="metric-projects">—</strong><em>Active workspace</em></article>
+        <article class="metric-card"><span>Deployments</span><strong id="metric-deployments">—</strong><em>Latest known</em></article>
+        <article class="metric-card"><span>Worker</span><strong id="metric-worker">—</strong><em>Runtime status</em></article>
+        <article class="metric-card"><span>Queue</span><strong id="metric-queue">—</strong><em>Job system</em></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel" data-view-panel="projects">
+          <div class="panel-header">
+            <div><p class="eyebrow">Projects</p><h2>Create and manage projects</h2></div>
+            <button class="primary-button" id="open-project-form" type="button">New Project</button>
+          </div>
+          <form class="form-card hidden" id="project-form">
+            <label>Project name<input id="project-name" name="name" placeholder="My Portfolio" required /></label>
+            <label>Repository URL<input id="repository-url" name="repository_url" placeholder="https://github.com/user/repo" required /></label>
+            <label>Slug<input id="project-slug" name="slug" placeholder="my-portfolio" required /></label>
+            <div class="form-actions">
+              <button class="primary-button" type="submit">Create Project</button>
+              <button class="secondary-button" type="button" id="cancel-project-form">Cancel</button>
+            </div>
+            <p class="form-status" id="project-form-status" role="status"></p>
+          </form>
+          <div class="list" id="project-list" aria-live="polite"></div>
+        </article>
+
+        <article class="panel" data-view-panel="deployments">
+          <div class="panel-header">
+            <div><p class="eyebrow">Deployments</p><h2>Recent deployment activity</h2></div>
+            <button class="secondary-button" id="refresh-deployments" type="button">Refresh</button>
+          </div>
+          <div class="list" id="deployment-list" aria-live="polite"></div>
+        </article>
+
+        <article class="panel" data-view-panel="connected-accounts">
+          <div class="panel-header"><div><p class="eyebrow">Connected Accounts</p><h2>GitHub and Cloudflare</h2></div></div>
+          <div class="account-grid" id="connected-account-grid" aria-live="polite"></div>
+        </article>
+
+        <article class="panel" data-view-panel="templates">
+          <div class="panel-header"><div><p class="eyebrow">Templates Beta</p><h2>Official starter templates</h2></div></div>
+          <div class="template-grid">
+            <div><strong>Static Site</strong><span>HTML/CSS/JS starter</span></div>
+            <div><strong>React + Vite</strong><span>Recommended SPA baseline</span></div>
+            <div><strong>Astro Portfolio</strong><span>Content-focused sites</span></div>
+            <div><strong>Docs Starter</strong><span>Docusaurus-style docs</span></div>
+          </div>
+        </article>
+
+        <article class="panel" data-view-panel="settings">
+          <div class="panel-header"><div><p class="eyebrow">Settings</p><h2>Project defaults</h2></div></div>
+          <p class="muted">MVP settings are intentionally limited. Sensitive configuration remains in environment / secret store, not the dashboard.</p>
+          <div class="settings-list">
+            <span>Auto deploy</span><strong>Off</strong>
+            <span>Environment variables</span><strong>Locked for MVP</strong>
+            <span>Custom domains</span><strong>Future phase</strong>
+          </div>
+        </article>
+
+        <article class="panel preview-panel" data-view-panel="ai marketplace plugins teams analytics">
+          <div class="panel-header"><div><p class="eyebrow">Preview</p><h2 id="preview-title">Coming soon</h2></div></div>
+          <p id="preview-copy" class="muted">This feature is intentionally outside MVP execution scope.</p>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="/dashboard/assets/app.js" defer></script>
+</body>
+</html>

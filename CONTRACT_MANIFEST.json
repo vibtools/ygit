@@ -1,0 +1,248 @@
+{
+  "admin_panel": {
+    "boundary": "Admin Panel -> API -> approved public services; no provider direct access; no database direct mutation",
+    "owned_tables": [],
+    "protected_roles": [
+      "ygit_admin",
+      "ygit_support",
+      "ygit_readonly"
+    ],
+    "routes": [
+      "/admin",
+      "/admin/assets/{asset_path:path}",
+      "/api/v1/admin/overview",
+      "/api/v1/admin/platform/health",
+      "/api/v1/admin/queue/status",
+      "/api/v1/admin/system-monitoring",
+      "/api/v1/admin/deployments",
+      "/api/v1/admin/users",
+      "/api/v1/admin/audit-logs",
+      "/api/v1/admin/settings",
+      "/api/v1/admin/manifest"
+    ],
+    "surface_type": "platform_operations_console",
+    "uses_admin_engine": false,
+    "version": "0.1.0"
+  },
+  "api_contract": "1.0",
+  "api_contract_version": "1.0",
+  "api_routes": [
+    "POST /api/v1/projects/{project_id}/deploy",
+    "GET /api/v1/deployments/{deployment_id}",
+    "POST /api/v1/deployments/{deployment_id}/redeploy",
+    "POST /api/v1/deployments/{deployment_id}/cancel"
+  ],
+  "architecture_freeze": "1.1",
+  "architecture_version": "1.1",
+  "audit_engine": {
+    "append_only": true,
+    "contract_version": "1.0",
+    "immutable": true,
+    "owned_tables": [
+      "audit_logs"
+    ],
+    "routes": [
+      "GET /api/v1/admin/audit-logs"
+    ],
+    "secret_safe_metadata": true,
+    "version": "0.1.0"
+  },
+  "auth_engine": {
+    "owns_tables": [
+      "users",
+      "user_identities",
+      "connected_accounts"
+    ],
+    "routes": [
+      "GET /api/v1/auth/login",
+      "GET /api/v1/auth/callback",
+      "POST /api/v1/auth/logout",
+      "GET /api/v1/me"
+    ],
+    "security_model": [
+      "OIDC Authorization Code Flow",
+      "PKCE S256",
+      "server-side session",
+      "Secure HttpOnly cookie"
+    ],
+    "version": "0.1.0"
+  },
+  "boundary_rules": {
+    "deploy_engine_provider_access": "forbidden",
+    "provider_execution_path": "Deploy Engine -> Job System -> Worker -> Deploy Pipeline -> Provider"
+  },
+  "company": "Vib Tools",
+  "connected_accounts_module_version": "0.1.0",
+  "contracts": {
+    "worker_job_system": "0.1.0",
+    "worker_runtime_integration": "0.1.0"
+  },
+  "current_release": "live_runtime_smoke_test_plan:0.1.0",
+  "database_architecture": "1.0",
+  "database_contract_version": "1.0",
+  "database_migration_head": "0012_notification_engine",
+  "database_migrations": [
+    "0008_worker_runtime_jobs",
+    "0011_platform_engine",
+    "0012_notification_engine"
+  ],
+  "deploy_engine_version": "0.1.0",
+  "deploy_pipeline": {
+    "contract_status": "frozen",
+    "history_write_intent": "frozen",
+    "provider_execution": "disabled_in_skeleton",
+    "version": "0.1.0"
+  },
+  "deployment_history_engine": {
+    "api_contract": "1.0",
+    "architecture": "1.1",
+    "consumes": [
+      "HistoryWriteIntent"
+    ],
+    "database_contract": "1.0",
+    "engine_contract": "1.0",
+    "owned_tables": [
+      "deployment_history",
+      "deployment_logs"
+    ],
+    "version": "0.1.0"
+  },
+  "engine_contract": "1.0",
+  "engine_contract_version": "1.0",
+  "engines": [
+    "auth_engine",
+    "project_engine",
+    "repository_engine",
+    "repository_analysis_engine",
+    "deploy_engine",
+    "deployment_history_engine",
+    "domain_engine",
+    "audit_engine",
+    "platform_engine",
+    "notification_engine"
+  ],
+  "implementation": "FastAPI MVP Skeleton + Auth Engine + Project Engine + Repository Engine + Repository Analysis Engine + Connected Accounts Module + Deploy Engine",
+  "implementation_version": "0.1.0-deploy.1",
+  "implemented_components": [
+    "worker_runtime_integration",
+    "admin_panel"
+  ],
+  "implemented_engines": [
+    "audit_engine",
+    "auth_engine",
+    "connected_accounts_module",
+    "deploy_engine",
+    "notification_engine",
+    "platform_engine",
+    "project_engine",
+    "repository_analysis_engine",
+    "repository_engine"
+  ],
+  "notification_engine": {
+    "contract_version": "1.0",
+    "external_channels_enabled": false,
+    "mvp_scope": "in_app_only",
+    "owned_tables": [
+      "notifications"
+    ],
+    "provider_access": false,
+    "routes": [
+      "GET /api/v1/notifications",
+      "GET /api/v1/notifications/unread-count",
+      "PATCH /api/v1/notifications/{notification_id}/read"
+    ],
+    "secret_safe_metadata": true,
+    "version": "0.1.0"
+  },
+  "package": "YGIT_Live_Runtime_Smoke_Test_Plan_v0.1.0",
+  "pipelines": [
+    "deploy_pipeline"
+  ],
+  "platform_engine": {
+    "contract_version": "1.0",
+    "owned_tables": [
+      "platform_settings",
+      "feature_flags"
+    ],
+    "provider_access": false,
+    "routes": [
+      "GET /api/v1/platform/health",
+      "GET /api/v1/platform/version",
+      "GET /api/v1/platform/status",
+      "GET /api/v1/platform/feature-flags"
+    ],
+    "settings_secret_safe": true,
+    "version": "0.1.0"
+  },
+  "product": "YGIT",
+  "project_engine_version": "0.1.0",
+  "providers": [
+    "github_provider",
+    "cloudflare_provider"
+  ],
+  "release_artifacts": {
+    "changelog": "CHANGELOG.md",
+    "release_gate_checklist": "MVP_RELEASE_GATE_CHECKLIST.md",
+    "release_gate_report": "MVP_RELEASE_GATE_REPORT.json",
+    "release_gate_script": "scripts/release_gate.py",
+    "release_manifest": "RELEASE.json",
+    "smoke_script": "scripts/smoke_test.py",
+    "version_registry": "VERSION.json",
+    "live_runtime_smoke_test_plan": "LIVE_RUNTIME_SMOKE_TEST_PLAN_v0.1.0.md",
+    "live_runtime_smoke_script": "scripts/live_runtime_smoke_test.py"
+  },
+  "release_gate": {
+    "new_migration": null,
+    "no_new_database_table": true,
+    "no_new_engine": true,
+    "no_new_external_dependency": true,
+    "owned_tables": [],
+    "report": "MVP_RELEASE_GATE_REPORT.json",
+    "script": "scripts/release_gate.py",
+    "status": "pass",
+    "validates": [
+      "engine_registry",
+      "api_route_registry",
+      "migration_chain",
+      "release_manifest_alignment",
+      "version_registry_alignment",
+      "contract_manifest_alignment",
+      "architecture_boundaries",
+      "provider_access_boundaries",
+      "admin_surface_boundary",
+      "worker_boundary",
+      "basic_secret_scan"
+    ],
+    "version": "0.1.0"
+  },
+  "repository_analysis_engine_version": "0.1.0",
+  "runtime": [
+    "ygit-api",
+    "ygit-worker",
+    "postgres",
+    "redis"
+  ],
+  "live_runtime_smoke_test_plan": {
+    "version": "0.1.0",
+    "status": "created",
+    "owned_tables": [],
+    "new_migration": null,
+    "no_new_engine": true,
+    "no_new_external_dependency": true,
+    "script": "scripts/live_runtime_smoke_test.py",
+    "plan": "LIVE_RUNTIME_SMOKE_TEST_PLAN_v0.1.0.md",
+    "checklist": "LIVE_RUNTIME_SMOKE_TEST_CHECKLIST.md",
+    "runbook": "LIVE_RUNTIME_SMOKE_TEST_RUNBOOK.md",
+    "matrix": "LIVE_RUNTIME_SMOKE_TEST_MATRIX.json",
+    "phases": [
+      "preflight",
+      "public_http_entrypoints",
+      "auth_boundary",
+      "user_flow_smoke",
+      "worker_runtime",
+      "admin_operations_console",
+      "negative_secret_exposure",
+      "provider_boundary"
+    ]
+  }
+}

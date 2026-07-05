@@ -1,0 +1,65 @@
+{
+  "product": "YGIT",
+  "package": "YGIT_Live_Runtime_Smoke_Test_Plan_v0.1.0",
+  "release_gate_version": "0.1.0",
+  "architecture_version": "1.1",
+  "engine_contract_version": "1.0",
+  "api_contract_version": "1.0",
+  "database_contract_version": "1.0",
+  "overall_status": "PASS",
+  "checks": [
+    {
+      "name": "required_imports",
+      "status": "PASS",
+      "details": "19 import boundaries load"
+    },
+    {
+      "name": "api_route_registry",
+      "status": "PASS",
+      "details": "38 MVP routes registered"
+    },
+    {
+      "name": "runtime_smoke",
+      "status": "PASS",
+      "details": "API, Dashboard, and Admin entrypoints respond in sandbox"
+    },
+    {
+      "name": "migration_chain",
+      "status": "PASS",
+      "details": "12 ordered migrations present; head remains 0012_notification_engine_notifications.py"
+    },
+    {
+      "name": "manifest_alignment",
+      "status": "PASS",
+      "details": "Release, version, and contract manifests align with MVP gate"
+    },
+    {
+      "name": "architecture_boundaries",
+      "status": "PASS",
+      "details": "No forbidden provider/admin/worker boundary violations found"
+    },
+    {
+      "name": "release_artifacts",
+      "status": "PASS",
+      "details": "15 release gate artifacts present"
+    },
+    {
+      "name": "basic_secret_scan",
+      "status": "PASS",
+      "details": "No obvious committed secrets found in text files"
+    },
+    {
+      "name": "database_runtime",
+      "status": "SKIPPED",
+      "details": "live PostgreSQL check skipped"
+    }
+  ],
+  "failures": [],
+  "live_runtime_not_executed": [
+    "Cloudflare Pages deployment",
+    "GitHub API integration",
+    "Cloudflare API integration",
+    "live Redis worker loop",
+    "live runtime smoke against production URL"
+  ]
+}

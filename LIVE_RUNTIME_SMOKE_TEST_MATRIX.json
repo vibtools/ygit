@@ -1,0 +1,92 @@
+{
+  "product": "YGIT",
+  "package": "YGIT_Live_Runtime_Smoke_Test_Plan_v0.1.0",
+  "version": "0.1.0",
+  "architecture_version": "1.1",
+  "engine_contract_version": "1.0",
+  "api_contract_version": "1.0",
+  "database_contract_version": "1.0",
+  "phases": [
+    {
+      "id": "phase_0",
+      "name": "preflight",
+      "required": true,
+      "execution": "manual + deployment host"
+    },
+    {
+      "id": "phase_1",
+      "name": "public_http_entrypoints",
+      "required": true,
+      "execution": "script"
+    },
+    {
+      "id": "phase_2",
+      "name": "auth_boundary",
+      "required": true,
+      "execution": "manual + script with test cookie"
+    },
+    {
+      "id": "phase_3",
+      "name": "user_flow_smoke",
+      "required": true,
+      "execution": "manual controlled test account"
+    },
+    {
+      "id": "phase_4",
+      "name": "worker_runtime",
+      "required": true,
+      "execution": "manual + logs + job status"
+    },
+    {
+      "id": "phase_5",
+      "name": "admin_operations_console",
+      "required": true,
+      "execution": "script with admin test cookie"
+    },
+    {
+      "id": "phase_6",
+      "name": "negative_secret_exposure",
+      "required": true,
+      "execution": "script + manual log review"
+    },
+    {
+      "id": "phase_7",
+      "name": "provider_boundary",
+      "required": true,
+      "execution": "boundary only; no real deploy required"
+    }
+  ],
+  "public_endpoints": [
+    "/api/v1/platform/health",
+    "/api/v1/platform/version",
+    "/dashboard",
+    "/admin"
+  ],
+  "authenticated_endpoints": [
+    "/api/v1/me",
+    "/api/v1/platform/status",
+    "/api/v1/platform/feature-flags",
+    "/api/v1/projects",
+    "/api/v1/notifications/unread-count"
+  ],
+  "admin_endpoints": [
+    "/api/v1/admin/overview",
+    "/api/v1/admin/platform/health",
+    "/api/v1/admin/queue/status",
+    "/api/v1/admin/system-monitoring",
+    "/api/v1/admin/deployments",
+    "/api/v1/admin/users",
+    "/api/v1/admin/audit-logs",
+    "/api/v1/admin/settings",
+    "/api/v1/admin/manifest"
+  ],
+  "forbidden_exposure_markers": [
+    "github token value",
+    "cloudflare token value",
+    "oidc client secret",
+    "session secret",
+    "database password",
+    "raw authorization header",
+    "private key"
+  ]
+}

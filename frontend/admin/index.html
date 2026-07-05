@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>YGIT Admin — Platform Operations Console</title>
+  <link rel="stylesheet" href="/admin/assets/styles.css" />
+</head>
+<body>
+  <div class="ops-shell">
+    <aside class="sidebar" aria-label="Admin operations navigation">
+      <a class="brand" href="/admin" aria-label="YGIT Admin home">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 48 48" role="img" focusable="false">
+            <path d="M13 8l11 14L35 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M24 22v18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
+            <circle cx="13" cy="8" r="4" />
+            <circle cx="35" cy="8" r="4" />
+            <circle cx="24" cy="40" r="4" />
+          </svg>
+        </span>
+        <span class="brand-copy"><strong>ygit</strong><em>.net</em><small>admin</small></span>
+      </a>
+
+      <nav class="nav" id="primary-nav">
+        <a href="#overview" data-view="overview" class="active">Overview</a>
+        <a href="#platform-health" data-view="platform-health">Platform Health</a>
+        <a href="#queue-status" data-view="queue-status">Queue Status</a>
+        <a href="#system-monitoring" data-view="system-monitoring">System Monitoring</a>
+        <a href="#deployments" data-view="deployments">Deployments</a>
+        <a href="#users" data-view="users">Users</a>
+        <a href="#audit-logs" data-view="audit-logs">Audit Logs</a>
+        <a href="#settings" data-view="settings">Settings</a>
+      </nav>
+
+      <div class="sidebar-section">
+        <p>Boundary</p>
+        <span>Operations console only</span>
+        <span>No direct provider access</span>
+        <span>No database mutation</span>
+        <a href="/dashboard">User Dashboard ↗</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Platform Operations Console</p>
+          <h1 id="view-title">Overview</h1>
+          <p class="subtitle">Monitor health, queue state, deployments, users, audit logs, and system signals. Project management stays in the user dashboard.</p>
+        </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="/dashboard">User Dashboard</a>
+          <a class="primary-button" href="/api/v1/auth/login?next=/admin">Admin Login</a>
+        </div>
+      </header>
+
+      <section id="auth-alert" class="system-alert hidden" aria-live="polite"></section>
+
+      <section class="hero" data-view-panel="overview">
+        <div>
+          <p class="eyebrow">Operational Focus</p>
+          <h2>Monitor → Support → Audit → Investigate</h2>
+          <p>Admin Panel v0.1.0 is not a user-facing project management dashboard. It is a safe operational console for platform health, queue status, deployments, users, audit logs, and system monitoring.</p>
+        </div>
+        <div class="flow-card">
+          <span>Platform Health</span>
+          <span>Queue Status</span>
+          <span>Deployments</span>
+          <span>Audit Logs</span>
+          <span>System Monitoring</span>
+        </div>
+      </section>
+
+      <section class="grid metrics" id="metric-grid" aria-label="Admin metrics">
+        <article class="metric-card"><span>API</span><strong id="metric-api">—</strong><em>Runtime status</em></article>
+        <article class="metric-card"><span>Queue</span><strong id="metric-queue">—</strong><em>Job system</em></article>
+        <article class="metric-card"><span>Worker</span><strong id="metric-worker">—</strong><em>Single shared worker</em></article>
+        <article class="metric-card"><span>Audit</span><strong id="metric-audit">—</strong><em>Immutable logs</em></article>
+      </section>
+
+      <section class="content-grid">
+        <article class="panel" data-view-panel="overview platform-health">
+          <div class="panel-header"><div><p class="eyebrow">Platform Health</p><h2>Core runtime components</h2></div><button id="refresh-health" class="secondary-button" type="button">Refresh</button></div>
+          <div class="status-grid" id="health-grid"></div>
+        </article>
+
+        <article class="panel" data-view-panel="queue-status">
+          <div class="panel-header"><div><p class="eyebrow">Queue Status</p><h2>Worker queues and retry posture</h2></div><button id="refresh-queue" class="secondary-button" type="button">Refresh</button></div>
+          <div class="list" id="queue-list"></div>
+        </article>
+
+        <article class="panel" data-view-panel="system-monitoring">
+          <div class="panel-header"><div><p class="eyebrow">System Monitoring</p><h2>API, database, Redis, worker, providers</h2></div><button id="refresh-system" class="secondary-button" type="button">Refresh</button></div>
+          <div class="monitor-grid" id="system-grid"></div>
+        </article>
+
+        <article class="panel" data-view-panel="deployments">
+          <div class="panel-header"><div><p class="eyebrow">Deployments</p><h2>Operational deployment view</h2></div><button id="refresh-deployments" class="secondary-button" type="button">Refresh</button></div>
+          <div class="list" id="deployment-list"></div>
+        </article>
+
+        <article class="panel" data-view-panel="users">
+          <div class="panel-header"><div><p class="eyebrow">Users</p><h2>Support-safe account visibility</h2></div><button id="refresh-users" class="secondary-button" type="button">Refresh</button></div>
+          <div class="list" id="user-list"></div>
+        </article>
+
+        <article class="panel" data-view-panel="audit-logs">
+          <div class="panel-header"><div><p class="eyebrow">Audit Logs</p><h2>Immutable activity trail</h2></div><button id="refresh-audit" class="secondary-button" type="button">Refresh</button></div>
+          <div class="list" id="audit-list"></div>
+        </article>
+
+        <article class="panel" data-view-panel="settings">
+          <div class="panel-header"><div><p class="eyebrow">Settings</p><h2>Safe platform configuration view</h2></div><button id="refresh-settings" class="secondary-button" type="button">Refresh</button></div>
+          <div class="settings-list" id="settings-list"></div>
+        </article>
+      </section>
+    </main>
+  </div>
+  <script src="/admin/assets/app.js" defer></script>
+</body>
+</html>

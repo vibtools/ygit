@@ -1,0 +1,2 @@
+class CloudflareProviderError(Exception):
+    pass

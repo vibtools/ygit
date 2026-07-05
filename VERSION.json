@@ -1,0 +1,155 @@
+{
+  "admin": {
+    "admin_panel": {
+      "owned_tables": [],
+      "status": "implemented_static_console_with_protected_api_contract",
+      "surface_type": "platform_operations_console",
+      "uses_admin_engine": false,
+      "version": "0.1.0"
+    }
+  },
+  "architecture": "1.1",
+  "audit": {
+    "audit_engine": {
+      "admin_route": "/api/v1/admin/audit-logs",
+      "append_only": true,
+      "immutable": true,
+      "metadata_secret_redaction": true,
+      "owned_tables": [
+        "audit_logs"
+      ],
+      "version": "0.1.0"
+    }
+  },
+  "contracts": {
+    "api": "1.0",
+    "api_contract": "1.0",
+    "database": "1.0",
+    "database_architecture": "1.0",
+    "engine": "1.0",
+    "engine_contract": "1.0"
+  },
+  "current_release": "live_runtime_smoke_test_plan:0.1.0",
+  "database": {
+    "migration_head": "0012_notification_engine"
+  },
+  "domain": {
+    "domain_engine": {
+      "cloudflare_dns_automation": false,
+      "custom_domain_automation": false,
+      "mvp_scope": [
+        "project_slug",
+        "ygit_generated_url",
+        "subdomain_availability",
+        "reserved_slug",
+        "domain_preview"
+      ],
+      "version": "0.1.0"
+    }
+  },
+  "engines": {
+    "audit_engine": "0.1.0",
+    "auth_engine": "0.1.0",
+    "connected_accounts_module": "0.1.0",
+    "deploy_engine": "0.1.0",
+    "deployment_history_engine": "0.1.0",
+    "domain_engine": "0.1.0",
+    "notification_engine": "0.1.0",
+    "platform_engine": "0.1.0",
+    "project_engine": "0.1.0",
+    "repository_analysis_engine": "0.1.0",
+    "repository_engine": "0.1.0"
+  },
+  "frontend": {
+    "admin_panel": "0.1.0",
+    "dashboard": "0.1.0"
+  },
+  "notification": {
+    "notification_engine": {
+      "external_channels": false,
+      "mvp_scope": [
+        "in_app_notifications",
+        "deployment_success_failure",
+        "connected_account_warning",
+        "platform_system_notice",
+        "unread_count",
+        "mark_read"
+      ],
+      "owned_tables": [
+        "notifications"
+      ],
+      "provider_access": false,
+      "secret_safe_metadata": true,
+      "version": "0.1.0"
+    }
+  },
+  "pipelines": {
+    "deploy_pipeline": {
+      "history_consumer": "deployment_history_engine.0.1.0",
+      "history_contract": "frozen",
+      "provider_execution": "disabled",
+      "status": "contract_skeleton",
+      "version": "0.1.0"
+    }
+  },
+  "platform": {
+    "platform_engine": {
+      "business_mutation_in_other_engines": false,
+      "feature_flags": true,
+      "health": true,
+      "owned_tables": [
+        "platform_settings",
+        "feature_flags"
+      ],
+      "provider_access": false,
+      "settings_summary": true,
+      "system_status": true,
+      "version": "0.1.0",
+      "version_endpoint": true
+    }
+  },
+  "product": "YGIT",
+  "providers": {
+    "cloudflare_provider": "0.1.0",
+    "github_provider": "0.1.0"
+  },
+  "quality_gates": {
+    "mvp_release_gate": {
+      "checklist": "MVP_RELEASE_GATE_CHECKLIST.md",
+      "report": "MVP_RELEASE_GATE_REPORT.json",
+      "script": "scripts/release_gate.py",
+      "version": "0.1.0"
+    },
+    "live_runtime_smoke_test_plan": {
+      "version": "0.1.0",
+      "status": "created",
+      "script": "scripts/live_runtime_smoke_test.py",
+      "report": "LIVE_RUNTIME_SMOKE_TEST_REPORT.json"
+    }
+  },
+  "release": "0.1.0-live-runtime-smoke-test-plan",
+  "release_gate": {
+    "adds_database_table": false,
+    "adds_external_dependency": false,
+    "adds_runtime_feature": false,
+    "mvp_integration_review": "0.1.0",
+    "status": "pass"
+  },
+  "worker": {
+    "worker_runtime_integration": "0.1.0"
+  },
+  "live_runtime_smoke_test_plan": {
+    "version": "0.1.0",
+    "status": "created",
+    "adds_database_table": false,
+    "adds_external_dependency": false,
+    "adds_runtime_feature": false,
+    "script": "scripts/live_runtime_smoke_test.py",
+    "plan": "LIVE_RUNTIME_SMOKE_TEST_PLAN_v0.1.0.md",
+    "checklist": "LIVE_RUNTIME_SMOKE_TEST_CHECKLIST.md",
+    "runbook": "LIVE_RUNTIME_SMOKE_TEST_RUNBOOK.md",
+    "matrix": "LIVE_RUNTIME_SMOKE_TEST_MATRIX.json",
+    "live_execution_required": true,
+    "sandbox_live_execution": false
+  }
+}
