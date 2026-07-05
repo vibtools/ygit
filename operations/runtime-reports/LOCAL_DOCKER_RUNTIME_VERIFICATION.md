@@ -14,7 +14,11 @@ Verified checks:
 - Admin route returned 200
 - Required runtime tables found: deployments, jobs, notifications, projects
 - Worker runtime started without jobs table error
+- Worker container stayed alive for continuous polling after Step 14F
 
-Verified command phase: Step 13M
+Verified command phases:
+
+- Step 13M: runtime after migrations
+- Step 14F: continuous worker runtime verification
 
 Current known limitation: Deploy Pipeline provider execution remains skeleton/contract only. Real GitHub and Cloudflare Pages deployment still requires live provider integration and credentials.
