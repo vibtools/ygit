@@ -13,8 +13,14 @@ async def async_main() -> None:
     settings = get_settings()
     worker = WorkerRuntime(worker_id=settings.worker_id, queue_name=settings.queue_name)
     sessionmaker = get_sessionmaker()
-    async with sessionmaker() as db:
-        await worker.run_once(db)
+    poll_interval = max(1, int(getattr(settings, "worker_poll_interval_seconds", 5)))
+
+    while True:
+        async with sessionmaker() as db:
+            result = await worker.run_once(db)
+
+        if not result.processed:
+            await asyncio.sleep(poll_interval)
 
 
 def main() -> None:
