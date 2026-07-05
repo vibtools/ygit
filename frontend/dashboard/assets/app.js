@@ -9,7 +9,7 @@ const viewMeta = {
   projects: ["Projects", "Create, inspect, and deploy Git-backed projects."],
   deployments: ["Deployments", "Track queued, running, completed, and failed deployments."],
   "connected-accounts": ["Connected Accounts", "Connect GitHub and Cloudflare without exposing raw provider tokens."],
-  templates: ["Templates", "Official starters for supported repository types."],
+  templates: ["Templates", "Beta starter templates for supported repository types."],
   settings: ["Settings", "MVP-safe defaults and platform constraints."],
   "feature-preview": ["Feature Preview", "Future capabilities are grouped here to keep the MVP dashboard clean."],
 };
@@ -136,11 +136,11 @@ function renderTimeline() {
   const hasCloudflare = state.accounts.some((a) => a.provider === "cloudflare" && (a.connected || a.status === "connected"));
   const hasDeployment = state.deployments.length > 0;
   const steps = [
-    ["Repository Connected", hasProject, "Project has a repository reference."],
-    ["Analysis Complete", hasProject, "Framework and build output are detected."],
+    ["Website Live", state.deployments.some((d) => d.deployment_url), "Public Cloudflare Pages URL is available."],
+    ["Deploying", hasDeployment, "Worker and Deploy Pipeline are producing deployment events."],
     ["Cloudflare Connected", hasCloudflare, "Cloudflare Pages account is linked."],
-    ["Deploying", hasDeployment, "Worker and Deploy Pipeline create deployment events."],
-    ["Website Live", state.deployments.some((d) => d.deployment_url), "Deployment URL is available."],
+    ["Analysis Complete", hasProject, "Framework, build command, and output directory are detected."],
+    ["Repository Connected", hasProject, "Project has a validated repository reference."],
   ];
   const firstOpen = steps.findIndex(([, done]) => !done);
   $("#deployment-timeline").innerHTML = steps.map(([label, done, copy], index) => `<div class="timeline-step ${done ? "done" : index === firstOpen ? "active" : ""}"><div><span class="timeline-dot"></span>${index < steps.length - 1 ? "<span class=\"timeline-line\"></span>" : ""}</div><div class="timeline-copy"><strong>${label}</strong><span>${copy}</span></div></div>`).join("");
