@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="YGIT mark">
+  <defs>
+    <linearGradient id="ygitBlue" x1="14" y1="110" x2="112" y2="12" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2F6BFF"/>
+      <stop offset="0.58" stop-color="#138BFF"/>
+      <stop offset="1" stop-color="#20D5FF"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#ygitBlue)" d="M16 18h28c3 0 5.7 1.4 7.4 3.8L64 39.2l12.6-17.4A9 9 0 0 1 84 18h28L76 69.8V110H52V69.8L16 18Z"/>
+  <path d="M89 30v22c0 6.8-4.4 12.5-10.5 14.4V78c6.1 1.9 10.5 7.6 10.5 14.4V111" fill="none" stroke="url(#ygitBlue)" stroke-width="9" stroke-linecap="round"/>
+  <circle cx="89" cy="30" r="10" fill="#090D14" stroke="#20D5FF" stroke-width="8"/>
+  <circle cx="78" cy="66" r="10" fill="#090D14" stroke="#17B8FF" stroke-width="8"/>
+  <circle cx="89" cy="102" r="10" fill="#090D14" stroke="#2F6BFF" stroke-width="8"/>
+</svg>

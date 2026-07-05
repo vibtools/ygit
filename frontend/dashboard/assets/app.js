@@ -1,13 +1,18 @@
 const API = "/api/v1";
-const state = {
-  projects: [],
-  deployments: [],
-  accounts: [],
-  status: null,
-};
+const state = { projects: [], deployments: [], accounts: [], status: null };
 
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+
+const viewMeta = {
+  dashboard: ["Dashboard", "Paste a Git repository, analyze it, connect accounts, and deploy to your own Cloudflare Pages."],
+  projects: ["Projects", "Create, inspect, and deploy Git-backed projects."],
+  deployments: ["Deployments", "Track queued, running, completed, and failed deployments."],
+  "connected-accounts": ["Connected Accounts", "Connect GitHub and Cloudflare without exposing raw provider tokens."],
+  templates: ["Templates", "Official starters for supported repository types."],
+  settings: ["Settings", "MVP-safe defaults and platform constraints."],
+  "feature-preview": ["Feature Preview", "Future capabilities are grouped here to keep the MVP dashboard clean."],
+};
 
 async function fetchJson(path, options = {}) {
   const response = await fetch(`${API}${path}`, {
@@ -33,93 +38,121 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function two(value) {
+  const n = Number(value || 0);
+  return n < 10 ? `0${n}` : String(n);
+}
+
 function setView(view) {
-  const title = view.split("-").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" ");
+  const safeView = viewMeta[view] ? view : "dashboard";
+  const [title, subtitle] = viewMeta[safeView];
   $("#view-title").textContent = title;
-  $$("[data-view]").forEach((link) => link.classList.toggle("active", link.dataset.view === view));
-  $$("[data-view-panel]").forEach((panel) => {
-    const names = panel.dataset.viewPanel.split(" ");
-    const show = names.includes(view) || (view === "dashboard" && panel.id === "dashboard-view");
-    panel.classList.toggle("hidden", !show && !["dashboard-view", "metric-grid"].includes(panel.id));
-  });
-  const previewViews = new Set(["ai", "marketplace", "plugins", "teams", "analytics"]);
-  if (previewViews.has(view)) {
-    $("#preview-title").textContent = `${title} — Coming Soon`;
-    $("#preview-copy").textContent = `${title} is a future feature and is intentionally outside this MVP implementation scope.`;
-  }
-  location.hash = view;
+  $("#view-subtitle").textContent = subtitle;
+  $("[data-view-panel=\"" + safeView + "\"]")?.classList.remove("hidden");
+  $$('[data-view-panel]').forEach((panel) => panel.classList.toggle("hidden", panel.dataset.viewPanel !== safeView));
+  $$('[data-view]').forEach((link) => link.classList.toggle("active", link.dataset.view === safeView));
+  location.hash = safeView;
+}
+
+function showSystemAlert(message) {
+  const alert = $("#system-alert");
+  alert.textContent = message;
+  alert.classList.remove("hidden");
+}
+
+function renderMetrics() {
+  const projectCount = state.projects.length;
+  const deploymentCount = state.deployments.length;
+  const connectedCount = state.accounts.filter((item) => item.connected || item.status === "connected").length;
+  const completedCount = state.deployments.filter((item) => item.status === "completed" || item.status === "success").length;
+  const liveSites = state.deployments.filter((item) => item.deployment_url && (item.status === "completed" || item.status === "success")).length;
+  $("#metric-projects").textContent = two(projectCount);
+  $("#metric-projects-note").textContent = projectCount ? "+0 this week" : "No projects yet";
+  $("#metric-deployments").textContent = two(deploymentCount);
+  $("#metric-deployments-note").textContent = deploymentCount ? "Loaded from history" : "Worker ready";
+  $("#metric-accounts").textContent = two(connectedCount);
+  $("#metric-live-sites").textContent = two(liveSites);
+  $("#metric-success-rate").textContent = deploymentCount ? `${Math.round((completedCount / deploymentCount) * 100)}%` : "—";
+}
+
+function projectCard(project) {
+  return `<div class="list-item">
+    <header><strong>${escapeHtml(project.name || project.slug || project.id)}</strong><span class="pill ${escapeHtml(project.status || "draft")}">${escapeHtml(project.status || "draft")}</span></header>
+    <p>${escapeHtml(project.slug || "no slug")} · ${escapeHtml(project.repository_url || project.repository_id || "repository pending")}</p>
+    <div class="form-actions">
+      <button class="secondary-button" data-deploy-project="${escapeHtml(project.id)}" type="button">Deploy</button>
+      <button class="secondary-button" data-project-id="${escapeHtml(project.id)}" type="button">Open</button>
+    </div>
+  </div>`;
+}
+
+function emptyProjectState() {
+  return `<div class="empty-state"><p class="eyebrow">Empty State</p><h3>No projects yet</h3><p class="muted">Create a project by pasting a GitHub repository URL. YGIT will analyze it before deployment.</p><button class="primary-button" data-open-project-form type="button">Create Project</button></div>`;
 }
 
 function renderProjects() {
-  const target = $("#project-list");
-  if (!state.projects.length) {
-    target.innerHTML = `<div class="list-item"><header><strong>No projects yet</strong><span class="pill">empty</span></header><p>Create a project by pasting a GitHub repository URL.</p></div>`;
-    $("#metric-projects").textContent = "0";
-    return;
-  }
-  $("#metric-projects").textContent = String(state.projects.length);
-  target.innerHTML = state.projects.map((project) => `
-    <div class="list-item">
-      <header><strong>${escapeHtml(project.name || project.slug || project.id)}</strong><span class="pill">${escapeHtml(project.status || "draft")}</span></header>
-      <p>${escapeHtml(project.slug || "no-slug")} · ${escapeHtml(project.repository_url || project.repository_id || "repository pending")}</p>
-      <div class="form-actions">
-        <button class="secondary-button" data-deploy-project="${escapeHtml(project.id)}" type="button">Deploy</button>
-        <button class="secondary-button" data-project-id="${escapeHtml(project.id)}" type="button">Open</button>
-      </div>
-    </div>
-  `).join("");
+  const html = state.projects.length ? state.projects.map(projectCard).join("") : emptyProjectState();
+  $("#project-list").innerHTML = html;
+  $("#dashboard-project-list").innerHTML = state.projects.length ? state.projects.slice(0, 4).map(projectCard).join("") : emptyProjectState();
   $$('[data-deploy-project]').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject)));
+  $$('[data-open-project-form]').forEach((button) => button.addEventListener('click', () => { setView("projects"); $("#project-form").classList.remove("hidden"); }));
+  renderMetrics();
 }
 
 function renderDeployments() {
   const target = $("#deployment-list");
   if (!state.deployments.length) {
-    target.innerHTML = `<div class="list-item"><header><strong>No deployment history loaded</strong><span class="pill">polling ready</span></header><p>Deployments will appear after a project deploys through the worker and Deploy Pipeline.</p></div>`;
-    $("#metric-deployments").textContent = "0";
+    target.innerHTML = `<div class="empty-state"><p class="eyebrow">Empty State</p><h3>No deployment history yet</h3><p class="muted">Deployments will appear after a project runs through the worker and Deploy Pipeline.</p></div>`;
+    renderMetrics();
     return;
   }
-  $("#metric-deployments").textContent = String(state.deployments.length);
-  target.innerHTML = state.deployments.map((deployment) => `
-    <div class="list-item">
-      <header><strong>${escapeHtml(deployment.id || deployment.deployment_id)}</strong><span class="pill ${deployment.status === "completed" ? "success" : deployment.status === "failed" ? "danger" : "warning"}">${escapeHtml(deployment.status || "queued")}</span></header>
-      <p>${escapeHtml(deployment.deployment_url || deployment.failure_summary || "Deployment is awaiting pipeline result.")}</p>
-    </div>
-  `).join("");
+  target.innerHTML = state.deployments.map((deployment) => `<div class="list-item">
+    <header><strong>${escapeHtml(deployment.id || deployment.deployment_id)}</strong><span class="pill ${deployment.status === "completed" ? "success" : deployment.status === "failed" ? "danger" : "warning"}">${escapeHtml(deployment.status || "queued")}</span></header>
+    <p>${escapeHtml(deployment.deployment_url || deployment.failure_summary || "Deployment is awaiting pipeline result.")}</p>
+  </div>`).join("");
+  renderMetrics();
+}
+
+function accountCard(provider) {
+  const account = state.accounts.find((item) => item.provider === provider);
+  const connected = account?.connected || account?.status === "connected";
+  return `<div>
+    <strong>${provider === "github" ? "GitHub" : "Cloudflare"}</strong>
+    <span>${connected ? `Connected as ${escapeHtml(account.account_name || account.provider_account_name || "account")}` : "Not connected"}</span>
+    <div class="form-actions" style="margin-top: 12px;"><a class="${connected ? "secondary-button" : "primary-button"}" href="${API}/connected-accounts/${provider}/connect">${connected ? "Reconnect" : "Connect"}</a></div>
+  </div>`;
 }
 
 function renderAccounts() {
-  const target = $("#connected-account-grid");
-  const providers = ["github", "cloudflare"];
-  target.innerHTML = providers.map((provider) => {
-    const account = state.accounts.find((item) => item.provider === provider);
-    const connected = account?.connected || account?.status === "connected";
-    return `
-      <div>
-        <strong>${provider === "github" ? "GitHub" : "Cloudflare"}</strong>
-        <span>${connected ? `Connected as ${escapeHtml(account.account_name || account.provider_account_name || "account")}` : "Not connected"}</span>
-        <div class="form-actions" style="margin-top: 12px;">
-          <a class="${connected ? "secondary-button" : "primary-button"}" href="${API}/connected-accounts/${provider}/connect">${connected ? "Reconnect" : "Connect"}</a>
-        </div>
-      </div>`;
-  }).join("");
+  const html = ["github", "cloudflare"].map(accountCard).join("");
+  $("#connected-account-grid").innerHTML = html;
+  $("#dashboard-account-grid").innerHTML = html;
+  renderMetrics();
+}
+
+function renderTimeline() {
+  const hasProject = state.projects.length > 0;
+  const hasGithub = state.accounts.some((a) => a.provider === "github" && (a.connected || a.status === "connected"));
+  const hasCloudflare = state.accounts.some((a) => a.provider === "cloudflare" && (a.connected || a.status === "connected"));
+  const hasDeployment = state.deployments.length > 0;
+  const steps = [
+    ["Repository Connected", hasProject, "Project has a repository reference."],
+    ["Analysis Complete", hasProject, "Framework and build output are detected."],
+    ["Cloudflare Connected", hasCloudflare, "Cloudflare Pages account is linked."],
+    ["Deploying", hasDeployment, "Worker and Deploy Pipeline create deployment events."],
+    ["Website Live", state.deployments.some((d) => d.deployment_url), "Deployment URL is available."],
+  ];
+  const firstOpen = steps.findIndex(([, done]) => !done);
+  $("#deployment-timeline").innerHTML = steps.map(([label, done, copy], index) => `<div class="timeline-step ${done ? "done" : index === firstOpen ? "active" : ""}"><div><span class="timeline-dot"></span>${index < steps.length - 1 ? "<span class=\"timeline-line\"></span>" : ""}</div><div class="timeline-copy"><strong>${label}</strong><span>${copy}</span></div></div>`).join("");
 }
 
 async function loadStatus() {
   try {
     const data = await fetchJson("/platform/status");
     state.status = data;
-    $("#metric-worker").textContent = data.worker_status || "ok";
-    $("#metric-queue").textContent = data.queue_status || "ok";
-    const alert = $("#system-alert");
-    if (data.maintenance) {
-      alert.textContent = data.message || "YGIT is currently in maintenance mode.";
-      alert.classList.remove("hidden");
-    } else {
-      alert.classList.add("hidden");
-    }
-  } catch (error) {
-    $("#metric-worker").textContent = "auth";
-    $("#metric-queue").textContent = "auth";
+    if (data.maintenance) showSystemAlert(data.message || "YGIT is currently in maintenance mode.");
+  } catch (_) {
+    // Authenticated status may require a session. Keep the dashboard usable as a shell.
   }
 }
 
@@ -127,20 +160,22 @@ async function loadProjects() {
   try {
     const data = await fetchJson("/projects?page=1&page_size=20");
     state.projects = data.items || data.projects || [];
-  } catch (error) {
+  } catch (_) {
     state.projects = [];
   }
   renderProjects();
+  renderTimeline();
 }
 
 async function loadAccounts() {
   try {
     const data = await fetchJson("/connected-accounts");
-    state.accounts = data.accounts || [];
-  } catch (error) {
+    state.accounts = data.accounts || data.items || [];
+  } catch (_) {
     state.accounts = [];
   }
   renderAccounts();
+  renderTimeline();
 }
 
 async function loadDeployments() {
@@ -149,23 +184,18 @@ async function loadDeployments() {
     try {
       const data = await fetchJson(`/projects/${encodeURIComponent(project.id)}/deployments?page=1&page_size=5`);
       deployments.push(...(data.items || data.deployments || []));
-    } catch (_) {
-      // Project-level deployment lists require auth and live DB; ignore in static dashboard shell.
-    }
+    } catch (_) {}
   }
   state.deployments = deployments;
   renderDeployments();
+  renderTimeline();
 }
 
 async function createProject(event) {
   event.preventDefault();
   const status = $("#project-form-status");
-  status.textContent = "Creating project…";
-  const payload = {
-    name: $("#project-name").value,
-    repository_url: $("#repository-url").value,
-    slug: $("#project-slug").value,
-  };
+  status.textContent = "Creating project...";
+  const payload = { name: $("#project-name").value, repository_url: $("#repository-url").value, slug: $("#project-slug").value };
   try {
     await fetchJson("/projects", { method: "POST", body: JSON.stringify(payload) });
     status.textContent = "Project created.";
@@ -182,18 +212,13 @@ async function requestDeploy(projectId) {
     await fetchJson(`/projects/${encodeURIComponent(projectId)}/deploy`, { method: "POST", body: JSON.stringify({}) });
     await loadDeployments();
   } catch (error) {
-    const alert = $("#system-alert");
-    alert.textContent = error.message;
-    alert.classList.remove("hidden");
+    showSystemAlert(error.message);
   }
 }
 
 function bindUi() {
-  $$("[data-view]").forEach((link) => link.addEventListener("click", (event) => {
-    event.preventDefault();
-    setView(link.dataset.view);
-  }));
-  $$("[data-view-trigger]").forEach((button) => button.addEventListener("click", () => setView(button.dataset.viewTrigger)));
+  $$('[data-view]').forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); setView(link.dataset.view); }));
+  $$('[data-view-trigger]').forEach((button) => button.addEventListener("click", () => setView(button.dataset.viewTrigger)));
   $("#quick-create").addEventListener("click", () => { setView("projects"); $("#project-form").classList.remove("hidden"); });
   $("#open-project-form").addEventListener("click", () => $("#project-form").classList.remove("hidden"));
   $("#cancel-project-form").addEventListener("click", () => $("#project-form").classList.add("hidden"));
@@ -203,8 +228,7 @@ function bindUi() {
 
 async function boot() {
   bindUi();
-  const initialView = (location.hash || "#dashboard").replace("#", "");
-  setView(initialView || "dashboard");
+  setView((location.hash || "#dashboard").replace("#", "") || "dashboard");
   await loadStatus();
   await loadProjects();
   await loadAccounts();

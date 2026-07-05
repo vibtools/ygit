@@ -5,117 +5,83 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>YGIT Admin — Platform Operations Console</title>
+  <link rel="icon" type="image/svg+xml" href="/admin/assets/favicon.svg" />
   <link rel="stylesheet" href="/admin/assets/styles.css" />
+  <!-- Project management stays in the user dashboard -->
 </head>
 <body>
   <div class="ops-shell">
     <aside class="sidebar" aria-label="Admin operations navigation">
       <a class="brand" href="/admin" aria-label="YGIT Admin home">
-        <span class="brand-mark" aria-hidden="true">
-          <svg viewBox="0 0 48 48" role="img" focusable="false">
-            <path d="M13 8l11 14L35 8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
-            <path d="M24 22v18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" />
-            <circle cx="13" cy="8" r="4" />
-            <circle cx="35" cy="8" r="4" />
-            <circle cx="24" cy="40" r="4" />
-          </svg>
-        </span>
-        <span class="brand-copy"><strong>ygit</strong><em>.net</em><small>admin</small></span>
+        <span class="brand-mark" aria-hidden="true"><img src="/admin/assets/logo-mark.svg" alt="" /></span>
+        <span class="brand-copy"><strong>ygit<em>.net</em></strong><small>admin</small></span>
       </a>
-
       <nav class="nav" id="primary-nav">
-        <a href="#overview" data-view="overview" class="active">Overview</a>
-        <a href="#platform-health" data-view="platform-health">Platform Health</a>
-        <a href="#queue-status" data-view="queue-status">Queue Status</a>
-        <a href="#system-monitoring" data-view="system-monitoring">System Monitoring</a>
-        <a href="#deployments" data-view="deployments">Deployments</a>
-        <a href="#users" data-view="users">Users</a>
-        <a href="#audit-logs" data-view="audit-logs">Audit Logs</a>
-        <a href="#settings" data-view="settings">Settings</a>
+        <a href="#overview" data-view="overview" class="active"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z"/></svg></span><span>Overview</span></a>
+        <a href="#platform-health" data-view="platform-health"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 21s-7-4.3-7-10V5l7-3 7 3v6c0 5.7-7 10-7 10Z"/><path d="M9 12h6"/><path d="M12 9v6"/></svg></span><span>Platform Health</span></a>
+        <a href="#queue-status" data-view="queue-status"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg></span><span>Queue Status</span></a>
+        <a href="#system-monitoring" data-view="system-monitoring"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 19h16"/><path d="M6 16v-5M12 16V6M18 16v-8"/></svg></span><span>System Monitoring</span></a>
+        <a href="#deployments" data-view="deployments"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg></span><span>Deployments</span></a>
+        <a href="#users" data-view="users"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M2 21a6 6 0 0 1 12 0"/><path d="M17 11a3 3 0 1 0 0-6"/><path d="M17 14a5 5 0 0 1 5 5"/></svg></span><span>Users</span></a>
+        <a href="#audit-logs" data-view="audit-logs"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 4h8l2 3v13H6V7z"/><path d="M9 12h6M9 16h6M10 4v4h4V4"/></svg></span><span>Audit Logs</span></a>
+        <a href="#settings" data-view="settings"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 3-.2-.1a1.8 1.8 0 0 0-2 .1 1.8 1.8 0 0 0-.9 1.6V22H9.3v-.3A1.8 1.8 0 0 0 8.4 20a1.8 1.8 0 0 0-2-.1l-.2.1-2-3 .1-.1a1.7 1.7 0 0 0 .3-1.9 1.8 1.8 0 0 0-1.5-1H3v-4h.1a1.8 1.8 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-3 .2.1a1.8 1.8 0 0 0 2-.1 1.8 1.8 0 0 0 .9-1.6V2h5.4v.3a1.8 1.8 0 0 0 .9 1.6 1.8 1.8 0 0 0 2 .1l.2-.1 2 3-.1.1a1.7 1.7 0 0 0-.3 1.9 1.8 1.8 0 0 0 1.5 1h.1v4h-.1a1.8 1.8 0 0 0-1.5 1Z"/></svg></span><span>Settings</span></a>
       </nav>
-
       <div class="sidebar-section">
         <p>Boundary</p>
-        <span>Operations console only</span>
-        <span>No direct provider access</span>
-        <span>No database mutation</span>
-        <a href="/dashboard">User Dashboard ↗</a>
+        <div class="sidebar-note"><span>Operations console only.</span><span>No provider direct access.</span><span>No database mutation from Admin UI.</span></div>
+        <a href="/dashboard"><span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h7v7H4zM13 5h7v4h-7zM13 11h7v8h-7zM4 14h7v5H4z"/></svg></span><span>User Dashboard</span></a>
       </div>
     </aside>
 
     <main class="main">
       <header class="topbar">
-        <div>
+        <div class="page-kicker">
           <p class="eyebrow">Platform Operations Console</p>
           <h1 id="view-title">Overview</h1>
-          <p class="subtitle">Monitor health, queue state, deployments, users, audit logs, and system signals. Project management stays in the user dashboard.</p>
+          <p class="subtitle" id="view-subtitle">Monitor health, queue state, deployments, users, audit logs, and system signals.</p>
         </div>
         <div class="topbar-actions">
-          <a class="ghost-button" href="/dashboard">User Dashboard</a>
-          <a class="primary-button" href="/api/v1/auth/login?next=/admin">Admin Login</a>
+          <label class="search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search operations" aria-label="Search operations" /></label>
+          <button class="icon-button" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M8 4h8l2 3v13H6V7z"/><path d="M9 12h6M9 16h6M10 4v4h4V4"/></svg></button>
+          <a class="ghost-button" href="/dashboard">Dashboard</a>
+          <a class="primary-button" href="/api/v1/auth/login?next=/admin">Account</a>
+          <span class="avatar" aria-label="Profile"></span>
         </div>
       </header>
-
       <section id="auth-alert" class="system-alert hidden" aria-live="polite"></section>
 
-      <section class="hero" data-view-panel="overview">
-        <div>
-          <p class="eyebrow">Operational Focus</p>
-          <h2>Monitor → Support → Audit → Investigate</h2>
-          <p>Admin Panel v0.1.0 is not a user-facing project management dashboard. It is a safe operational console for platform health, queue status, deployments, users, audit logs, and system monitoring.</p>
+      <section class="view" data-view-panel="overview">
+        <div class="ops-grid">
+          <article class="hero-card">
+            <p class="eyebrow">Operational Focus</p>
+            <h2>Monitor → Support → Audit → Investigate</h2>
+            <p class="subtitle">Admin Panel is an internal platform operations surface. User project management stays in the Dashboard and all business decisions stay in engine APIs.</p>
+            <div class="step-strip">
+              <div class="step"><b>1</b><strong>Monitor</strong><span>API, database, Redis, queue, worker.</span></div>
+              <div class="step"><b>2</b><strong>Support</strong><span>User and deployment summaries without secrets.</span></div>
+              <div class="step"><b>3</b><strong>Audit</strong><span>Immutable operational activity trail.</span></div>
+              <div class="step"><b>4</b><strong>Investigate</strong><span>Failure summaries and system posture.</span></div>
+            </div>
+          </article>
+          <aside class="timeline"><p class="eyebrow">Admin Boundary</p><h3>Safe Operations Path</h3><div class="timeline-track"><div class="timeline-step done"><div><span class="timeline-dot"></span><span class="timeline-line"></span></div><div class="timeline-copy"><strong>Admin UI</strong><span>Presentation layer only.</span></div></div><div class="timeline-step done"><div><span class="timeline-dot"></span><span class="timeline-line"></span></div><div class="timeline-copy"><strong>Admin API</strong><span>Protected by role guard.</span></div></div><div class="timeline-step active"><div><span class="timeline-dot"></span><span class="timeline-line"></span></div><div class="timeline-copy"><strong>Engine Public APIs</strong><span>No direct provider or database mutation.</span></div></div><div class="timeline-step"><div><span class="timeline-dot"></span></div><div class="timeline-copy"><strong>Audit Trail</strong><span>Append-only operational records.</span></div></div></div></aside>
         </div>
-        <div class="flow-card">
-          <span>Platform Health</span>
-          <span>Queue Status</span>
-          <span>Deployments</span>
-          <span>Audit Logs</span>
-          <span>System Monitoring</span>
-        </div>
+        <section class="metrics" aria-label="Admin metrics">
+          <article class="metric-card"><span>API</span><strong id="metric-api">—</strong><em>Runtime status</em></article>
+          <article class="metric-card"><span>Queue</span><strong id="metric-queue">—</strong><em>Job system</em></article>
+          <article class="metric-card"><span>Worker</span><strong id="metric-worker">—</strong><em>Single worker</em></article>
+          <article class="metric-card"><span>Audit</span><strong id="metric-audit">—</strong><em>Immutable logs</em></article>
+          <article class="metric-card"><span>Boundary</span><strong>OK</strong><em>No direct provider access</em></article>
+        </section>
+        <article class="panel"><div class="panel-header"><div><p class="eyebrow">Platform Health</p><h2>Core runtime components</h2></div><button id="refresh-health" class="secondary-button" type="button">Refresh</button></div><div class="health-grid" id="health-grid"></div></article>
       </section>
 
-      <section class="grid metrics" id="metric-grid" aria-label="Admin metrics">
-        <article class="metric-card"><span>API</span><strong id="metric-api">—</strong><em>Runtime status</em></article>
-        <article class="metric-card"><span>Queue</span><strong id="metric-queue">—</strong><em>Job system</em></article>
-        <article class="metric-card"><span>Worker</span><strong id="metric-worker">—</strong><em>Single shared worker</em></article>
-        <article class="metric-card"><span>Audit</span><strong id="metric-audit">—</strong><em>Immutable logs</em></article>
-      </section>
-
-      <section class="content-grid">
-        <article class="panel" data-view-panel="overview platform-health">
-          <div class="panel-header"><div><p class="eyebrow">Platform Health</p><h2>Core runtime components</h2></div><button id="refresh-health" class="secondary-button" type="button">Refresh</button></div>
-          <div class="status-grid" id="health-grid"></div>
-        </article>
-
-        <article class="panel" data-view-panel="queue-status">
-          <div class="panel-header"><div><p class="eyebrow">Queue Status</p><h2>Worker queues and retry posture</h2></div><button id="refresh-queue" class="secondary-button" type="button">Refresh</button></div>
-          <div class="list" id="queue-list"></div>
-        </article>
-
-        <article class="panel" data-view-panel="system-monitoring">
-          <div class="panel-header"><div><p class="eyebrow">System Monitoring</p><h2>API, database, Redis, worker, providers</h2></div><button id="refresh-system" class="secondary-button" type="button">Refresh</button></div>
-          <div class="monitor-grid" id="system-grid"></div>
-        </article>
-
-        <article class="panel" data-view-panel="deployments">
-          <div class="panel-header"><div><p class="eyebrow">Deployments</p><h2>Operational deployment view</h2></div><button id="refresh-deployments" class="secondary-button" type="button">Refresh</button></div>
-          <div class="list" id="deployment-list"></div>
-        </article>
-
-        <article class="panel" data-view-panel="users">
-          <div class="panel-header"><div><p class="eyebrow">Users</p><h2>Support-safe account visibility</h2></div><button id="refresh-users" class="secondary-button" type="button">Refresh</button></div>
-          <div class="list" id="user-list"></div>
-        </article>
-
-        <article class="panel" data-view-panel="audit-logs">
-          <div class="panel-header"><div><p class="eyebrow">Audit Logs</p><h2>Immutable activity trail</h2></div><button id="refresh-audit" class="secondary-button" type="button">Refresh</button></div>
-          <div class="list" id="audit-list"></div>
-        </article>
-
-        <article class="panel" data-view-panel="settings">
-          <div class="panel-header"><div><p class="eyebrow">Settings</p><h2>Safe platform configuration view</h2></div><button id="refresh-settings" class="secondary-button" type="button">Refresh</button></div>
-          <div class="settings-list" id="settings-list"></div>
-        </article>
-      </section>
+      <section class="view hidden" data-view-panel="platform-health"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Platform Health</p><h2>Core runtime components</h2></div><button id="refresh-health-alt" class="secondary-button" type="button">Refresh</button></div><div class="health-grid" id="health-grid-alt"></div></article></section>
+      <section class="view hidden" data-view-panel="queue-status"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Queue Status</p><h2>Worker queues and retry posture</h2></div><button id="refresh-queue" class="secondary-button" type="button">Refresh</button></div><div class="list" id="queue-list"></div></article></section>
+      <section class="view hidden" data-view-panel="system-monitoring"><article class="panel"><div class="panel-header"><div><p class="eyebrow">System Monitoring</p><h2>API, database, Redis, worker, providers</h2></div><button id="refresh-system" class="secondary-button" type="button">Refresh</button></div><div class="monitor-grid" id="system-grid"></div></article></section>
+      <section class="view hidden" data-view-panel="deployments"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Deployments</p><h2>Operational deployment view</h2></div><button id="refresh-deployments" class="secondary-button" type="button">Refresh</button></div><div class="list" id="deployment-list"></div></article></section>
+      <section class="view hidden" data-view-panel="users"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Users</p><h2>Support-safe account visibility</h2></div><button id="refresh-users" class="secondary-button" type="button">Refresh</button></div><div class="list" id="user-list"></div></article></section>
+      <section class="view hidden" data-view-panel="audit-logs"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Audit Logs</p><h2>Immutable activity trail</h2></div><button id="refresh-audit" class="secondary-button" type="button">Refresh</button></div><div class="list" id="audit-list"></div></article></section>
+      <section class="view hidden" data-view-panel="settings"><article class="panel"><div class="panel-header"><div><p class="eyebrow">Settings</p><h2>Safe platform configuration view</h2></div><button id="refresh-settings" class="secondary-button" type="button">Refresh</button></div><div class="settings-list" id="settings-list"></div></article></section>
     </main>
   </div>
   <script src="/admin/assets/app.js" defer></script>
