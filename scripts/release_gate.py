@@ -162,26 +162,33 @@ def check_runtime_smoke() -> GateCheck:
     from backend.app.main import app
 
     client = TestClient(app)
-    checks = [
+    public_checks = [
         ("/api/v1/platform/version", "success"),
         ("/api/v1/platform/health", "success"),
-        ("/dashboard", "YGIT Dashboard"),
-        ("/admin", "Platform Operations Console"),
     ]
+    protected_shell_checks = [
+        ("/dashboard", 401),
+        ("/admin", 401),
+    ]
+
     failures: list[str] = []
-    for path, marker in checks:
+
+    for path, marker in public_checks:
         response = client.get(path)
         if response.status_code != 200:
             failures.append(f"{path}: HTTP {response.status_code}")
             continue
-        if marker == "success":
-            if response.json().get("success") is not True:
-                failures.append(f"{path}: missing success envelope")
-        elif marker not in response.text:
-            failures.append(f"{path}: missing marker {marker}")
+        if marker == "success" and response.json().get("success") is not True:
+            failures.append(f"{path}: missing success envelope")
+
+    for path, expected_status in protected_shell_checks:
+        response = client.get(path, follow_redirects=False)
+        if response.status_code != expected_status:
+            failures.append(f"{path}: expected HTTP {expected_status}, got HTTP {response.status_code}")
+
     if failures:
         return GateCheck("runtime_smoke", "FAIL", "; ".join(failures))
-    return GateCheck("runtime_smoke", "PASS", "API, Dashboard, and Admin entrypoints respond in sandbox")
+    return GateCheck("runtime_smoke", "PASS", "API entrypoints respond and protected shells reject unauthenticated access")
 
 
 def check_migration_chain() -> GateCheck:

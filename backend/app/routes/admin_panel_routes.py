@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+
+from backend.app.dependencies.auth import require_admin
 
 router = APIRouter(tags=["Admin Panel"])
 
@@ -13,12 +13,13 @@ _ASSETS_ROOT = _ADMIN_ROOT / "assets"
 
 
 @router.get("/admin", include_in_schema=False)
-async def admin_index() -> FileResponse:
-    """Serve the Admin Operations Console shell.
+async def admin_index(user = Depends(require_admin)) -> FileResponse:
+    """Serve the authenticated Admin Operations Console shell.
 
-    The shell contains no operational data by itself. Data is loaded through
-    protected /api/v1/admin endpoints.
+    The Admin Panel is a presentation surface. Business and authorization
+    decisions stay in the Auth Engine and protected /api/v1/admin endpoints.
     """
+    _ = user
     return FileResponse(_ADMIN_ROOT / "index.html", media_type="text/html")
 
 

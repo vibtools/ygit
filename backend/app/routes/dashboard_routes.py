@@ -1,9 +1,9 @@
-from __future__ import annotations
-
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
+
+from backend.app.dependencies.auth import require_user
 
 router = APIRouter(tags=["Dashboard"])
 
@@ -13,8 +13,12 @@ _ASSETS_ROOT = _DASHBOARD_ROOT / "assets"
 
 
 @router.get("/dashboard", include_in_schema=False)
-async def dashboard_index() -> FileResponse:
-    """Serve the dashboard client shell. Business logic stays in API/engine layers."""
+async def dashboard_index(user = Depends(require_user)) -> FileResponse:
+    """Serve the authenticated dashboard client shell.
+
+    Business logic stays in API/engine layers.
+    """
+    _ = user
     return FileResponse(_DASHBOARD_ROOT / "index.html", media_type="text/html")
 
 
