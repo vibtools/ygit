@@ -21,7 +21,7 @@
     {
       "name": "runtime_smoke",
       "status": "PASS",
-      "details": "API, Dashboard, and Admin entrypoints respond in sandbox"
+      "details": "API entrypoints respond and protected shells reject unauthenticated access"
     },
     {
       "name": "migration_chain",
