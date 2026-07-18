@@ -13,6 +13,7 @@ from backend.engines.auth_engine.connected_accounts_module.errors import (
     ProviderOAuthFailedError,
 )
 from backend.engines.auth_engine.connected_accounts_module.internal.oauth_state import (
+    ConnectedAccountInstallState,
     ConnectedAccountOAuthState,
     TokenReferenceFactory,
 )
@@ -66,10 +67,18 @@ class ConnectedAccountsInternalService:
         provider: str,
     ) -> ConnectProviderResult:
         provider_name = self.parse_provider(provider)
-        state = ConnectedAccountOAuthState.new_state(user_id=user_id, provider=provider_name)
-        # v0.1.0 returns a contract-safe authorization URL placeholder. Provider OAuth
-        # client IDs and scopes stay outside API responses until configured in deployment.
         settings = get_settings()
+
+        if provider_name == "github":
+            state = ConnectedAccountInstallState.new_state(user_id=user_id, provider=provider_name)
+            authorization_url = self.github_provider.build_app_installation_url(
+                install_url=str(settings.github_app_install_url),
+                state=state,
+            )
+            return ConnectProviderResult(provider=provider_name, authorization_url=authorization_url, state=state)
+
+        state = ConnectedAccountOAuthState.new_state(user_id=user_id, provider=provider_name)
+        # Cloudflare remains placeholder-backed until its provider integration is implemented.
         redirect_base = str(settings.app_base_url).rstrip("/")
         authorization_url = f"{redirect_base}{settings.api_prefix}/connected-accounts/{provider_name}/callback?state={state}"
         return ConnectProviderResult(provider=provider_name, authorization_url=authorization_url, state=state)
