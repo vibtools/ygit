@@ -7,14 +7,13 @@ from backend.app.dependencies.auth import require_user
 from backend.core.database import get_db_session
 from backend.core.responses import success_response
 from backend.engines.auth_engine.connected_accounts_module.public import connected_accounts_service
-from backend.engines.auth_engine.schemas import CurrentUser
 
 router = APIRouter(prefix="/connected-accounts", tags=["Connected Accounts"])
 
 
 @router.get("")
 async def list_connected_accounts(
-    user: CurrentUser = Depends(require_user),
+    user = Depends(require_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     accounts = await connected_accounts_service.get_connected_accounts(db, user_id=user.id)
@@ -24,7 +23,7 @@ async def list_connected_accounts(
 @router.get("/{provider}/connect")
 async def connect_provider(
     provider: str,
-    user: CurrentUser = Depends(require_user),
+    user = Depends(require_user),
 ):
     result = await connected_accounts_service.connect_provider(user_id=user.id, provider=provider)
     return success_response(result.model_dump(mode="json"))
@@ -37,7 +36,7 @@ async def provider_callback(
     state: str | None = None,
     error: str | None = None,
     error_description: str | None = Query(default=None, alias="error_description"),
-    user: CurrentUser = Depends(require_user),
+    user = Depends(require_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     result = await connected_accounts_service.handle_provider_callback(
@@ -55,7 +54,7 @@ async def provider_callback(
 @router.delete("/{provider}")
 async def disconnect_provider(
     provider: str,
-    user: CurrentUser = Depends(require_user),
+    user = Depends(require_user),
     db: AsyncSession = Depends(get_db_session),
 ):
     result = await connected_accounts_service.disconnect_provider(db, user_id=user.id, provider=provider)

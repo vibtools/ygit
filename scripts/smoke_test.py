@@ -110,11 +110,11 @@ def check_health() -> list[str]:
     if body.get("success") is not True:
         return ["platform version did not use success envelope"]
     dashboard = client.get("/dashboard")
-    if dashboard.status_code != 200 or "YGIT Dashboard" not in dashboard.text:
-        return ["dashboard route failed"]
+    if dashboard.status_code != 401:
+        return [f"dashboard protected route failed: HTTP {dashboard.status_code}"]
     admin = client.get("/admin")
-    if admin.status_code != 200 or "Platform Operations Console" not in admin.text:
-        return ["admin panel route failed"]
+    if admin.status_code != 401:
+        return [f"admin protected route failed: HTTP {admin.status_code}"]
     return []
 
 

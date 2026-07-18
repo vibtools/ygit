@@ -35,3 +35,12 @@ class TokenReferenceFactory:
     @staticmethod
     def key_version() -> str:
         return get_settings().token_encryption_key_version
+
+
+
+class ConnectedAccountInstallState(ConnectedAccountOAuthState):
+    """GitHub App installation state helper.
+
+    Kept separate from the legacy OAuth naming so new GitHub App code can use
+    installation terminology without breaking older Connected Accounts tests.
+    """

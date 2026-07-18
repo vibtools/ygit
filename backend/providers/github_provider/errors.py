@@ -11,3 +11,15 @@ class GitHubRepositoryNotFoundError(GitHubProviderError):
 
 class GitHubProviderUnavailableError(GitHubProviderError):
     pass
+
+
+class GitHubAppConfigurationError(GitHubProviderError):
+    pass
+
+
+class GitHubAppAuthenticationError(GitHubProviderError):
+    pass
+
+
+class GitHubInstallationValidationError(GitHubProviderError):
+    pass

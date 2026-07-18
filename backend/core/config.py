@@ -25,6 +25,15 @@ class Settings(BaseSettings):
     oidc_scope: str = "openid profile email"
     oidc_allowed_algorithms: list[str] = Field(default_factory=lambda: ["RS256"])
     oidc_http_timeout_seconds: float = 10.0
+
+    # GitHub App provider integration
+    github_app_name: str = "YGIT"
+    github_app_slug: str = ""
+    github_app_id: str = ""
+    github_app_private_key: SecretStr = Field(default=SecretStr(""))
+    github_app_webhook_secret: SecretStr = Field(default=SecretStr(""))
+    github_app_install_url: AnyHttpUrl = "https://github.com/apps/ygit/installations/new"
+    github_api_base_url: AnyHttpUrl = "https://api.github.com"
     session_cookie_name: str = "ygit_session"
     session_cookie_secure: bool = False
     session_cookie_samesite: Literal["lax", "strict", "none"] = "lax"

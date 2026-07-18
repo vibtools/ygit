@@ -20,3 +20,22 @@ class GitHubRepository(BaseModel):
 class ProviderResponse(BaseModel):
     provider: str
     ok: bool
+
+
+
+class GitHubAppInstallation(BaseModel):
+    provider: Literal["github"] = "github"
+    installation_id: int
+    account_id: str
+    account_login: str
+    account_type: str | None = None
+    target_type: str | None = None
+    repository_selection: str | None = None
+
+
+class GitHubInstallationAccessToken(BaseModel):
+    provider: Literal["github"] = "github"
+    token: str
+    expires_at: str
+    permissions: dict[str, Any] | None = None
+    repository_selection: str | None = None
