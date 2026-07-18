@@ -91,12 +91,22 @@ class ConnectedAccountsInternalService:
         provider: str,
         code: str | None,
         state: str | None,
-        error: str | None,
-        error_description: str | None,
+        installation_id: str | None = None,
+        error: str | None = None,
+        error_description: str | None = None,
     ) -> ProviderCallbackResult:
         provider_name = self.parse_provider(provider)
         if error:
             raise ProviderOAuthFailedError(error_description or error)
+
+        if provider_name == "github":
+            return await self._handle_github_app_callback(
+                db,
+                user_id=user_id,
+                state=state,
+                installation_id=installation_id,
+            )
+
         if not code:
             raise ProviderOAuthFailedError("Provider OAuth callback is missing code.")
         if not state or not ConnectedAccountOAuthState.validate_state(
@@ -122,6 +132,64 @@ class ConnectedAccountsInternalService:
             scopes=self._default_scopes(provider_name),
         )
         await db.commit()
+        return ProviderCallbackResult(
+            provider=record.provider,
+            connected=True,
+            status=record.status,
+            account_name=record.provider_account_name,
+        )
+
+    async def _handle_github_app_callback(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        state: str | None,
+        installation_id: str | None,
+    ) -> ProviderCallbackResult:
+        provider_name: ProviderName = "github"
+
+        if not installation_id:
+            raise ProviderOAuthFailedError("GitHub App callback is missing installation_id.")
+        if not installation_id.isdigit():
+            raise ProviderOAuthFailedError("GitHub App callback installation_id is invalid.")
+        if not state or not ConnectedAccountInstallState.validate_state(
+            state=state,
+            user_id=user_id,
+            provider=provider_name,
+        ):
+            raise ProviderOAuthFailedError("GitHub App installation state is invalid.")
+
+        settings = get_settings()
+        app_jwt = self.github_provider.create_app_jwt(
+            app_id=settings.github_app_id,
+            private_key_pem=settings.github_app_private_key.get_secret_value(),
+        )
+        installation = await self.github_provider.get_app_installation(
+            installation_id=installation_id,
+            app_jwt=app_jwt,
+        )
+
+        # token_secret_ref stores a safe installation reference, not a GitHub token.
+        # Installation access tokens are generated server-side only when needed.
+        token_ref = f"github_app_installation:{installation.installation_id}"
+        scopes = [
+            "github_app:installation",
+            f"repositories:{installation.repository_selection or 'unknown'}",
+        ]
+
+        record = await self.repository.upsert_connected(
+            db,
+            user_id=user_id,
+            provider=provider_name,
+            provider_account_id=str(installation.installation_id),
+            provider_account_name=installation.account_login,
+            token_secret_ref=token_ref,
+            token_key_version=TokenReferenceFactory.key_version(),
+            scopes=scopes,
+        )
+        await db.commit()
+
         return ProviderCallbackResult(
             provider=record.provider,
             connected=True,

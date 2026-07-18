@@ -34,6 +34,8 @@ async def provider_callback(
     provider: str,
     code: str | None = None,
     state: str | None = None,
+    installation_id: str | None = None,
+    setup_action: str | None = None,
     error: str | None = None,
     error_description: str | None = Query(default=None, alias="error_description"),
     user = Depends(require_user),
@@ -45,6 +47,7 @@ async def provider_callback(
         provider=provider,
         code=code,
         state=state,
+        installation_id=installation_id,
         error=error,
         error_description=error_description,
     )

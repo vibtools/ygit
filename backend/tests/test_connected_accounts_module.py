@@ -104,13 +104,13 @@ async def test_provider_callback_creates_safe_token_reference_not_api_token() ->
         github_provider=FakeProvider("github"),  # type: ignore[arg-type]
         cloudflare_provider=FakeProvider("cloudflare"),  # type: ignore[arg-type]
     )
-    state = ConnectedAccountOAuthState.new_state(user_id="user_1", provider="github")
+    state = ConnectedAccountOAuthState.new_state(user_id="user_1", provider="cloudflare")
     db = FakeDb()
 
     result = await service.handle_provider_callback(
         db,  # type: ignore[arg-type]
         user_id="user_1",
-        provider="github",
+        provider="cloudflare",
         code="provider_auth_code",
         state=state,
         error=None,
@@ -118,8 +118,8 @@ async def test_provider_callback_creates_safe_token_reference_not_api_token() ->
     )
 
     assert result.connected is True
-    assert result.account_name == "github-tester"
-    record = repository.records[("user_1", "github")]
+    assert result.account_name == "cloudflare-tester"
+    record = repository.records[("user_1", "cloudflare")]
     assert record.token_secret_ref is not None
     assert "provider_auth_code" not in record.token_secret_ref
     assert db.committed is True

@@ -37,8 +37,9 @@ class ConnectedAccountsPublicService:
         provider: str,
         code: str | None,
         state: str | None,
-        error: str | None,
-        error_description: str | None,
+        installation_id: str | None = None,
+        error: str | None = None,
+        error_description: str | None = None,
     ) -> ProviderCallbackResult:
         return await self._internal.handle_provider_callback(
             db,
@@ -46,6 +47,7 @@ class ConnectedAccountsPublicService:
             provider=provider,
             code=code,
             state=state,
+            installation_id=installation_id,
             error=error,
             error_description=error_description,
         )
