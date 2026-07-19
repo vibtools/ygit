@@ -43,6 +43,37 @@ function two(value) {
   return n < 10 ? `0${n}` : String(n);
 }
 
+
+function projectStatusView(status) {
+  const normalized = String(status || "draft").toLowerCase();
+  const map = {
+    draft: ["Draft", "neutral", "Repository is waiting for analysis."],
+    repository_attached: ["Repository linked", "info", "Repository metadata is connected."],
+    analysis_ready: ["Analysis ready", "warning", "Analysis completed, but deployment is not ready yet."],
+    deploy_ready: ["Deploy ready", "success", "Project passed deployment readiness checks."],
+    deployed: ["Live", "success", "Website is live."],
+    failed: ["Failed", "danger", "Project needs attention."],
+    deleted: ["Deleted", "neutral", "Project has been removed."],
+  };
+  const [label, tone, copy] = map[normalized] || [normalized.replaceAll("_", " "), "neutral", "Status is available."];
+  return { label, tone, copy };
+}
+
+function isProjectDeployReady(project) {
+  return project?.status === "deploy_ready" || project?.status === "deployed";
+}
+
+function friendlyErrorMessage(error) {
+  const raw = typeof error === "string" ? error : error?.message || String(error || "");
+  if (raw.includes("DEPLOYMENT_PROJECT_NOT_READY")) {
+    return "This project has been analyzed, but it is not deploy-ready yet. Review the repository analysis before deployment.";
+  }
+  if (raw.includes(":")) {
+    return raw.split(":").slice(1).join(":").trim() || raw;
+  }
+  return raw || "Request failed. Please try again.";
+}
+
 function setView(view) {
   const safeView = viewMeta[view] ? view : "dashboard";
   const [title, subtitle] = viewMeta[safeView];
@@ -54,9 +85,11 @@ function setView(view) {
   location.hash = safeView;
 }
 
-function showSystemAlert(message) {
+
+function showSystemAlert(message, tone = "warning") {
   const alert = $("#system-alert");
-  alert.textContent = message;
+  alert.textContent = friendlyErrorMessage(message);
+  alert.dataset.tone = tone;
   alert.classList.remove("hidden");
 }
 
@@ -75,15 +108,29 @@ function renderMetrics() {
   $("#metric-success-rate").textContent = deploymentCount ? `${Math.round((completedCount / deploymentCount) * 100)}%` : "—";
 }
 
+
 function projectCard(project) {
-  return `<div class="list-item">
-    <header><strong>${escapeHtml(project.name || project.slug || project.id)}</strong><span class="pill ${escapeHtml(project.status || "draft")}">${escapeHtml(project.status || "draft")}</span></header>
-    <p>${escapeHtml(project.slug || "no slug")} · ${escapeHtml(project.repository_url || project.repository_id || "repository pending")}</p>
-    <div class="form-actions">
-      <button class="secondary-button" data-deploy-project="${escapeHtml(project.id)}" type="button">Deploy</button>
+  const status = project.status || "draft";
+  const statusView = projectStatusView(status);
+  const deployReady = isProjectDeployReady(project);
+  const repositoryRef = project.repository_url || project.repository_id || "Repository pending";
+  const deployAttrs = deployReady ? "" : 'disabled aria-disabled="true" title="Repository analysis is not deploy-ready yet"';
+  const deployLabel = deployReady ? "Deploy" : "Deploy locked";
+
+  return `<article class="list-item project-card ${escapeHtml(status)}">
+    <div class="project-card-main">
+      <div class="project-card-title-row">
+        <strong>${escapeHtml(project.name || project.slug || project.id)}</strong>
+        <span class="pill status-badge ${escapeHtml(statusView.tone)}">${escapeHtml(statusView.label)}</span>
+      </div>
+      <p class="project-meta">${escapeHtml(project.slug || "no slug")} · ${escapeHtml(repositoryRef)}</p>
+      <p class="project-readiness">${escapeHtml(statusView.copy)}</p>
+    </div>
+    <div class="form-actions project-actions">
+      <button class="secondary-button deploy-button ${deployReady ? "" : "is-disabled"}" data-deploy-project="${escapeHtml(project.id)}" data-project-status="${escapeHtml(status)}" type="button" ${deployAttrs}>${deployLabel}</button>
       <button class="secondary-button" data-project-id="${escapeHtml(project.id)}" type="button">Open</button>
     </div>
-  </div>`;
+  </article>`;
 }
 
 function emptyProjectState() {
@@ -94,7 +141,7 @@ function renderProjects() {
   const html = state.projects.length ? state.projects.map(projectCard).join("") : emptyProjectState();
   $("#project-list").innerHTML = html;
   $("#dashboard-project-list").innerHTML = state.projects.length ? state.projects.slice(0, 4).map(projectCard).join("") : emptyProjectState();
-  $$('[data-deploy-project]').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject)));
+  $$('[data-deploy-project]:not([disabled])').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject)));
   $$('[data-open-project-form]').forEach((button) => button.addEventListener('click', () => { setView("projects"); $("#project-form").classList.remove("hidden"); }));
   renderMetrics();
 }
@@ -146,20 +193,29 @@ function renderAccounts() {
   renderMetrics();
 }
 
+
 function renderTimeline() {
-  const hasProject = state.projects.length > 0;
+  const hasRepository = state.projects.some((p) => p.repository_id || p.repository_url);
+  const hasAnalysis = state.projects.some((p) => p.analysis_id || ["analysis_ready", "deploy_ready", "deployed"].includes(p.status));
+  const hasDeployReady = state.projects.some((p) => p.status === "deploy_ready" || p.status === "deployed");
   const hasGithub = state.accounts.some((a) => a.provider === "github" && (a.connected || a.status === "connected"));
   const hasCloudflare = state.accounts.some((a) => a.provider === "cloudflare" && (a.connected || a.status === "connected"));
   const hasDeployment = state.deployments.length > 0;
+  const hasLiveSite = state.deployments.some((d) => d.deployment_url && (d.status === "completed" || d.status === "success"));
+
   const steps = [
-    ["Website Live", state.deployments.some((d) => d.deployment_url), "Public Cloudflare Pages URL is available."],
-    ["Deploying", hasDeployment, "Worker and Deploy Pipeline are producing deployment events."],
-    ["Cloudflare Connected", hasCloudflare, "Cloudflare Pages account is linked."],
-    ["Analysis Complete", hasProject, "Framework, build command, and output directory are detected."],
-    ["Repository Connected", hasProject, "Project has a validated repository reference."],
+    ["Repository connected", hasRepository, "A GitHub repository reference is attached to the project."],
+    ["Analysis completed", hasAnalysis, hasDeployReady ? "Framework and build settings passed readiness checks." : "Analysis ran; deployment readiness is still pending."],
+    ["Accounts connected", hasGithub && hasCloudflare, "GitHub and Cloudflare accounts are linked."],
+    ["Deploy ready", hasDeployReady, "Project is eligible for Cloudflare Pages deployment."],
+    ["Deploying", hasDeployment, "Deployment events will appear when the worker starts."],
+    ["Website live", hasLiveSite, "A public Cloudflare Pages URL is available."],
   ];
+
   const firstOpen = steps.findIndex(([, done]) => !done);
-  $("#deployment-timeline").innerHTML = steps.map(([label, done, copy], index) => `<div class="timeline-step ${done ? "done" : index === firstOpen ? "active" : ""}"><div><span class="timeline-dot"></span>${index < steps.length - 1 ? "<span class=\"timeline-line\"></span>" : ""}</div><div class="timeline-copy"><strong>${label}</strong><span>${copy}</span></div></div>`).join("");
+  $("#deployment-timeline").innerHTML = steps
+    .map(([label, done, copy], index) => `<div class="timeline-step ${done ? "done" : index === firstOpen ? "active" : ""}"><div><span class="timeline-dot"></span>${index < steps.length - 1 ? "<span class=\"timeline-line\"></span>" : ""}</div><div class="timeline-copy"><strong>${label}</strong><span>${copy}</span></div></div>`)
+    .join("");
 }
 
 async function loadStatus() {
@@ -207,28 +263,42 @@ async function loadDeployments() {
   renderTimeline();
 }
 
+
 async function createProject(event) {
   event.preventDefault();
   const status = $("#project-form-status");
-  status.textContent = "Creating project...";
+  status.textContent = "Importing repository and running analysis...";
   const payload = { name: $("#project-name").value, repository_url: $("#repository-url").value, slug: $("#project-slug").value };
+
   try {
-    await fetchJson("/projects", { method: "POST", body: JSON.stringify(payload) });
-    status.textContent = "Project created.";
+    const project = await fetchJson("/projects", { method: "POST", body: JSON.stringify(payload) });
+    const view = projectStatusView(project?.status || "analysis_ready");
+    status.textContent = project?.status === "deploy_ready"
+      ? "Project created. Ready to deploy."
+      : `Project created. ${view.copy}`;
     $("#project-form").reset();
     await loadProjects();
   } catch (error) {
-    status.textContent = error.message;
+    status.textContent = friendlyErrorMessage(error);
   }
 }
 
+
 async function requestDeploy(projectId) {
   if (!projectId) return;
+
+  const project = state.projects.find((item) => item.id === projectId);
+  if (project && !isProjectDeployReady(project)) {
+    showSystemAlert("DEPLOYMENT_PROJECT_NOT_READY", "warning");
+    return;
+  }
+
   try {
     await fetchJson(`/projects/${encodeURIComponent(projectId)}/deploy`, { method: "POST", body: JSON.stringify({}) });
+    showSystemAlert("Deployment queued. Worker events will appear in deployment history.", "success");
     await loadDeployments();
   } catch (error) {
-    showSystemAlert(error.message);
+    showSystemAlert(error, "warning");
   }
 }
 
