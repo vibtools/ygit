@@ -78,21 +78,32 @@ class OIDCClient:
     async def validate_id_token(self, id_token: str, *, nonce: str) -> dict[str, Any]:
         try:
             import jwt
-            from jwt import PyJWKClient
-        except ImportError as exc:  # pragma: no cover
+            from jwt import PyJWK
+        except ImportError as exc:  # pragma: no cover - dependency guard
             raise AuthOidcCallbackFailedError("PyJWT dependency is not installed.") from exc
 
-        metadata = await self.metadata()
-        jwks_client = PyJWKClient(metadata.jwks_uri)
         try:
-            signing_key = jwks_client.get_signing_key_from_jwt(id_token)
+            jwks = await self._jwks_for_validation()
+            header = jwt.get_unverified_header(id_token)
+            key_id = header.get("kid")
+            signing_key_data = next(
+                (
+                    key
+                    for key in jwks.get("keys", [])
+                    if key.get("kid") == key_id and key.get("use", "sig") == "sig"
+                ),
+                None,
+            )
+            if signing_key_data is None:
+                raise AuthOidcCallbackFailedError("OIDC signing key not found.")
+
+            signing_key = PyJWK.from_dict(signing_key_data)
             claims = jwt.decode(
                 id_token,
                 signing_key.key,
                 algorithms=self._settings.oidc_allowed_algorithms,
                 audience=self._settings.keycloak_client_id,
                 issuer=self.issuer,
-                options={"require": ["exp", "iat", "iss", "aud", "sub"]},
             )
         except Exception as exc:
             logger.warning(
@@ -106,9 +117,10 @@ class OIDCClient:
 
         if claims.get("nonce") != nonce:
             raise AuthOidcCallbackFailedError("OIDC nonce validation failed.")
-        exp = claims.get("exp")
-        if isinstance(exp, int) and exp < int(time.time()):
+
+        if "exp" not in claims:
             raise AuthOidcCallbackFailedError("OIDC ID token has expired.")
+
         return claims
 
     async def userinfo(self, access_token: str) -> dict[str, Any] | None:
