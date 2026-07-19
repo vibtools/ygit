@@ -50,9 +50,13 @@ class CloudflareProviderClient:
             "client_id": client_id,
             "redirect_uri": redirect_uri,
             "response_type": "code",
-            "scope": scopes,
             "state": state,
         }
+
+        normalized_scopes = scopes.strip()
+        if normalized_scopes:
+            params["scope"] = normalized_scopes
+
         return f"{self.authorization_url}?{urlencode(params)}"
 
     async def exchange_oauth_code(

@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     cloudflare_oauth_client_id: str = ""
     cloudflare_oauth_client_secret: SecretStr = Field(default=SecretStr(""))
     cloudflare_oauth_redirect_uri: str = "http://localhost:8000/api/v1/connected-accounts/cloudflare/callback"
-    cloudflare_oauth_scopes: str = "account:read pages:write"
+    cloudflare_oauth_scopes: str = ""
     cloudflare_oauth_authorization_url: AnyHttpUrl = "https://dash.cloudflare.com/oauth2/auth"
     cloudflare_oauth_token_url: AnyHttpUrl = "https://dash.cloudflare.com/oauth2/token"
     cloudflare_api_base_url: AnyHttpUrl = "https://api.cloudflare.com/client/v4"
