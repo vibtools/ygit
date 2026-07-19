@@ -27,14 +27,21 @@ class RepositoryAnalysisInternalService:
         self.deep_queue = deep_queue or DeepAnalysisQueue()
         self.analysis_repository = analysis_repository or AnalysisResultRepository()
 
-    async def run_quick_analysis(self, db: AsyncSession, *, user_id: str, repository_id: str) -> AnalysisDetail:
+    async def run_quick_analysis(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        repository_id: str,
+        project_id: str | None = None,
+    ) -> AnalysisDetail:
         repository_input = await self.repository_service.prepare_analysis_input(db, user_id=user_id, repository_id=repository_id)
         quick_result = self.quick_runner.run(repository_input)
         return await self.result_store.store_quick_result(
             db,
             user_id=user_id,
             repository_id=repository_id,
-            project_id=None,
+            project_id=project_id,
             commit_sha=repository_input.latest_commit_sha,
             result=quick_result,
         )

@@ -12,6 +12,12 @@ from backend.engines.project_engine.errors import (
 )
 from backend.engines.project_engine.internal.validators import validate_project_name, validate_project_slug
 from backend.engines.project_engine.repository import ProjectRepository
+from backend.engines.repository_analysis_engine.public import (
+    RepositoryAnalysisPublicService,
+    repository_analysis_service,
+)
+from backend.engines.repository_engine.public import RepositoryPublicService, repository_service
+from backend.engines.repository_engine.schemas import RepositoryMetadataInput
 from backend.engines.project_engine.schemas import (
     ProjectAccess,
     ProjectCreateInput,
@@ -26,8 +32,16 @@ from backend.shared.schemas.pagination import Page, Pagination
 
 
 class ProjectInternalService:
-    def __init__(self, repository: ProjectRepository | None = None) -> None:
+    def __init__(
+        self,
+        repository: ProjectRepository | None = None,
+        *,
+        repository_public_service: RepositoryPublicService | None = None,
+        analysis_public_service: RepositoryAnalysisPublicService | None = None,
+    ) -> None:
         self.repository = repository or ProjectRepository()
+        self.repository_service = repository_public_service or repository_service
+        self.analysis_service = analysis_public_service or repository_analysis_service
 
     async def create_project(self, db: AsyncSession, *, user_id: str, input_data: ProjectCreateInput) -> ProjectDetail:
         name = validate_project_name(input_data.name)
@@ -35,9 +49,37 @@ class ProjectInternalService:
         existing = await self.repository.get_by_slug(db, slug)
         if existing is not None:
             raise ProjectSlugUnavailableError()
+
         record = await self.repository.create_project(db, user_id=user_id, name=name, slug=slug)
+        if not input_data.repository_url:
+            await db.commit()
+            return self.to_detail(record)
+
+        repository_detail = await self.repository_service.fetch_repository_metadata(
+            db,
+            user_id=user_id,
+            input_data=RepositoryMetadataInput(repository_url=input_data.repository_url),
+        )
+        analysis_detail = await self.analysis_service.run_quick_analysis(
+            db,
+            user_id=user_id,
+            repository_id=repository_detail.id,
+            project_id=record.id,
+        )
+
+        project = await self.repository.get_active_by_id(db, record.id)
+        if project is None:
+            raise ProjectNotFoundError()
+
+        updated_record = await self.repository.attach_repository_analysis(
+            db,
+            project=project,
+            repository_id=repository_detail.id,
+            analysis_id=analysis_detail.id,
+            deploy_ready=analysis_detail.deploy_ready,
+        )
         await db.commit()
-        return self.to_detail(record)
+        return self.to_detail(updated_record)
 
     async def list_projects(self, db: AsyncSession, *, user_id: str, filters: ProjectListFilters) -> Page:
         records, total = await self.repository.list_projects(db, user_id=user_id, filters=filters)

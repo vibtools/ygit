@@ -35,6 +35,22 @@ class ProjectRepository:
         await db.flush()
         return self.to_record(project)
 
+    async def attach_repository_analysis(
+        self,
+        db: AsyncSession,
+        *,
+        project: ProjectModel,
+        repository_id: str,
+        analysis_id: str,
+        deploy_ready: bool,
+    ) -> ProjectRecord:
+        project.repository_id = repository_id
+        project.analysis_id = analysis_id
+        project.status = "deploy_ready" if deploy_ready else "analysis_ready"
+        project.version += 1
+        await db.flush()
+        return self.to_record(project)
+
     async def list_projects(self, db: AsyncSession, *, user_id: str, filters: ProjectListFilters) -> tuple[list[ProjectRecord], int]:
         conditions = [ProjectModel.user_id == user_id, ProjectModel.deleted_at.is_(None)]
         if filters.status is not None:
