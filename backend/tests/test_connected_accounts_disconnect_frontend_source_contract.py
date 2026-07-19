@@ -9,23 +9,33 @@ def _dashboard_css_source() -> str:
     return Path("frontend/dashboard/assets/styles.css").read_text(encoding="utf-8")
 
 
-def test_connected_accounts_connected_card_has_app_side_disconnect() -> None:
+def _connected_branch(source: str) -> str:
+    return source.split("const actions = connected", 1)[1].split(": `<div", 1)[0]
+
+
+def test_connected_accounts_connected_card_has_single_disconnect_action() -> None:
+    source = _dashboard_app_source()
+    connected_branch = _connected_branch(source)
+
+    assert 'Status: Connected' in source
+    assert 'data-disconnect-provider="${provider}"' in connected_branch
+    assert "Disconnect" in connected_branch
+    assert "Manage on GitHub" in source
+    assert "Reconnect" not in connected_branch
+
+
+def test_disconnected_card_uses_connect_or_reconnect() -> None:
     source = _dashboard_app_source()
 
-    assert 'data-disconnect-provider="${provider}"' in source
-    assert "async function disconnectProvider(provider)" in source
-    assert 'method: "DELETE"' in source
-    assert "window.location.reload()" in source
+    assert 'const connectLabel = !connected && account ? "Reconnect" : "Connect";' in source
+    assert '${connectLabel}' in source
 
 
-def test_disconnect_uses_confirmation_and_keeps_provider_management_separate() -> None:
+def test_disconnect_confirmation_mentions_github_uninstall() -> None:
     source = _dashboard_app_source()
 
     assert "window.confirm" in source
-    assert "This removes the YGIT connection only" in source
-    assert "It does not uninstall the provider app" in source
-    assert "https://github.com/settings/installations" in source
-    assert "Manage on GitHub" in source
+    assert "also uninstalls the GitHub App" in source
 
 
 def test_disconnect_button_has_dashboard_styles() -> None:

@@ -120,16 +120,16 @@ function accountCard(provider) {
   const accountName = escapeHtml(account?.account_name || account?.provider_account_name || "account");
   const manageUrl = provider === "github" ? "https://github.com/settings/installations" : "https://dash.cloudflare.com";
   const manageLabel = provider === "github" ? "Manage on GitHub" : "Manage on Cloudflare";
-  const statusCopy = connected ? `Connected as ${accountName}` : "Not connected";
+  const connectLabel = !connected && account ? "Reconnect" : "Connect";
+  const statusCopy = connected ? `Status: Connected · ${accountName}` : "Status: Not connected";
 
   const actions = connected
     ? `<div class="form-actions account-actions">
-        <a class="secondary-button" href="${API}/connected-accounts/${provider}/connect">Reconnect</a>
         <button class="danger-button" type="button" data-disconnect-provider="${provider}">Disconnect</button>
         <a class="provider-manage-link" href="${manageUrl}" target="_blank" rel="noreferrer">${manageLabel}</a>
       </div>`
     : `<div class="form-actions account-actions">
-        <a class="primary-button" href="${API}/connected-accounts/${provider}/connect">Connect</a>
+        <a class="primary-button" href="${API}/connected-accounts/${provider}/connect">${connectLabel}</a>
       </div>`;
 
   return `<article class="account-card" id="${provider}-account-card">
@@ -257,7 +257,7 @@ document.addEventListener("DOMContentLoaded", boot);
 async function disconnectProvider(provider) {
   const label = provider === "github" ? "GitHub" : "Cloudflare";
   const confirmed = window.confirm(
-    `Disconnect ${label} from YGIT? This removes the YGIT connection only. It does not uninstall the provider app.`
+    `Disconnect ${label} from YGIT? For GitHub, this also uninstalls the GitHub App from the connected account.`
   );
 
   if (!confirmed) {

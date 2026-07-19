@@ -208,6 +208,11 @@ class ConnectedAccountsInternalService:
         existing = await self.repository.get_by_user_provider(db, user_id=user_id, provider=provider_name)
         if existing is None:
             raise ConnectedAccountNotFoundError()
+
+        existing_record = self.repository.to_record(existing)
+        if provider_name == "github":
+            await self._delete_github_app_installation(existing_record.token_secret_ref)
+
         record = await self.repository.mark_disconnected(db, user_id=user_id, provider=provider_name)
         await db.commit()
         return DisconnectProviderResult(provider=record.provider, connected=False, status=record.status)
@@ -266,6 +271,32 @@ class ConnectedAccountsInternalService:
         error_code = error_summary.strip().upper().replace(" ", "_")[:128] or "PROVIDER_ERROR"
         await self.repository.mark_provider_error(db, user_id=user_id, provider=provider_name, error_code=error_code)
         await db.commit()
+
+    async def _delete_github_app_installation(self, token_secret_ref: str | None) -> None:
+        if not token_secret_ref:
+            return
+
+        prefix = "github_app_installation:"
+        if not token_secret_ref.startswith(prefix):
+            return
+
+        installation_id = token_secret_ref.removeprefix(prefix).strip()
+        if not installation_id.isdigit():
+            raise ProviderConnectionFailedError()
+
+        settings = get_settings()
+        app_jwt = self.github_provider.create_app_jwt(
+            app_id=settings.github_app_id,
+            private_key_pem=settings.github_app_private_key.get_secret_value(),
+        )
+
+        try:
+            await self.github_provider.delete_app_installation(
+                installation_id=installation_id,
+                app_jwt=app_jwt,
+            )
+        except Exception as exc:
+            raise ProviderConnectionFailedError() from exc
 
     async def _validate_provider_account(self, provider: ProviderName, token_ref: str) -> dict[str, str]:
         if provider == "github":

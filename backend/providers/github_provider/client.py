@@ -127,6 +127,30 @@ class GitHubProviderClient:
             repository_selection=payload.get("repository_selection"),
         )
 
+    async def delete_app_installation(
+        self,
+        *,
+        installation_id: int | str,
+        app_jwt: str,
+    ) -> None:
+        if not app_jwt:
+            raise GitHubAppAuthenticationError("GitHub App JWT is missing.")
+
+        url = f"{self.api_base_url}/app/installations/{installation_id}"
+        headers = self._app_headers(app_jwt)
+
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout_seconds, headers=headers) as client:
+                response = await client.delete(url)
+        except httpx.HTTPError as exc:
+            raise GitHubProviderUnavailableError("GitHub App installation uninstall request failed.") from exc
+
+        if response.status_code in {204, 404}:
+            return
+        if response.status_code >= 400:
+            raise GitHubInstallationValidationError("GitHub App installation uninstall failed.")
+
+
     async def validate_account(self, token_ref: str) -> dict[str, str]:
         if not token_ref:
             return {"provider": self.provider, "status": "invalid"}
