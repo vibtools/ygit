@@ -78,9 +78,16 @@ class ConnectedAccountsInternalService:
             return ConnectProviderResult(provider=provider_name, authorization_url=authorization_url, state=state)
 
         state = ConnectedAccountOAuthState.new_state(user_id=user_id, provider=provider_name)
-        # Cloudflare remains placeholder-backed until its provider integration is implemented.
-        redirect_base = str(settings.app_base_url).rstrip("/")
-        authorization_url = f"{redirect_base}{settings.api_prefix}/connected-accounts/{provider_name}/callback?state={state}"
+        if settings.cloudflare_oauth_client_id:
+            authorization_url = self.cloudflare_provider.build_oauth_authorization_url(
+                client_id=settings.cloudflare_oauth_client_id,
+                redirect_uri=settings.cloudflare_oauth_redirect_uri,
+                scopes=settings.cloudflare_oauth_scopes,
+                state=state,
+            )
+        else:
+            redirect_base = str(settings.app_base_url).rstrip("/")
+            authorization_url = f"{redirect_base}{settings.api_prefix}/connected-accounts/{provider_name}/callback?state={state}"
         return ConnectProviderResult(provider=provider_name, authorization_url=authorization_url, state=state)
 
     async def handle_provider_callback(
@@ -107,19 +114,66 @@ class ConnectedAccountsInternalService:
                 installation_id=installation_id,
             )
 
+        return await self._handle_cloudflare_oauth_callback(
+            db,
+            user_id=user_id,
+            state=state,
+            code=code,
+        )
+
+    async def _handle_cloudflare_oauth_callback(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        state: str | None,
+        code: str | None,
+    ) -> ProviderCallbackResult:
+        provider_name: ProviderName = "cloudflare"
+
         if not code:
-            raise ProviderOAuthFailedError("Provider OAuth callback is missing code.")
+            raise ProviderOAuthFailedError("Cloudflare OAuth callback is missing code.")
         if not state or not ConnectedAccountOAuthState.validate_state(
             state=state,
             user_id=user_id,
             provider=provider_name,
         ):
-            raise ProviderOAuthFailedError("Provider OAuth state is invalid.")
+            raise ProviderOAuthFailedError("Cloudflare OAuth state is invalid.")
 
-        token_ref = TokenReferenceFactory.new_token_ref(provider=provider_name)
-        validation = await self._validate_provider_account(provider_name, token_ref)
-        account_name = validation.get("account_name") or f"{provider_name}-account"
-        provider_account_id = validation.get("account_id") or f"{provider_name}:{user_id}"
+        settings = get_settings()
+        has_oauth_config = bool(
+            settings.cloudflare_oauth_client_id
+            and settings.cloudflare_oauth_client_secret.get_secret_value()
+        )
+        provider_supports_oauth = bool(
+            hasattr(self.cloudflare_provider, "exchange_oauth_code")
+            and hasattr(self.cloudflare_provider, "validate_oauth_access")
+        )
+
+        if has_oauth_config and provider_supports_oauth:
+            exchange_kwargs = {
+                "code_value": code,
+                "client_id": settings.cloudflare_oauth_client_id,
+                "client_secret": settings.cloudflare_oauth_client_secret.get_secret_value(),
+                "redirect_uri": settings.cloudflare_oauth_redirect_uri,
+            }
+            oauth_payload = await self.cloudflare_provider.exchange_oauth_code(**exchange_kwargs)
+            scopes = (oauth_payload.scope or settings.cloudflare_oauth_scopes or "").split()
+            bearer_value = oauth_payload.access_token
+            validation = await self.cloudflare_provider.validate_oauth_access(
+                bearer_value=bearer_value,
+                scopes=scopes,
+            )
+            safe_reference = f"cloudflare_oauth_account:{validation.account_id}"
+            provider_account_id = validation.account_id
+            account_name = validation.account_name
+            stored_scopes = validation.scopes or scopes
+        else:
+            safe_reference = TokenReferenceFactory.new_token_ref(provider=provider_name)
+            validation = await self._validate_provider_account(provider_name, safe_reference)
+            account_name = validation.get("account_name") or f"{provider_name}-account"
+            provider_account_id = validation.get("account_id") or f"{provider_name}:{user_id}"
+            stored_scopes = self._default_scopes(provider_name)
 
         record = await self.repository.upsert_connected(
             db,
@@ -127,9 +181,9 @@ class ConnectedAccountsInternalService:
             provider=provider_name,
             provider_account_id=provider_account_id,
             provider_account_name=account_name,
-            token_secret_ref=token_ref,
+            token_secret_ref=safe_reference,
             token_key_version=TokenReferenceFactory.key_version(),
-            scopes=self._default_scopes(provider_name),
+            scopes=stored_scopes,
         )
         await db.commit()
         return ProviderCallbackResult(

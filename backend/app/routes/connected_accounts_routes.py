@@ -37,6 +37,8 @@ async def connect_provider(
     result = await connected_accounts_service.connect_provider(user_id=user.id, provider=provider)
     if provider == "github" and _wants_browser_redirect(request):
         return RedirectResponse(result.authorization_url, status_code=status.HTTP_302_FOUND)
+    if provider == "cloudflare" and _wants_browser_redirect(request):
+        return RedirectResponse(result.authorization_url, status_code=status.HTTP_302_FOUND)
     return success_response(result.model_dump(mode="json"))
 
 
@@ -66,6 +68,11 @@ async def provider_callback(
     if provider == "github" and _wants_browser_redirect(request):
         return RedirectResponse(
             "/dashboard?connected=github#connected-accounts",
+            status_code=status.HTTP_303_SEE_OTHER,
+        )
+    if provider == "cloudflare" and _wants_browser_redirect(request):
+        return RedirectResponse(
+            "/dashboard?connected=cloudflare#connected-accounts",
             status_code=status.HTTP_303_SEE_OTHER,
         )
     return success_response(result.model_dump(mode="json"), status_code=status.HTTP_201_CREATED)
