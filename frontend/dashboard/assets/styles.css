@@ -433,3 +433,40 @@ h3 {
   }
 }
 /* YGIT_UI_POLISH_19B_END */
+
+.account-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.danger-button {
+  align-items: center;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.32);
+  border-radius: 10px;
+  color: #fca5a5;
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-weight: 700;
+  min-height: 42px;
+  padding: 0 18px;
+}
+
+.danger-button:hover {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.48);
+}
+
+.provider-manage-link {
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+.provider-manage-link:hover {
+  color: var(--text);
+}

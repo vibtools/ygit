@@ -116,11 +116,27 @@ function renderDeployments() {
 function accountCard(provider) {
   const account = state.accounts.find((item) => item.provider === provider);
   const connected = account?.connected || account?.status === "connected";
-  return `<div>
-    <strong>${provider === "github" ? "GitHub" : "Cloudflare"}</strong>
-    <span>${connected ? `Connected as ${escapeHtml(account.account_name || account.provider_account_name || "account")}` : "Not connected"}</span>
-    <div class="form-actions" style="margin-top: 12px;"><a class="${connected ? "secondary-button" : "primary-button"}" href="${API}/connected-accounts/${provider}/connect">${connected ? "Reconnect" : "Connect"}</a></div>
-  </div>`;
+  const label = provider === "github" ? "GitHub" : "Cloudflare";
+  const accountName = escapeHtml(account?.account_name || account?.provider_account_name || "account");
+  const manageUrl = provider === "github" ? "https://github.com/settings/installations" : "https://dash.cloudflare.com";
+  const manageLabel = provider === "github" ? "Manage on GitHub" : "Manage on Cloudflare";
+  const statusCopy = connected ? `Connected as ${accountName}` : "Not connected";
+
+  const actions = connected
+    ? `<div class="form-actions account-actions">
+        <a class="secondary-button" href="${API}/connected-accounts/${provider}/connect">Reconnect</a>
+        <button class="danger-button" type="button" data-disconnect-provider="${provider}">Disconnect</button>
+        <a class="provider-manage-link" href="${manageUrl}" target="_blank" rel="noreferrer">${manageLabel}</a>
+      </div>`
+    : `<div class="form-actions account-actions">
+        <a class="primary-button" href="${API}/connected-accounts/${provider}/connect">Connect</a>
+      </div>`;
+
+  return `<article class="account-card" id="${provider}-account-card">
+    <strong>${label}</strong>
+    <span>${statusCopy}</span>
+    ${actions}
+  </article>`;
 }
 
 function renderAccounts() {
@@ -236,3 +252,53 @@ async function boot() {
 }
 
 document.addEventListener("DOMContentLoaded", boot);
+
+
+async function disconnectProvider(provider) {
+  const label = provider === "github" ? "GitHub" : "Cloudflare";
+  const confirmed = window.confirm(
+    `Disconnect ${label} from YGIT? This removes the YGIT connection only. It does not uninstall the provider app.`
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const response = await fetch(`${API}/connected-accounts/${provider}`, {
+    method: "DELETE",
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    throw new Error(payload?.error?.message || `Unable to disconnect ${label}.`);
+  }
+
+  if (typeof loadAccounts === "function") {
+    await loadAccounts();
+  } else {
+    window.location.reload();
+  }
+}
+
+function handleConnectedAccountDisconnect(event) {
+  const button = event.target.closest("[data-disconnect-provider]");
+  if (!button) {
+    return;
+  }
+
+  event.preventDefault();
+  const provider = button.dataset.disconnectProvider;
+  if (!provider) {
+    return;
+  }
+
+  disconnectProvider(provider).catch((error) => {
+    alert(error.message || "Unable to disconnect provider.");
+  });
+}
+
+document.addEventListener("click", handleConnectedAccountDisconnect);
