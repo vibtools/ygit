@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import time
+import logging
 from typing import Any
 from urllib.parse import urlencode
 
@@ -10,6 +11,8 @@ from backend.core.config import Settings
 from backend.engines.auth_engine.errors import AuthOidcCallbackFailedError
 from backend.engines.auth_engine.internal.pkce import code_challenge_s256
 from backend.engines.auth_engine.schemas import OIDCProviderMetadata, OIDCUserClaims, TokenResponse
+
+logger = logging.getLogger(__name__)
 
 
 class OIDCClient:
@@ -92,6 +95,13 @@ class OIDCClient:
                 options={"require": ["exp", "iat", "iss", "aud", "sub"]},
             )
         except Exception as exc:
+            logger.warning(
+                "OIDC ID token validation failed. error_type=%s configured_issuer=%s configured_audience=%s allowed_algorithms=%s",
+                exc.__class__.__name__,
+                self.issuer,
+                self._settings.keycloak_client_id,
+                ",".join(self._settings.oidc_allowed_algorithms),
+            )
             raise AuthOidcCallbackFailedError("OIDC ID token validation failed.") from exc
 
         if claims.get("nonce") != nonce:
