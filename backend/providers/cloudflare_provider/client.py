@@ -31,6 +31,19 @@ class CloudflareProviderClient:
         self.api_base_url = api_base_url.rstrip("/")
         self.timeout_seconds = timeout_seconds
 
+    @staticmethod
+    def _normalize_oauth_scope_string(scopes: str) -> str:
+        if not scopes:
+            return ""
+
+        normalized = str(scopes).strip()
+        normalized = normalized.replace('\\"', '"').replace("\\'", "'")
+        parts = [
+            part.strip().strip("\\\"'")
+            for part in normalized.split()
+        ]
+        return " ".join(part for part in parts if part)
+
     def build_oauth_authorization_url(
         self,
         *,
@@ -53,7 +66,7 @@ class CloudflareProviderClient:
             "state": state,
         }
 
-        normalized_scopes = scopes.strip()
+        normalized_scopes = self._normalize_oauth_scope_string(scopes)
         if normalized_scopes:
             params["scope"] = normalized_scopes
 

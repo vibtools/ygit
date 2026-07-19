@@ -19,7 +19,7 @@ def test_cloudflare_authorization_url_contains_required_oauth_parameters() -> No
     url = client.build_oauth_authorization_url(
         client_id="client_123",
         redirect_uri="https://ygit.net/api/v1/connected-accounts/cloudflare/callback",
-        scopes="account:read pages:write",
+        scopes="page.read page.write",
         state="ca.cloudflare.user_123.nonce",
     )
 
@@ -31,7 +31,7 @@ def test_cloudflare_authorization_url_contains_required_oauth_parameters() -> No
     assert parsed.path == "/oauth2/auth"
     assert query["client_id"] == ["client_123"]
     assert query["response_type"] == ["code"]
-    assert query["scope"] == ["account:read pages:write"]
+    assert query["scope"] == ["page.read page.write"]
     assert query["state"] == ["ca.cloudflare.user_123.nonce"]
 
 
@@ -60,3 +60,18 @@ def test_cloudflare_authorization_url_omits_scope_when_not_configured() -> None:
     assert query["client_id"] == ["client_123"]
     assert query["response_type"] == ["code"]
     assert query["state"] == ["ca.cloudflare.user_123.nonce"]
+
+
+def test_cloudflare_authorization_url_normalizes_escaped_quoted_scopes() -> None:
+    client = CloudflareProviderClient()
+    url = client.build_oauth_authorization_url(
+        client_id="client_123",
+        redirect_uri="https://ygit.net/api/v1/connected-accounts/cloudflare/callback",
+        scopes='\\"page.read page.write account-settings.read user-details.read\\"',
+        state="ca.cloudflare.user_123.nonce",
+    )
+
+    parsed = urlparse(url)
+    query = parse_qs(parsed.query)
+
+    assert query["scope"] == ["page.read page.write account-settings.read user-details.read"]
