@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline
+from backend.workers.git_checkout import GitCheckoutRequest, run_git_checkout
 from backend.workers.workspace import prepare_repository_workspace
 
 JOB_TYPE = "deploy_project"
@@ -36,16 +37,33 @@ def _repository_contains_checkout(repository_path: Path) -> bool:
         return False
 
 
+def _payload_timeout_seconds(value: object) -> int:
+    if value is None:
+        return 600
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 600
+
+
+def _payload_checkout_ref(payload: dict[str, object]) -> str | None:
+    return _optional_str(payload.get("git_ref")) or _optional_str(payload.get("branch"))
+
+
+def _payload_checkout_timeout_seconds(value: object) -> int:
+    if value is None:
+        return 180
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 180
+
+
 def _payload_with_workspace_if_checkout_ready(
     deployment_id: str,
     payload: dict[str, object],
 ) -> dict[str, object]:
-    """Prepare worker workspace and expose repository_path only after checkout exists.
-
-    Deploy Engine now sends analysis-derived build settings, but GitHub checkout
-    is not wired yet. This keeps build execution disabled until repository files
-    are present in the worker-owned repository workspace.
-    """
+    """Prepare worker workspace and run checkout only when repository_url exists."""
 
     if not _payload_needs_worker_workspace(payload):
         return payload
@@ -55,6 +73,19 @@ def _payload_with_workspace_if_checkout_ready(
 
     runtime_payload["workspace_path"] = str(workspace.workspace_path)
     runtime_payload["artifacts_path"] = str(workspace.artifacts_path)
+
+    repository_url = _optional_str(payload.get("repository_url"))
+    if repository_url and not _repository_contains_checkout(workspace.repository_path):
+        checkout_result = run_git_checkout(
+            GitCheckoutRequest(
+                repository_url=repository_url,
+                destination_path=workspace.repository_path,
+                ref=_payload_checkout_ref(payload),
+                timeout_seconds=_payload_checkout_timeout_seconds(payload.get("checkout_timeout_seconds")),
+            )
+        )
+        if checkout_result.commit_sha:
+            runtime_payload["commit_sha"] = checkout_result.commit_sha
 
     if _repository_contains_checkout(workspace.repository_path):
         runtime_payload["repository_path"] = str(workspace.repository_path)
@@ -70,15 +101,6 @@ def _payload_environment(value: object) -> dict[str, str]:
         for key, item in value.items()
         if key is not None and item is not None
     }
-
-
-def _payload_timeout_seconds(value: object) -> int:
-    if value is None:
-        return 600
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return 600
 
 
 def _build_stage_input(deployment_id: str, payload: dict[str, object]) -> DeployBuildStageInput | None:

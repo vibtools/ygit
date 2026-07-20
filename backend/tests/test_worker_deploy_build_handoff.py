@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.workers.git_checkout import WorkerGitCheckoutError
 from backend.workers.jobs import deploy_project
 
 
@@ -86,6 +87,78 @@ async def test_deploy_worker_prepares_workspace_but_skips_build_until_checkout_e
     assert (tmp_path / "dep_workspace" / "repository").is_dir()
     assert (tmp_path / "dep_workspace" / "artifacts").is_dir()
     assert fake_pipeline.calls == [("deploy", "dep_workspace")]
+
+
+@pytest.mark.asyncio
+async def test_deploy_worker_runs_checkout_then_build_when_repository_url_exists(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(build_status="succeeded")
+    checkout_calls = []
+
+    def fake_checkout(request):
+        checkout_calls.append(request)
+        request.destination_path.mkdir(parents=True, exist_ok=True)
+        (request.destination_path / "package.json").write_text("{}", encoding="utf-8")
+        return SimpleNamespace(commit_sha="abc123")
+
+    monkeypatch.setattr(deploy_project, "deploy_pipeline", fake_pipeline)
+    monkeypatch.setattr(deploy_project, "run_git_checkout", fake_checkout)
+    monkeypatch.setenv("YGIT_WORKSPACE_ROOT", str(tmp_path))
+
+    await deploy_project.run(
+        {
+            "deployment_id": "dep_checkout_url",
+            "project_id": "proj_1",
+            "user_id": "user_1",
+            "repository_url": "https://github.com/vibtools/ygit",
+            "git_ref": "main",
+            "checkout_timeout_seconds": "45",
+            "package_manager": "npm",
+            "build_command": "npm run build",
+            "output_directory": "dist",
+        }
+    )
+
+    assert len(checkout_calls) == 1
+    assert checkout_calls[0].repository_url == "https://github.com/vibtools/ygit"
+    assert checkout_calls[0].destination_path == (tmp_path / "dep_checkout_url" / "repository").resolve()
+    assert checkout_calls[0].ref == "main"
+    assert checkout_calls[0].timeout_seconds == 45
+
+    assert [call[0] for call in fake_pipeline.calls] == ["build", "deploy"]
+    build_input = fake_pipeline.calls[0][1]
+    assert Path(build_input.repository_path) == (tmp_path / "dep_checkout_url" / "repository").resolve()
+    assert build_input.build_command == "npm run build"
+    assert build_input.output_directory == "dist"
+
+
+@pytest.mark.asyncio
+async def test_deploy_worker_stops_when_checkout_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(build_status="succeeded")
+
+    def fake_checkout(_request):
+        raise WorkerGitCheckoutError("checkout failed")
+
+    monkeypatch.setattr(deploy_project, "deploy_pipeline", fake_pipeline)
+    monkeypatch.setattr(deploy_project, "run_git_checkout", fake_checkout)
+    monkeypatch.setenv("YGIT_WORKSPACE_ROOT", str(tmp_path))
+
+    with pytest.raises(WorkerGitCheckoutError):
+        await deploy_project.run(
+            {
+                "deployment_id": "dep_checkout_fail",
+                "repository_url": "https://github.com/vibtools/ygit",
+                "build_command": "npm run build",
+                "output_directory": "dist",
+            }
+        )
+
+    assert fake_pipeline.calls == []
 
 
 @pytest.mark.asyncio
@@ -172,6 +245,7 @@ def test_deploy_worker_build_handoff_keeps_architecture_boundaries() -> None:
 
     assert "from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline" in source
     assert "from backend.workers.workspace import prepare_repository_workspace" in source
+    assert "from backend.workers.git_checkout import GitCheckoutRequest, run_git_checkout" in source
     assert "execute_build_stage" in source
     assert "backend.pipelines.deploy_pipeline.internal" not in source
     assert "backend.providers" not in source
