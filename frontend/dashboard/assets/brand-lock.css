@@ -406,3 +406,32 @@ button[disabled],
     justify-content: flex-start !important;
   }
 }
+
+/* Step 27B UI polish: compact brand/sidebar */
+.sidebar {
+  overflow-y: auto !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+.brand {
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 14px !important;
+}
+
+.brand-logo-full {
+  width: 130px !important;
+}
+
+.sidebar-note {
+  margin-top: auto !important;
+}
