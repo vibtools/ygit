@@ -594,3 +594,87 @@ select,
 .sidebar-note {
   margin-top: auto !important;
 }
+
+/* Step 27C header alignment polish */
+.topbar {
+  align-items: center !important;
+}
+
+.topbar-actions {
+  display: grid !important;
+  grid-template-columns: 320px 40px minmax(148px, auto) auto 40px !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+
+.topbar-actions .search {
+  width: 320px !important;
+  max-width: 320px !important;
+}
+
+.notification-button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.workspace-switcher {
+  height: 40px !important;
+  min-height: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 0 10px !important;
+  border: 1px solid var(--ygit-border) !important;
+  border-radius: 10px !important;
+  background: #08111f !important;
+  color: var(--ygit-muted) !important;
+  box-shadow: none !important;
+}
+
+.workspace-switcher span {
+  font-size: 12px !important;
+  color: #7f8da3 !important;
+}
+
+.workspace-switcher select {
+  height: 28px !important;
+  min-height: 28px !important;
+  padding: 0 20px 0 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ygit-heading) !important;
+  font-size: 13px !important;
+  font-weight: 650 !important;
+  box-shadow: none !important;
+}
+
+.profile-button {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--ygit-border) !important;
+  background: #0d1828 !important;
+  color: #d7e0ee !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 1100px) {
+  .topbar-actions {
+    grid-template-columns: minmax(220px, 1fr) 40px 40px !important;
+  }
+
+  .topbar-actions .search {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .workspace-switcher {
+    display: none !important;
+  }
+}

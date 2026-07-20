@@ -305,7 +305,7 @@ async function requestDeploy(projectId) {
 function bindUi() {
   $$('[data-view]').forEach((link) => link.addEventListener("click", (event) => { event.preventDefault(); setView(link.dataset.view); }));
   $$('[data-view-trigger]').forEach((button) => button.addEventListener("click", () => setView(button.dataset.viewTrigger)));
-  $("#quick-create").addEventListener("click", () => { setView("projects"); $("#project-form").classList.remove("hidden"); });
+  $("#new-project-button").addEventListener("click", () => { setView("projects"); $("#project-form").classList.remove("hidden"); });
   $("#open-project-form").addEventListener("click", () => $("#project-form").classList.remove("hidden"));
   $("#cancel-project-form").addEventListener("click", () => $("#project-form").classList.add("hidden"));
   $("#project-form").addEventListener("submit", createProject);
@@ -372,3 +372,6 @@ function handleConnectedAccountDisconnect(event) {
 }
 
 document.addEventListener("click", handleConnectedAccountDisconnect);
+
+const notificationsButton = $("#notifications-button");
+if (notificationsButton) notificationsButton.addEventListener("click", () => showSystemAlert("No new notifications.", "success"));

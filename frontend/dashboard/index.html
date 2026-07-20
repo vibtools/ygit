@@ -47,10 +47,19 @@
         </div>
         <div class="topbar-actions" aria-label="Workspace controls">
           <label class="search"><span aria-hidden="true">⌕</span><input type="search" placeholder="Search projects, deployments" aria-label="Search" /></label>
+        <button class="icon-button notification-button" id="notifications-button" type="button" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+        </button>
           <button class="icon-button" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24"><path d="M8 4h8l2 3v13H6V7z"/><path d="M9 12h6M9 16h6M10 4v4h4V4"/></svg></button>
-          <button class="ghost-button" type="button">Workspace</button>
-          <button class="primary-button" id="quick-create" type="button">New Project</button>
-          <span class="avatar" aria-label="Profile"></span>
+          <label class="workspace-switcher" aria-label="Workspace switcher">
+          <span>Workspace</span>
+          <select>
+            <option>VibTools</option>
+            <option>Personal</option>
+          </select>
+        </label>
+          <button class="primary-button" id="new-project-button" type="button">New Project</button>
+          <span class="profile-button" aria-label="Profile"></span>
         </div>
       </header>
 
