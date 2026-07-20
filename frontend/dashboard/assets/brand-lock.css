@@ -694,3 +694,57 @@ select,
 :where(.panel, .metric-card, .timeline, .list-item, .empty-state, .project-card):hover {
   transform: translateY(-2px);
 }\n\n
+
+/* Step 27C-2S2 color system polish */
+:root {
+  --ygit-primary: #3B82F6 !important;
+  --ygit-success: #10B981 !important;
+  --ygit-warning: #F59E0B !important;
+  --ygit-error: #EF4444 !important;
+  --ygit-muted: #94A3B8 !important;
+  --ygit-bg: #020817 !important;
+  --ygit-surface: #081121 !important;
+}
+
+body {
+  background: #020817 !important;
+  color: var(--ygit-heading) !important;
+}
+
+:where(.sidebar, .topbar, .panel, .metric-card, .timeline, .list-item, .empty-state) {
+  background-color: #081121 !important;
+}
+
+.primary-button {
+  background: #3B82F6 !important;
+  border-color: rgba(59,130,246,.56) !important;
+}
+
+.pill.success,
+.status-badge.success {
+  color: #10B981 !important;
+  border-color: rgba(16,185,129,.28) !important;
+  background: rgba(16,185,129,.08) !important;
+}
+
+.pill.warning,
+.status-badge.warning {
+  color: #F59E0B !important;
+  border-color: rgba(245,158,11,.28) !important;
+  background: rgba(245,158,11,.08) !important;
+}
+
+.pill.danger,
+.status-badge.danger {
+  color: #EF4444 !important;
+  border-color: rgba(239,68,68,.28) !important;
+  background: rgba(239,68,68,.08) !important;
+}
+
+.muted,
+.project-readiness,
+.timeline-copy span,
+.list-item p,
+.form-status {
+  color: #94A3B8 !important;
+}

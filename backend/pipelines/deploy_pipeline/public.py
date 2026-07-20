@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.pipelines.deploy_pipeline.internal.service import DeployPipelineService
 from backend.pipelines.deploy_pipeline.schemas import DeploymentPipelineResult
+from backend.pipelines.deploy_pipeline.internal.build_stage import DeployBuildStageInput, DeployBuildStageResult, DeployPipelineBuildStage
 
 
 class DeployPipeline:
@@ -27,5 +28,15 @@ class DeployPipeline:
             source_deployment_id=source_deployment_id,
         )
 
+
+    def execute_build_stage(self, input_data: DeployBuildStageInput) -> DeployBuildStageResult:
+        """Run the worker-owned build stage through the Deploy Pipeline public boundary.
+
+        This method intentionally delegates to the isolated build-stage module and
+        does not modify deployment history, call providers, or require API routes.
+        Worker integration can call this after repository checkout is available.
+        """
+
+        return DeployPipelineBuildStage().run(input_data)
 
 deploy_pipeline = DeployPipeline()
