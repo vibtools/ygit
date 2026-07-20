@@ -435,3 +435,162 @@ button[disabled],
 .sidebar-note {
   margin-top: auto !important;
 }
+
+/* Step 27B-2A UI polish: typography density/sidebar width */
+:root {
+  --ygit-sidebar-width: 240px;
+  --ygit-page-h1: 28px;
+  --ygit-page-h2: 20px;
+  --ygit-description: 14px;
+  --ygit-card-title: 15px;
+  --ygit-card-body: 13px;
+  --ygit-meta: 12px;
+}
+
+.sidebar {
+  width: var(--ygit-sidebar-width) !important;
+  flex: 0 0 var(--ygit-sidebar-width) !important;
+}
+
+.brand {
+  height: 30px !important;
+  min-height: 30px !important;
+}
+
+.brand-logo-full {
+  width: 130px !important;
+}
+
+.brand-title,
+.sidebar-title,
+.sidebar .brand span {
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.nav a,
+.sidebar-section a {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+  font-weight: 500 !important;
+}
+
+.sidebar-section > p,
+.sidebar-label,
+.sidebar .section-label,
+.eyebrow {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.13em !important;
+  text-transform: uppercase !important;
+}
+
+#view-title,
+.page-title,
+.view h1 {
+  font-size: var(--ygit-page-h1) !important;
+  line-height: 1.18 !important;
+  font-weight: 670 !important;
+  letter-spacing: -0.032em !important;
+  color: #edf3fb !important;
+}
+
+.hero-card h2,
+.view h2,
+.card h2,
+.panel h2 {
+  font-size: var(--ygit-page-h2) !important;
+  line-height: 1.25 !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.024em !important;
+  color: #e7eef8 !important;
+}
+
+.subtitle,
+.page-description,
+.description,
+.hero-card > p {
+  font-size: var(--ygit-description) !important;
+  line-height: 1.55 !important;
+  font-weight: 400 !important;
+  color: #9aa8ba !important;
+}
+
+.project-card strong,
+.account-card strong,
+.list-item strong,
+.card-title {
+  font-size: var(--ygit-card-title) !important;
+  line-height: 1.35 !important;
+  font-weight: 620 !important;
+  letter-spacing: -0.012em !important;
+  color: #e7eef8 !important;
+}
+
+.project-readiness,
+.list-item p,
+.account-card span,
+.card-body,
+.timeline-copy span {
+  font-size: var(--ygit-card-body) !important;
+  line-height: 1.48 !important;
+  font-weight: 400 !important;
+  color: #8f9eb2 !important;
+}
+
+.project-meta,
+.meta,
+.caption,
+.metric-card em,
+.small,
+.form-hint {
+  font-size: var(--ygit-meta) !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
+  color: #7f8da3 !important;
+}
+
+.topbar {
+  padding: 16px 22px 10px !important;
+}
+
+.dashboard-grid,
+.metrics,
+.step-strip,
+.content-grid {
+  gap: 14px !important;
+}
+
+.hero-card,
+.timeline {
+  padding: 16px !important;
+}
+
+.list-item,
+.project-card,
+.account-card,
+.metric-card,
+.step {
+  padding: 13px !important;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.danger-button,
+.icon-button,
+button,
+input,
+textarea,
+select,
+.search {
+  min-height: 38px !important;
+  height: 38px !important;
+}
+
+.sidebar-note {
+  margin-top: auto !important;
+}
