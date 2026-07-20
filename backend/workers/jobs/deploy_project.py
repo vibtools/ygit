@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline
+from backend.workers.workspace import prepare_repository_workspace
 
 JOB_TYPE = "deploy_project"
 
@@ -16,6 +19,47 @@ def _optional_str(value: object) -> str | None:
 
 def _payload_has_build_stage_fields(payload: dict[str, object]) -> bool:
     return all(_optional_str(payload.get(field)) for field in _REQUIRED_BUILD_PAYLOAD_FIELDS)
+
+
+def _payload_needs_worker_workspace(payload: dict[str, object]) -> bool:
+    return (
+        _optional_str(payload.get("repository_path")) is None
+        and _optional_str(payload.get("build_command")) is not None
+        and _optional_str(payload.get("output_directory")) is not None
+    )
+
+
+def _repository_contains_checkout(repository_path: Path) -> bool:
+    try:
+        return repository_path.is_dir() and any(repository_path.iterdir())
+    except OSError:
+        return False
+
+
+def _payload_with_workspace_if_checkout_ready(
+    deployment_id: str,
+    payload: dict[str, object],
+) -> dict[str, object]:
+    """Prepare worker workspace and expose repository_path only after checkout exists.
+
+    Deploy Engine now sends analysis-derived build settings, but GitHub checkout
+    is not wired yet. This keeps build execution disabled until repository files
+    are present in the worker-owned repository workspace.
+    """
+
+    if not _payload_needs_worker_workspace(payload):
+        return payload
+
+    runtime_payload = dict(payload)
+    workspace = prepare_repository_workspace(deployment_id)
+
+    runtime_payload["workspace_path"] = str(workspace.workspace_path)
+    runtime_payload["artifacts_path"] = str(workspace.artifacts_path)
+
+    if _repository_contains_checkout(workspace.repository_path):
+        runtime_payload["repository_path"] = str(workspace.repository_path)
+
+    return runtime_payload
 
 
 def _payload_environment(value: object) -> dict[str, str]:
@@ -38,12 +82,7 @@ def _payload_timeout_seconds(value: object) -> int:
 
 
 def _build_stage_input(deployment_id: str, payload: dict[str, object]) -> DeployBuildStageInput | None:
-    """Create worker-owned build-stage input only when checkout/build data exists.
-
-    Current deploy jobs are still queued with deployment_id/project_id/user_id only.
-    This helper preserves skeleton behavior until repository checkout provides a
-    repository_path and analysis-derived build settings.
-    """
+    """Create worker-owned build-stage input only when checkout/build data exists."""
 
     if not _payload_has_build_stage_fields(payload):
         return None
@@ -69,7 +108,8 @@ async def run(payload: dict[str, object]) -> None:
     """
 
     deployment_id = str(payload["deployment_id"])
-    build_input = _build_stage_input(deployment_id, payload)
+    runtime_payload = _payload_with_workspace_if_checkout_ready(deployment_id, payload)
+    build_input = _build_stage_input(deployment_id, runtime_payload)
 
     if build_input is not None:
         build_result = deploy_pipeline.execute_build_stage(build_input)
