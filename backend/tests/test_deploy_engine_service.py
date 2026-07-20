@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -37,7 +38,13 @@ def project_detail(*, repository_id: str | None = "repo_1", analysis_id: str | N
     )
 
 
-def analysis_detail(*, deploy_ready: bool = True) -> AnalysisDetail:
+def analysis_detail(
+    *,
+    deploy_ready: bool = True,
+    package_manager: str | None = "npm",
+    build_command: str | None = "npm run build",
+    output_directory: str | None = "dist",
+) -> AnalysisDetail:
     return AnalysisDetail(
         id="analysis_1",
         repository_id="repo_1",
@@ -46,9 +53,9 @@ def analysis_detail(*, deploy_ready: bool = True) -> AnalysisDetail:
         stage="quick",
         status="quick_completed",
         framework="vite",
-        package_manager="npm",
-        build_command="npm run build",
-        output_directory="dist",
+        package_manager=package_manager,
+        build_command=build_command,
+        output_directory=output_directory,
         deploy_ready=deploy_ready,
         score=95,
         explanation={},
@@ -89,9 +96,14 @@ class FakeConnectedAccounts:
 
 
 class FakeQueue:
-    async def enqueue(self, payload) -> JobRef:
+    def __init__(self) -> None:
+        self.payloads = []
+
+    async def enqueue(self, payload, db=None) -> JobRef:
+        _ = db
         assert payload.job_type == "deploy_project"
         assert payload.payload["deployment_id"] == "dep_1"
+        self.payloads.append(payload)
         return JobRef(id="job_1", type=payload.job_type, status="queued")
 
 
@@ -145,12 +157,13 @@ class FakeDB:
 
 @pytest.mark.asyncio
 async def test_request_deployment_queues_job_without_provider_logic() -> None:
+    queue = FakeQueue()
     service = DeployInternalService(
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail()),
         analysis_public_service=FakeAnalysisService(analysis_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
-        queue_client=FakeQueue(),
+        queue_client=queue,
     )
     result = await service.request_deployment(
         FakeDB(),
@@ -163,6 +176,61 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
     assert result.deployment.status == "queued"
     assert result.job.id == "job_1"
     assert result.job.type == "deploy_project"
+
+    payload = queue.payloads[0].payload
+    assert payload["deployment_id"] == "dep_1"
+    assert payload["project_id"] == "proj_1"
+    assert payload["user_id"] == "user_1"
+    assert payload["package_manager"] == "npm"
+    assert payload["build_command"] == "npm run build"
+    assert payload["output_directory"] == "dist"
+    assert payload["root_directory"] == "."
+    assert "repository_path" not in payload
+
+
+@pytest.mark.asyncio
+async def test_request_deployment_omits_missing_build_settings_without_crashing() -> None:
+    queue = FakeQueue()
+    service = DeployInternalService(
+        repository=FakeRepository(),
+        project_public_service=FakeProjectService(project_detail()),
+        analysis_public_service=FakeAnalysisService(
+            analysis_detail(build_command=None, output_directory=None)
+        ),
+        connected_accounts_public_service=FakeConnectedAccounts(),
+        queue_client=queue,
+    )
+
+    result = await service.request_deployment(
+        FakeDB(),
+        user_id="user_1",
+        project_id="proj_1",
+        input_data=DeploymentRequestInput(),
+        trace_id="trace_test",
+    )
+
+    assert result.job.type == "deploy_project"
+    payload = queue.payloads[0].payload
+    assert payload["deployment_id"] == "dep_1"
+    assert payload["project_id"] == "proj_1"
+    assert payload["user_id"] == "user_1"
+    assert payload["package_manager"] == "npm"
+    assert "build_command" not in payload
+    assert "output_directory" not in payload
+    assert "root_directory" not in payload
+    assert "repository_path" not in payload
+
+
+def test_deploy_engine_queue_build_settings_keeps_architecture_boundaries() -> None:
+    source = Path("backend/engines/deploy_engine/internal/service.py").read_text(encoding="utf-8")
+
+    assert "_build_configuration_from_analysis" in source
+    assert "build_configuration" in source
+    assert '"repository_path"' not in source
+    assert "\'repository_path\'" not in source
+    assert "backend.providers" not in source
+    assert "github_provider" not in source
+    assert "cloudflare_provider" not in source
 
 
 @pytest.mark.asyncio

@@ -140,6 +140,7 @@ class DeployInternalService:
             user_id=user_id,
             job_type="deploy_project",
             trace_id=trace_id,
+            build_configuration=self._build_configuration_from_analysis(analysis),
         )
         deployment = await self.repository.attach_job_id(db, deployment_id=deployment.id, job_id=job.id)
         await db.commit()
@@ -227,6 +228,27 @@ class DeployInternalService:
             return False
         return True
 
+    def _build_configuration_from_analysis(self, analysis: object) -> dict[str, object]:
+        """Extract worker-safe build settings from repository analysis.
+
+        This intentionally excludes checkout/workspace paths. Repository checkout
+        and workspace ownership belong to the worker checkout stage.
+        """
+
+        configuration: dict[str, object] = {}
+        for key in ("package_manager", "build_command", "output_directory"):
+            value = getattr(analysis, key, None)
+            if value is None:
+                continue
+            text = str(value).strip()
+            if text:
+                configuration[key] = text
+
+        if "build_command" in configuration and "output_directory" in configuration:
+            configuration.setdefault("root_directory", ".")
+
+        return configuration
+
     async def _enqueue_deployment_job(
         self,
         *,
@@ -236,15 +258,19 @@ class DeployInternalService:
         user_id: str,
         job_type: str,
         trace_id: str | None,
+        build_configuration: dict[str, object] | None = None,
     ) -> DeploymentJobRef:
         try:
+            payload_data: dict[str, object] = {
+                "deployment_id": deployment_id,
+                "project_id": project_id,
+                "user_id": user_id,
+            }
+            payload_data.update(build_configuration or {})
+
             payload = JobPayload(
                 job_type=job_type,
-                payload={
-                    "deployment_id": deployment_id,
-                    "project_id": project_id,
-                    "user_id": user_id,
-                },
+                payload=payload_data,
                 trace_id=trace_id or f"trace_{uuid4().hex}",
             )
             try:
