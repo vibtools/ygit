@@ -748,3 +748,124 @@ body {
 .form-status {
   color: #94A3B8 !important;
 }
+
+/* Step 27C-3B dashboard metrics and deployment empty state */
+.dashboard-metric-card {
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border: 1px solid rgba(255,255,255,.06);
+  transition: transform .18s ease, border-color .18s ease, background .18s ease;
+}
+
+.dashboard-metric-card:hover,
+.metric-card:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.dashboard-metric-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #94A3B8;
+  letter-spacing: -.01em;
+}
+
+.dashboard-metric-value {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -.03em;
+  color: #F8FAFC;
+}
+
+.dashboard-metric-value.is-primary {
+  color: #3B82F6;
+}
+
+.dashboard-metric-value.is-success {
+  color: #10B981;
+}
+
+.dashboard-metric-value.is-muted {
+  color: #CBD5E1;
+}
+
+.dashboard-metric-helper {
+  margin: 0;
+  font-size: 12px;
+  color: #94A3B8;
+}
+
+.deployment-empty-state {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px;
+  min-height: 176px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.deployment-empty-illustration {
+  width: 84px;
+  height: 84px;
+  flex: 0 0 84px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  background: rgba(59,130,246,.08);
+  border: 1px solid rgba(59,130,246,.18);
+}
+
+.deployment-empty-illustration svg {
+  width: 72px;
+  height: 72px;
+}
+
+.deployment-empty-frame {
+  stroke: rgba(148,163,184,.28);
+  fill: rgba(255,255,255,.02);
+  stroke-width: 2;
+}
+
+.deployment-empty-line {
+  stroke: rgba(148,163,184,.55);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.deployment-empty-check {
+  stroke: #10B981;
+  stroke-width: 5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.deployment-empty-copy h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.2;
+  letter-spacing: -.03em;
+  color: #F8FAFC;
+}
+
+.deployment-empty-copy p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #94A3B8;
+}
+
+@media (max-width: 900px) {
+  .deployment-empty-state {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

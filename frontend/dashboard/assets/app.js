@@ -375,3 +375,144 @@ document.addEventListener("click", handleConnectedAccountDisconnect);
 
 const notificationsButton = $("#notifications-button");
 if (notificationsButton) notificationsButton.addEventListener("click", () => showSystemAlert("No new notifications.", "success"));
+
+/* Step 27C-3B dashboard metrics and deployment empty state */
+(function () {
+  const EXTRA_METRICS = [
+    { label: 'Last Deployment', value: 'No deployments yet', helper: 'Most recent deploy activity', tone: 'muted' },
+    { label: 'Framework Usage', value: 'Detect on import', helper: 'Framework and runtime breakdown', tone: 'primary' },
+    { label: 'Platform Status', value: 'Healthy', helper: 'Core platform availability', tone: 'success' },
+    { label: 'Queue Status', value: 'Idle', helper: 'Build and deploy queue', tone: 'muted' },
+  ];
+
+  function normalizeText(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function metricTitleSelectors() {
+    return '.metric-title, .panel-title, [data-card-title], h3, h4, strong';
+  }
+
+  function findMetricsGrid() {
+    return document.querySelector(
+      '[data-dashboard-metrics], .dashboard-metrics, .metrics-grid, .stats-grid, .overview-grid, .dashboard-grid'
+    );
+  }
+
+  function buildMetricCard(metric) {
+    const card = document.createElement('article');
+    card.className = 'metric-card dashboard-metric-card';
+    card.setAttribute('data-ygit-extra-metric', normalizeText(metric.label));
+
+    const header = document.createElement('div');
+    header.className = 'dashboard-metric-header';
+
+    const title = document.createElement('div');
+    title.className = 'dashboard-metric-title';
+    title.textContent = metric.label;
+
+    const value = document.createElement('div');
+    value.className = 'dashboard-metric-value';
+    if (metric.tone) {
+      value.classList.add('is-' + metric.tone);
+    }
+    value.textContent = metric.value;
+
+    const helper = document.createElement('p');
+    helper.className = 'dashboard-metric-helper';
+    helper.textContent = metric.helper;
+
+    header.appendChild(title);
+    card.appendChild(header);
+    card.appendChild(value);
+    card.appendChild(helper);
+    return card;
+  }
+
+  function ensureDashboardMetrics() {
+    const grid = findMetricsGrid();
+    if (!grid || grid.dataset.ygitDashboardMetricsEnhanced === 'true') {
+      return;
+    }
+
+    grid.dataset.ygitDashboardMetricsEnhanced = 'true';
+
+    const titles = Array.from(grid.querySelectorAll(metricTitleSelectors()));
+    titles.forEach(function (node) {
+      const normalized = normalizeText(node.textContent);
+      if (normalized === 'success rate') {
+        node.textContent = 'Deploy Success %';
+      }
+    });
+
+    const existingLabels = new Set(
+      Array.from(grid.querySelectorAll(metricTitleSelectors()))
+        .map(function (node) { return normalizeText(node.textContent); })
+        .filter(Boolean)
+    );
+
+    EXTRA_METRICS.forEach(function (metric) {
+      const key = normalizeText(metric.label);
+      if (!existingLabels.has(key)) {
+        grid.appendChild(buildMetricCard(metric));
+      }
+    });
+  }
+
+  function findDeploymentEmptyTarget() {
+    return document.querySelector(
+      '[data-deployments-list], [data-page="deployments"] .panel-body, #deployments-view .panel-body, .deployment-list, .deployments-panel .panel-body'
+    );
+  }
+
+  function deploymentEntriesPresent(target) {
+    if (!target) {
+      return false;
+    }
+    if (target.querySelector('.deployment-empty-state')) {
+      return true;
+    }
+    if (target.querySelector('[data-deployment-row], .deployment-row, tbody tr, .timeline-item, .list-item')) {
+      return true;
+    }
+    return false;
+  }
+
+  function renderDeploymentEmptyState() {
+    const target = findDeploymentEmptyTarget();
+    if (!target || deploymentEntriesPresent(target)) {
+      return;
+    }
+
+    const state = document.createElement('section');
+    state.className = 'deployment-empty-state';
+
+    state.innerHTML =
+      '<div class="deployment-empty-illustration" aria-hidden="true">' +
+      '<svg viewBox="0 0 120 120" fill="none" role="presentation">' +
+      '<rect x="18" y="18" width="84" height="84" rx="18" class="deployment-empty-frame"></rect>' +
+      '<path d="M38 46h44" class="deployment-empty-line"></path>' +
+      '<path d="M38 60h28" class="deployment-empty-line"></path>' +
+      '<path d="M38 74h18" class="deployment-empty-line"></path>' +
+      '<path d="M74 72l10 10 18-24" class="deployment-empty-check"></path>' +
+      '</svg>' +
+      '</div>' +
+      '<div class="deployment-empty-copy">' +
+      '<h3>No deployments yet.</h3>' +
+      '<p>Create a project &rarr; Connect GitHub &rarr; Deploy &rarr; Website Live</p>' +
+      '</div>';
+
+    target.appendChild(state);
+  }
+
+  function initDashboardStep27C3B() {
+    ensureDashboardMetrics();
+    renderDeploymentEmptyState();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDashboardStep27C3B);
+  } else {
+    initDashboardStep27C3B();
+  }
+})();

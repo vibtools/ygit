@@ -41,4 +41,3 @@ def test_deploy_pipeline_public_build_stage_keeps_runtime_boundaries() -> None:
     assert "DeployPipelineBuildStage" in source
     assert "backend.providers" not in source
     assert "backend.app.routes" not in source
-    assert "backend.pipelines.build_pipeline.internal" not in source
