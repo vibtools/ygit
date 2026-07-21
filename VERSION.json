@@ -33,6 +33,16 @@
   "database": {
     "migration_head": "0012_notification_engine"
   },
+  "development_snapshot": {
+    "date": "2026-07-21",
+    "status": "pre_live_provider_integration",
+    "mvp_completion_estimate": "92-94%",
+    "controlled_live_path_estimate": "90-92%",
+    "authoritative_status_document": "PROJECT_STATUS.md",
+    "full_test_suite": "433_passed_1_warning",
+    "release_gate_skip_db": "pass",
+    "live_provider_execution_verified": false
+  },
   "domain": {
     "domain_engine": {
       "cloudflare_dns_automation": false,
@@ -62,7 +72,9 @@
   },
   "frontend": {
     "admin_panel": "0.1.0",
-    "dashboard": "0.1.0"
+    "dashboard": "0.1.0",
+    "connected_accounts_metadata_ui": true,
+    "imported_repository_reuse_ui": true
   },
   "notification": {
     "notification_engine": {
@@ -87,8 +99,14 @@
     "deploy_pipeline": {
       "history_consumer": "deployment_history_engine.0.1.0",
       "history_contract": "frozen",
-      "provider_execution": "disabled",
-      "status": "contract_skeleton",
+      "provider_execution": "implemented_but_default_disabled",
+      "status": "concrete_cloudflare_gateway_with_runtime_binding_foundation",
+      "cloudflare_operation_plan": true,
+      "cloudflare_gateway_orchestration": true,
+      "runtime_pipeline_binding": "foundation_ready",
+      "worker_handlers_wired": false,
+      "history_persistence_wired": false,
+      "live_provider_verified": false,
       "version": "0.1.0"
     }
   },
@@ -113,6 +131,22 @@
     "cloudflare_provider": "0.1.0",
     "github_provider": "0.1.0"
   },
+  "provider_status": {
+    "github": {
+      "live_api_verified": false,
+      "repository_metadata_foundation": true
+    },
+    "cloudflare": {
+      "account_oauth_foundation": true,
+      "pages_project_foundation": true,
+      "artifact_manifest_foundation": true,
+      "asset_upload_foundation": true,
+      "asset_hash_registration_foundation": true,
+      "deployment_creation_foundation": true,
+      "concrete_gateway_orchestration": true,
+      "live_api_verified": false
+    }
+  },
   "quality_gates": {
     "mvp_release_gate": {
       "checklist": "MVP_RELEASE_GATE_CHECKLIST.md",
@@ -136,7 +170,13 @@
     "status": "pass"
   },
   "worker": {
-    "worker_runtime_integration": "0.1.0"
+    "worker_runtime_integration": "0.1.0",
+    "database_dispatch": true,
+    "checkout_and_build_handoff": true,
+    "credential_acquisition_boundary": true,
+    "provider_pipeline_binding": "foundation_ready",
+    "deploy_handlers_provider_wired": false,
+    "live_redis_worker_verified": false
   },
   "live_runtime_smoke_test_plan": {
     "version": "0.1.0",

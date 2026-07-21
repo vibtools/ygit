@@ -4,6 +4,7 @@ import hmac
 import inspect
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,9 +18,13 @@ from backend.engines.auth_engine.connected_accounts_module.schemas import (
 )
 from backend.pipelines.deploy_pipeline.public import (
     DeployBuildStageInput,
+    DeployPipeline,
     DeploymentPipelineContext,
     ProviderTokenReference,
     build_provider_execution_plan,
+    build_provider_gateway,
+    build_provider_pipeline,
+    deploy_pipeline,
 )
 from backend.workers.errors import (
     WorkerCloudflareCredentialAcquisitionBlockedError,
@@ -392,6 +397,71 @@ async def acquire_cloudflare_deployment_credential(
         )
 
     return credential
+
+
+@dataclass(frozen=True, slots=True)
+class WorkerProviderPipelineBinding:
+    pipeline: DeployPipeline = field(repr=False)
+    context: DeploymentPipelineContext
+    provider_execution_enabled: bool
+
+
+async def build_provider_pipeline_binding(
+    db: AsyncSession,
+    context: DeploymentPipelineContext,
+    *,
+    provider_execution_enabled: bool = False,
+    connected_accounts: (
+        ConnectedAccountsPublicService | None
+    ) = None,
+    gateway_factory: Callable[..., object] = (
+        build_provider_gateway
+    ),
+    pipeline_factory: Callable[..., DeployPipeline] = (
+        build_provider_pipeline
+    ),
+) -> WorkerProviderPipelineBinding:
+    """Assemble an isolated provider pipeline only behind a trusted runtime flag."""
+
+    if not provider_execution_enabled:
+        return WorkerProviderPipelineBinding(
+            pipeline=deploy_pipeline,
+            context=context,
+            provider_execution_enabled=False,
+        )
+
+    enabled_context = context.model_copy(
+        update={
+            "execution_mode": "provider_enabled",
+        }
+    )
+    credential = (
+        await acquire_cloudflare_deployment_credential(
+            db,
+            enabled_context,
+            connected_accounts=connected_accounts,
+        )
+    )
+    gateway = gateway_factory(
+        bearer_value=credential.access_token
+    )
+    pipeline = pipeline_factory(
+        provider_gateway=gateway
+    )
+
+    if not isinstance(
+        pipeline,
+        DeployPipeline,
+    ):
+        raise TypeError(
+            "Provider pipeline factory returned an invalid pipeline."
+        )
+
+    return WorkerProviderPipelineBinding(
+        pipeline=pipeline,
+        context=enabled_context,
+        provider_execution_enabled=True,
+    )
 
 
 def deployment_pipeline_context(

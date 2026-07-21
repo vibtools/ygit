@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from backend.pipelines.deploy_pipeline.internal.provider_gateway import (
+    DeployProviderGateway,
     build_cloudflare_pages_provider_gateway as build_provider_gateway,
     build_cloudflare_provider_execution_plan as build_provider_execution_plan,
 )
@@ -57,5 +58,18 @@ class DeployPipeline:
         """
 
         return DeployPipelineBuildStage().run(input_data)
+
+def build_provider_pipeline(
+    *,
+    provider_gateway: DeployProviderGateway,
+) -> DeployPipeline:
+    """Build an isolated pipeline around an explicitly supplied provider gateway."""
+
+    return DeployPipeline(
+        service=DeployPipelineService(
+            provider_gateway=provider_gateway
+        )
+    )
+
 
 deploy_pipeline = DeployPipeline()

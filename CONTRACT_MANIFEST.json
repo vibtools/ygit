@@ -69,7 +69,9 @@
   },
   "boundary_rules": {
     "deploy_engine_provider_access": "forbidden",
-    "provider_execution_path": "Deploy Engine -> Job System -> Worker -> Deploy Pipeline -> Provider"
+    "provider_execution_path": "Deploy Engine -> Job System -> Worker -> Deploy Pipeline -> Provider",
+    "default_provider_execution": "disabled",
+    "job_payload_provider_enablement": "forbidden"
   },
   "company": "Vib Tools",
   "connected_accounts_module_version": "0.1.0",
@@ -78,6 +80,7 @@
     "worker_runtime_integration": "0.1.0"
   },
   "current_release": "live_runtime_smoke_test_plan:0.1.0",
+  "current_status_document": "PROJECT_STATUS.md",
   "database_architecture": "1.0",
   "database_contract_version": "1.0",
   "database_migration_head": "0012_notification_engine",
@@ -90,7 +93,14 @@
   "deploy_pipeline": {
     "contract_status": "frozen",
     "history_write_intent": "frozen",
-    "provider_execution": "disabled_in_skeleton",
+    "provider_execution": "concrete_gateway_implemented_default_disabled",
+    "cloudflare_operation_plan": "implemented",
+    "cloudflare_gateway": "implemented",
+    "provider_pipeline_factory": "implemented",
+    "worker_runtime_binding": "foundation_ready",
+    "worker_handlers_wired": false,
+    "history_persistence_wired": false,
+    "live_provider_execution_verified": false,
     "version": "0.1.0"
   },
   "deployment_history_engine": {
@@ -105,7 +115,15 @@
       "deployment_history",
       "deployment_logs"
     ],
+    "provider_result_persistence_wired": false,
     "version": "0.1.0"
+  },
+  "development_snapshot": {
+    "date": "2026-07-21",
+    "status": "pre_live_provider_integration",
+    "mvp_completion_estimate": "92-94%",
+    "latest_full_suite": "433_passed_1_warning",
+    "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
   "engine_contract_version": "1.0",
@@ -121,17 +139,24 @@
     "platform_engine",
     "notification_engine"
   ],
-  "implementation": "FastAPI MVP Skeleton + Auth Engine + Project Engine + Repository Engine + Repository Analysis Engine + Connected Accounts Module + Deploy Engine",
-  "implementation_version": "0.1.0-deploy.1",
+  "implementation": "FastAPI modular monolith with MVP engines, worker runtime, dashboard/admin surfaces, provider primitives, concrete Cloudflare orchestration, and runtime provider pipeline binding foundation",
+  "implementation_version": "0.1.0-pre-live-provider-integration",
   "implemented_components": [
     "worker_runtime_integration",
-    "admin_panel"
+    "admin_panel",
+    "dashboard",
+    "connected_accounts_metadata_ui",
+    "cloudflare_pages_provider_primitives",
+    "cloudflare_provider_gateway_orchestration",
+    "worker_provider_pipeline_binding_foundation"
   ],
   "implemented_engines": [
     "audit_engine",
     "auth_engine",
     "connected_accounts_module",
     "deploy_engine",
+    "deployment_history_engine",
+    "domain_engine",
     "notification_engine",
     "platform_engine",
     "project_engine",
@@ -180,8 +205,20 @@
     "github_provider",
     "cloudflare_provider"
   ],
+  "provider_status": {
+    "github_provider": {
+      "repository_metadata_foundation": true,
+      "live_api_verified": false
+    },
+    "cloudflare_provider": {
+      "pages_primitives": "implemented",
+      "gateway_orchestration": "implemented",
+      "live_api_verified": false
+    }
+  },
   "release_artifacts": {
     "changelog": "CHANGELOG.md",
+    "current_status": "PROJECT_STATUS.md",
     "release_gate_checklist": "MVP_RELEASE_GATE_CHECKLIST.md",
     "release_gate_report": "MVP_RELEASE_GATE_REPORT.json",
     "release_gate_script": "scripts/release_gate.py",
@@ -222,6 +259,21 @@
     "postgres",
     "redis"
   ],
+  "worker_runtime": {
+    "database_dispatch": "implemented",
+    "repository_checkout": "implemented",
+    "build_handoff": "implemented",
+    "credential_acquisition_boundary": "implemented",
+    "provider_pipeline_binding": "foundation_ready",
+    "deploy_handlers_provider_wired": false,
+    "live_redis_worker_verified": false
+  },
+  "frontend": {
+    "dashboard": "implemented",
+    "admin_panel": "implemented",
+    "connected_accounts_metadata_ui": "implemented",
+    "imported_repository_reuse_ui": "implemented"
+  },
   "live_runtime_smoke_test_plan": {
     "version": "0.1.0",
     "status": "created",

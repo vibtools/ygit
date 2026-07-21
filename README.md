@@ -1,110 +1,161 @@
-# YGIT Audit Engine v0.1.0
+# YGIT
 
-YGIT is a deployment automation platform by Vib Tools. This package contains the YGIT backend through **Audit Engine v0.1.0**.
+YGIT is an open-source deployment automation platform by Vib Tools.
 
-## Current Release
+YGIT helps users deploy supported Git repositories to their own Cloudflare Pages accounts while keeping ownership of the repository, Cloudflare account, domain, code, and infrastructure.
 
-```text
-Component: Audit Engine
-Version: 0.1.0
-Architecture: YGIT Architecture Freeze v1.1
-Engine Contract: v1.0
-API Contract: v1.0
-Database Contract: v1.0
-```
+YGIT is not a website builder, hosting company, CMS, or general-purpose control panel.
 
-## Implemented Engines / Components
+## Core Flow
 
 ```text
-Auth Engine
-Project Engine
-Repository Engine
-Repository Analysis Engine
-Connected Accounts Module
-Deploy Engine
-Deploy Pipeline Contract + Skeleton
-Deployment History Engine
-Worker Runtime Integration
-Dashboard
-Admin Panel
-Domain Engine
-Audit Engine
+Paste Repository
+        ↓
+Analyze Repository
+        ↓
+Connect Accounts
+        ↓
+Deploy
+        ↓
+Website Live
 ```
 
-## Audit Engine Scope
+## Current Development Status
+
+Status: **Pre-live provider integration**
+
+The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration and the runtime-only provider pipeline binding foundation are present, but production worker handlers still use the default disabled/skeleton path.
+
+Engineering estimate:
 
 ```text
-Immutable audit log persistence
-Event envelope recording
-Safe admin audit log read surface
-Secret-safe metadata redaction
-Append-only repository contract
-PostgreSQL immutability trigger migration
+MVP implementation: approximately 92–94%
+First controlled live deployment path: approximately 90–92%
+Production readiness: not yet reached
 ```
 
-## Runtime
+These percentages are planning estimates, not release-gate results.
+
+See [PROJECT_STATUS.md](PROJECT_STATUS.md) for the authoritative engineering snapshot.
+
+## Architecture
 
 ```text
-ygit-api
-ygit-worker
-postgres
-redis
+Presentation Layer
+        ↓
+API Layer
+        ↓
+Engine Layer
+        ↓
+Provider Layer
+        ↓
+Infrastructure
 ```
 
-## Verify
+The Dashboard and Admin Panel are clients/surfaces. Business logic remains inside engines and pipelines.
+
+## Technology
+
+```text
+Backend: Python, FastAPI
+Authentication: Keycloak / OIDC
+Database: PostgreSQL
+Queue/runtime coordination: Redis + Worker Runtime
+Source control: GitHub
+Deployment provider: Cloudflare Pages
+Object storage target: Cloudflare R2
+```
+
+## Core Engine Status
+
+| Engine or component | Current state |
+|---|---|
+| Auth Engine | Implemented with OIDC/session boundaries |
+| Connected Accounts Module | Implemented with GitHub/Cloudflare connection state, credential references, credential acquisition boundary, metadata UI, scopes, last-sync data, and disconnect/reconnect flows |
+| Project Engine | Implemented |
+| Repository Engine | Implemented |
+| Repository Analysis Engine | Implemented for MVP quick/deep analysis contracts |
+| Deploy Engine | Implemented for validation, queued deployment lifecycle, redeploy, cancel, and reads |
+| Deploy Pipeline | Contracts, build stage, Cloudflare operation plan, concrete Cloudflare Pages gateway, completion result branch, and isolated provider pipeline factory implemented |
+| Deployment History Engine | Storage/API contracts implemented; final live provider-result persistence integration remains |
+| Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, and provider pipeline binding foundation implemented |
+| Domain Engine | Generated YGIT URL and slug lifecycle implemented; custom domain and Cloudflare DNS automation remain outside current MVP execution path |
+| Audit Engine | Implemented |
+| Platform Engine | Implemented |
+| Notification Engine | Implemented for in-app MVP scope |
+| Dashboard | Implemented, including Connected Accounts metadata and imported-repository reuse UI |
+| Admin Panel | Implemented as a protected operations console |
+| GitHub Provider | Repository metadata and account integration foundations implemented |
+| Cloudflare Provider | OAuth/account foundations and Cloudflare Pages project, artifact, asset upload, hash registration, and deployment primitives implemented |
+
+## Provider Execution Safety State
+
+Implemented:
+
+- Cloudflare provider operation planning.
+- Runtime credential acquisition through the Connected Accounts public boundary.
+- Secret-wrapped credential handoff.
+- Concrete Cloudflare Pages orchestration.
+- Provider-error sanitization.
+- Runtime-only isolated provider pipeline assembly.
+- Protection against job-payload-controlled provider enablement.
+
+The default runtime remains provider-disabled.
+
+Still disabled or unwired:
+
+- Deploy/redeploy handler provider binding.
+- Trusted server-side provider enablement.
+- Final provider-result/history persistence.
+- Live Cloudflare API execution from the production worker.
+- Controlled end-to-end PostgreSQL, Redis worker, and Cloudflare Pages validation.
+
+## Verification Snapshot
+
+Latest verified local run for the current foundation:
+
+```text
+Targeted tests: 124 passed
+Full suite: 433 passed
+Smoke test with database skipped: PASS
+Release gate with database skipped: PASS
+Live PostgreSQL: NOT EXECUTED
+Live Redis worker loop: NOT EXECUTED
+GitHub API integration: NOT EXECUTED
+Cloudflare API integration: NOT EXECUTED
+Real Cloudflare Pages deployment: NOT EXECUTED
+```
+
+The recurring `StarletteDeprecationWarning` is non-blocking and relates to the existing test-client dependency combination.
+
+## Local Verification
 
 ```bash
-python -m compileall -q backend
-pytest -q
+python -m pytest -q
 python scripts/smoke_test.py --skip-db
+python scripts/release_gate.py --skip-db
 ```
 
-Live PostgreSQL/Redis and real provider calls are not required for sandbox verification.
+Live checks must use the controlled runtime runbook and dedicated test accounts.
 
+## Immediate Critical Path
 
-## Platform Engine v0.1.0
+1. Commit the worker provider-pipeline binding foundation.
+2. Add DB-aware guarded integration to deploy/redeploy handlers.
+3. Add trusted server-side provider execution configuration.
+4. Persist provider results through Deployment History Engine.
+5. Run controlled PostgreSQL, Redis worker, GitHub, and Cloudflare Pages integration tests.
+6. Harden retry, timeout, idempotency, and failure recovery.
 
-Implemented MVP Platform Engine with health, version, system status, feature flags, platform settings summary, and owned tables `platform_settings` and `feature_flags`.
+## Documentation Scope
 
+The following files are current project references:
 
-## YGIT Notification Engine v0.1.0
+- `README.md`
+- `PROJECT_STATUS.md`
+- `VERSION.json`
+- `CONTRACT_MANIFEST.json`
+- `CHANGELOG.md`
+- `AUDIT_REPORT.md`
 
-Implemented Notification Engine with in-app notifications, unread count, mark-read flow, `notifications` table ownership, migration `0012_notification_engine_notifications`, API routes, public/internal boundary, secret-safe metadata validation, and architecture boundary tests.
-
-
-## MVP Integration Review and Release Gate v0.1.0
-
-This package includes the MVP integration review release gate.
-
-Run:
-
-```bash
-python scripts/release_gate.py --skip-db --write-report
-pytest -q
-python scripts/smoke_test.py --skip-db
-```
-
-The release gate validates the implemented MVP engine registry, API routes, migration chain, manifests, and architecture boundaries. It does not add a new engine, database table, migration, or external dependency.
-
-
-## Live Runtime Smoke Test Plan v0.1.0
-
-This package adds the controlled live/runtime smoke test plan after the MVP Integration Review and Release Gate.
-
-Artifacts:
-
-```text
-LIVE_RUNTIME_SMOKE_TEST_PLAN_v0.1.0.md
-LIVE_RUNTIME_SMOKE_TEST_CHECKLIST.md
-LIVE_RUNTIME_SMOKE_TEST_RUNBOOK.md
-LIVE_RUNTIME_SMOKE_TEST_MATRIX.json
-scripts/live_runtime_smoke_test.py
-```
-
-Public live smoke helper:
-
-```bash
-python scripts/live_runtime_smoke_test.py --base-url https://ygit.net --write-report
-```
-
-Authenticated and admin phases require dedicated test sessions and should use environment variables for session cookies.
+The MVP release-gate and live-runtime-smoke-plan documents remain historical versioned artifacts. They should not be interpreted as the complete current implementation snapshot.

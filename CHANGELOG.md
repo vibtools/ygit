@@ -1,14 +1,45 @@
-
-## YGIT Platform Engine v0.1.0
-
-- Implemented Platform Engine public/internal boundary.
-- Added `platform_settings` and `feature_flags` SQLAlchemy models.
-- Added Alembic migration `0011_platform_engine_settings_and_flags`.
-- Added platform health, version, status, feature flags, and settings summary contracts.
-- Integrated Admin Surface settings summary through Platform Engine public API.
-- Added Platform Engine tests and architecture boundary checks.
-
 # Changelog
+
+All notable YGIT MVP implementation releases and active engineering foundations are tracked here.
+
+## Unreleased — Provider Orchestration and Runtime Binding Foundations — 2026-07-21
+
+### Added
+
+- Worker database-aware dispatch from Worker Runtime through Job Dispatcher.
+- Cloudflare deployment credential acquisition through the Connected Accounts public boundary.
+- Constant-time credential-reference verification and secret-wrapped runtime credential handling.
+- Connected Accounts provider avatars, connection date, scopes, last sync, status badge, and repository reuse UI.
+- Cloudflare Pages project ensure/reuse foundation.
+- Artifact manifest generation and bounded asset-byte upload batches.
+- Missing-asset planning and upload-session handling.
+- Asset hash registration.
+- Cloudflare Pages deployment creation.
+- Concrete Cloudflare provider gateway with ordered orchestration.
+- Typed successful pipeline completion result.
+- Runtime-only provider gateway and isolated Deploy Pipeline assembly foundation.
+- Protection preventing untrusted job payloads from enabling provider execution.
+- Current project-status documentation.
+
+### Changed
+
+- Deploy Pipeline is no longer only a contract skeleton at the implementation level; concrete Cloudflare orchestration exists behind an explicit gateway.
+- The default global pipeline and worker handlers remain provider-disabled.
+- Documentation now distinguishes historical release artifacts from the current engineering snapshot.
+
+### Verified
+
+- Targeted suite: 124 passed.
+- Full suite: 433 passed.
+- Smoke test with database skipped: PASS.
+- Release gate with database skipped: PASS.
+
+### Not Yet Enabled
+
+- Deploy/redeploy handler provider binding.
+- Trusted production provider feature/configuration enablement.
+- Provider result persistence into Deployment History Engine.
+- Live PostgreSQL, Redis worker, GitHub API, and Cloudflare Pages execution.
 
 All notable YGIT MVP implementation releases are tracked here.
 

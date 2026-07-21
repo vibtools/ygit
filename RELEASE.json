@@ -11,6 +11,8 @@
   "database_contract_version": "1.0",
   "runtime": "fastapi_modular_monolith",
   "created_by": "Vib Tools",
+  "manifest_scope": "historical_release_baseline",
+  "current_project_status_document": "PROJECT_STATUS.md",
   "owned_tables": [],
   "new_migration": null,
   "database_migration_head": "0012_notification_engine",
@@ -52,13 +54,22 @@
     "admin_surface_only": true,
     "worker_boundary_preserved": true
   },
+  "development_snapshot": {
+    "date": "2026-07-21",
+    "status": "pre_live_provider_integration",
+    "historical_release_fields_preserved": true,
+    "concrete_cloudflare_gateway": true,
+    "worker_provider_pipeline_binding": "foundation_ready",
+    "default_provider_execution": "disabled",
+    "worker_handlers_provider_wired": false,
+    "live_provider_execution_verified": false
+  },
   "verification_commands": [
     "python -m compileall -q backend scripts",
     "pytest -q",
     "python scripts/smoke_test.py --skip-db",
     "python scripts/release_gate.py --skip-db --write-report",
     "python scripts/live_runtime_smoke_test.py --plan-only # live host only",
-    "python -m zipfile -t YGIT_Live_Runtime_Smoke_Test_Plan_v0.1.0.zip",
     "basic secret scan"
   ]
 }
