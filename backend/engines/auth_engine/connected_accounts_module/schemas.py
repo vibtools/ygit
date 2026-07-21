@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 ProviderName = Literal["github", "cloudflare"]
 ConnectedAccountStatus = Literal["connected", "disconnected", "error", "reconnect_required"]
@@ -26,6 +26,16 @@ class ConnectedAccountRecord(BaseModel):
     created_at: datetime | None = None
     updated_at: datetime | None = None
     deleted_at: datetime | None = None
+
+
+class ResolvedProviderCredential(BaseModel):
+    provider: Literal["cloudflare"]
+    token_secret_ref: str
+    access_token: SecretStr
+    refresh_token: SecretStr | None = None
+    token_type: str = "bearer"
+    expires_at: datetime | None = None
+    scopes: list[str] = Field(default_factory=list)
 
 
 class ConnectedAccountSummary(BaseModel):

@@ -10,6 +10,7 @@ from backend.engines.auth_engine.connected_accounts_module.schemas import (
     DisconnectProviderResult,
     ProviderCallbackResult,
     ProviderConnectionHealth,
+    ResolvedProviderCredential,
 )
 
 
@@ -69,6 +70,19 @@ class ConnectedAccountsPublicService:
         provider: str,
     ) -> ConnectedAccountRecord:
         return await self._internal.require_provider_connected(db, user_id=user_id, provider=provider)
+
+    async def resolve_cloudflare_credential(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        token_secret_ref: str,
+    ) -> ResolvedProviderCredential:
+        return await self._internal.resolve_cloudflare_credential(
+            db,
+            user_id=user_id,
+            token_secret_ref=token_secret_ref,
+        )
 
     async def check_provider_health(
         self,

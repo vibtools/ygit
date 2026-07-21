@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hmac
+
 from datetime import datetime, timezone
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +13,10 @@ from backend.engines.auth_engine.connected_accounts_module.errors import (
     ProviderNotConnectedError,
     ProviderNotSupportedError,
     ProviderOAuthFailedError,
+    ProviderTokenInvalidError,
+)
+from backend.engines.auth_engine.connected_accounts_module.internal.credential_vault import (
+    ConnectedAccountCredentialVault,
 )
 from backend.engines.auth_engine.connected_accounts_module.internal.oauth_state import (
     ConnectedAccountInstallState,
@@ -28,6 +34,7 @@ from backend.engines.auth_engine.connected_accounts_module.schemas import (
     ProviderCallbackResult,
     ProviderConnectionHealth,
     ProviderName,
+    ResolvedProviderCredential,
 )
 from backend.providers.cloudflare_provider.client import CloudflareProviderClient
 from backend.providers.github_provider.client import GitHubProviderClient
@@ -42,10 +49,32 @@ class ConnectedAccountsInternalService:
         repository: ConnectedAccountRepository | None = None,
         github_provider: GitHubProviderClient | None = None,
         cloudflare_provider: CloudflareProviderClient | None = None,
+        credential_vault: ConnectedAccountCredentialVault | None = None,
     ) -> None:
-        self.repository = repository or ConnectedAccountRepository()
-        self.github_provider = github_provider or GitHubProviderClient()
-        self.cloudflare_provider = cloudflare_provider or CloudflareProviderClient()
+        self.repository = (
+            repository
+            or ConnectedAccountRepository()
+        )
+        self.github_provider = (
+            github_provider
+            or GitHubProviderClient()
+        )
+        self.cloudflare_provider = (
+            cloudflare_provider
+            or CloudflareProviderClient()
+        )
+        self._credential_vault_instance = credential_vault
+
+    def _get_credential_vault(
+        self,
+    ) -> ConnectedAccountCredentialVault:
+        if self._credential_vault_instance is None:
+            self._credential_vault_instance = (
+                ConnectedAccountCredentialVault
+                .from_settings()
+            )
+
+        return self._credential_vault_instance
 
     def parse_provider(self, provider: str) -> ProviderName:
         normalized = provider.strip().lower().replace("_", "-")
@@ -132,13 +161,18 @@ class ConnectedAccountsInternalService:
         provider_name: ProviderName = "cloudflare"
 
         if not code:
-            raise ProviderOAuthFailedError("Cloudflare OAuth callback is missing code.")
+            raise ProviderOAuthFailedError(
+                "Cloudflare OAuth callback is missing code."
+            )
+
         if not state or not ConnectedAccountOAuthState.validate_state(
             state=state,
             user_id=user_id,
             provider=provider_name,
         ):
-            raise ProviderOAuthFailedError("Cloudflare OAuth state is invalid.")
+            raise ProviderOAuthFailedError(
+                "Cloudflare OAuth state is invalid."
+            )
 
         settings = get_settings()
         has_oauth_config = bool(
@@ -146,9 +180,17 @@ class ConnectedAccountsInternalService:
             and settings.cloudflare_oauth_client_secret.get_secret_value()
         )
         provider_supports_oauth = bool(
-            hasattr(self.cloudflare_provider, "exchange_oauth_code")
-            and hasattr(self.cloudflare_provider, "validate_oauth_access")
+            hasattr(
+                self.cloudflare_provider,
+                "exchange_oauth_code",
+            )
+            and hasattr(
+                self.cloudflare_provider,
+                "validate_oauth_access",
+            )
         )
+
+        credential_ciphertext: str | None = None
 
         if has_oauth_config and provider_supports_oauth:
             exchange_kwargs = {
@@ -158,7 +200,11 @@ class ConnectedAccountsInternalService:
                 "redirect_uri": settings.cloudflare_oauth_redirect_uri,
             }
             oauth_payload = await self.cloudflare_provider.exchange_oauth_code(**exchange_kwargs)
-            scopes = (oauth_payload.scope or settings.cloudflare_oauth_scopes or "").split()
+            scopes = (
+                oauth_payload.scope
+                or settings.cloudflare_oauth_scopes
+                or ""
+            ).split()
             bearer_value = oauth_payload.access_token
             validation = await self.cloudflare_provider.validate_oauth_access(
                 bearer_value=bearer_value,
@@ -168,12 +214,36 @@ class ConnectedAccountsInternalService:
             provider_account_id = validation.account_id
             account_name = validation.account_name
             stored_scopes = validation.scopes or scopes
+
+            vault = self._get_credential_vault()
+            vault_fields: dict[str, object] = {}
+            vault_fields["token_reference"] = safe_reference
+            vault_fields["access_value"] = oauth_payload.access_token
+            vault_fields["refresh_value"] = oauth_payload.refresh_token
+            vault_fields["token_type"] = oauth_payload.token_type
+            vault_fields["expires_in"] = oauth_payload.expires_in
+            vault_fields["scopes"] = stored_scopes
+
+            credential_ciphertext = (
+                vault.seal_cloudflare_oauth(
+                    **vault_fields,
+                )
+            )
+            credential_key_version = vault.key_version
         else:
             safe_reference = TokenReferenceFactory.new_token_ref(provider=provider_name)
             validation = await self._validate_provider_account(provider_name, safe_reference)
             account_name = validation.get("account_name") or f"{provider_name}-account"
             provider_account_id = validation.get("account_id") or f"{provider_name}:{user_id}"
             stored_scopes = self._default_scopes(provider_name)
+            credential_key_version = TokenReferenceFactory.key_version()
+
+        credential_storage: dict[str, object] = {}
+
+        if credential_ciphertext is not None:
+            credential_storage[
+                "token_ciphertext"
+            ] = credential_ciphertext
 
         record = await self.repository.upsert_connected(
             db,
@@ -182,10 +252,12 @@ class ConnectedAccountsInternalService:
             provider_account_id=provider_account_id,
             provider_account_name=account_name,
             token_secret_ref=safe_reference,
-            token_key_version=TokenReferenceFactory.key_version(),
+            token_key_version=credential_key_version,
             scopes=stored_scopes,
+            **credential_storage,
         )
         await db.commit()
+
         return ProviderCallbackResult(
             provider=record.provider,
             connected=True,
@@ -286,6 +358,60 @@ class ConnectedAccountsInternalService:
         if record.status != "connected" or not record.token_secret_ref:
             raise ProviderNotConnectedError()
         return record
+
+    async def resolve_cloudflare_credential(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        token_secret_ref: str,
+    ) -> ResolvedProviderCredential:
+        storage = await self.repository.get_credential_storage(
+            db,
+            user_id=user_id,
+            provider="cloudflare",
+        )
+
+        if storage is None:
+            raise ProviderNotConnectedError()
+
+        record, ciphertext = storage
+
+        if (
+            record.status != "connected"
+            or not record.token_secret_ref
+        ):
+            raise ProviderNotConnectedError()
+
+        reference_value = token_secret_ref.strip()
+
+        if (
+            not reference_value.startswith(
+                "cloudflare_oauth_account:"
+            )
+            or not hmac.compare_digest(
+                record.token_secret_ref,
+                reference_value,
+            )
+            or not ciphertext
+            or not record.token_key_version
+        ):
+            raise ProviderTokenInvalidError()
+
+        vault = self._get_credential_vault()
+
+        resolver_fields: dict[str, object] = {}
+        resolver_fields["ciphertext"] = ciphertext
+        resolver_fields["stored_key_version"] = (
+            record.token_key_version
+        )
+        resolver_fields["token_reference"] = (
+            reference_value
+        )
+
+        return vault.resolve_cloudflare(
+            **resolver_fields,
+        )
 
     async def check_provider_health(
         self,

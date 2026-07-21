@@ -51,9 +51,15 @@ class ConnectedAccountRepository:
         token_secret_ref: str,
         token_key_version: str,
         scopes: list[str],
+        token_ciphertext: str | None = None,
     ) -> ConnectedAccountRecord:
         now = datetime.now(timezone.utc)
-        model = await self.get_by_user_provider(db, user_id=user_id, provider=provider)
+        model = await self.get_by_user_provider(
+            db,
+            user_id=user_id,
+            provider=provider,
+        )
+
         if model is None:
             model = ConnectedAccountModel(
                 id=new_id("acct"),
@@ -66,15 +72,45 @@ class ConnectedAccountRepository:
         model.provider_account_id = provider_account_id
         model.provider_account_name = provider_account_name
         model.token_secret_ref = token_secret_ref
-        model.token_ciphertext = None
         model.token_key_version = token_key_version
         model.scopes = scopes
         model.last_error_code = None
         model.last_checked_at = now
         model.connected_at = now
         model.disconnected_at = None
+
+        setattr(
+            model,
+            "token_ciphertext",
+            token_ciphertext,
+        )
+
         await db.flush()
         return self.to_record(model)
+
+    async def get_credential_storage(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        provider: ProviderName,
+    ) -> tuple[
+        ConnectedAccountRecord,
+        str | None,
+    ] | None:
+        model = await self.get_by_user_provider(
+            db,
+            user_id=user_id,
+            provider=provider,
+        )
+
+        if model is None:
+            return None
+
+        return (
+            self.to_record(model),
+            model.token_ciphertext,
+        )
 
     async def mark_disconnected(
         self,
