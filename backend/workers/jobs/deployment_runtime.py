@@ -352,6 +352,11 @@ def deployment_pipeline_context(
         project_id=optional_str(
             payload.get("project_id")
         ),
+        cloudflare_project_name=optional_str(
+            payload.get(
+                "cloudflare_project_name"
+            )
+        ),
         user_id=optional_str(
             payload.get("user_id")
         ),

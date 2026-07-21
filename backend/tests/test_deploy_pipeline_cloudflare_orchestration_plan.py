@@ -33,6 +33,7 @@ def cloudflare_reference(
         {
             "provider": provider,
             "token_secret_ref": REFERENCE_VALUE,
+            "account_id": "cf-account-1",
             "account_name": "Primary Account",
         }
     )
@@ -46,6 +47,7 @@ def complete_context(
         {
             "deployment_id": "deployment-1",
             "project_id": "project-1",
+            "cloudflare_project_name": "portfolio-site",
             "user_id": "user-1",
             "artifact_path": (
                 "D:/workspace/deployment-1/dist"
@@ -224,3 +226,52 @@ def test_plan_model_rejects_inconsistent_readiness(
                 "artifact_context_missing"
             ],
         )
+
+def test_provider_enabled_plan_requires_cloudflare_runtime_identifiers(
+) -> None:
+    context = complete_context().model_copy(
+        update={
+            "cloudflare_project_name": None,
+            "cloudflare_token_ref": (
+                cloudflare_reference().model_copy(
+                    update={"account_id": None}
+                )
+            ),
+        }
+    )
+    plan = build_cloudflare_provider_execution_plan(context)
+    assert plan.ready_to_execute is False
+    assert plan.blockers == [
+        "cloudflare_project_name_missing",
+        "cloudflare_account_context_missing",
+    ]
+
+
+def test_cloudflare_project_name_control_character_is_rejected(
+) -> None:
+    context = complete_context().model_copy(
+        update={"cloudflare_project_name": "portfolio\nunsafe"}
+    )
+    with pytest.raises(
+        DeployPipelineContextInvalidError,
+        match="Cloudflare project name is invalid",
+    ):
+        build_cloudflare_provider_execution_plan(context)
+
+
+def test_cloudflare_account_id_control_character_is_rejected(
+) -> None:
+    context = complete_context().model_copy(
+        update={
+            "cloudflare_token_ref": (
+                cloudflare_reference().model_copy(
+                    update={"account_id": "account\runsafe"}
+                )
+            )
+        }
+    )
+    with pytest.raises(
+        DeployPipelineContextInvalidError,
+        match="Cloudflare account ID is invalid",
+    ):
+        build_cloudflare_provider_execution_plan(context)

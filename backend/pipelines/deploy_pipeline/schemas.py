@@ -39,12 +39,14 @@ def _ensure_safe_metadata(value: dict[str, Any]) -> dict[str, Any]:
 class ProviderTokenReference(BaseModel):
     provider: Literal["github", "cloudflare"]
     token_secret_ref: str
+    account_id: str | None = None
     account_name: str | None = None
 
 
 class DeploymentPipelineContext(BaseModel):
     deployment_id: str
     project_id: str | None = None
+    cloudflare_project_name: str | None = None
     user_id: str | None = None
     repository_id: str | None = None
     analysis_id: str | None = None
@@ -74,7 +76,9 @@ CloudflareProviderPlanBlocker = Literal[
     "project_context_missing",
     "artifact_context_missing",
     "branch_context_missing",
+    "cloudflare_project_name_missing",
     "cloudflare_reference_missing",
+    "cloudflare_account_context_missing",
     "provider_execution_disabled",
 ]
 

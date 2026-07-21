@@ -104,6 +104,18 @@ def build_cloudflare_provider_execution_plan(
             "branch_context_missing"
         )
 
+    if (
+        context.execution_mode == "provider_enabled"
+        and _required_context_value(
+            context.cloudflare_project_name,
+            label="Cloudflare project name",
+        )
+        is None
+    ):
+        blockers.append(
+            "cloudflare_project_name_missing"
+        )
+
     reference = context.cloudflare_token_ref
 
     if reference is None:
@@ -124,6 +136,17 @@ def build_cloudflare_provider_execution_plan(
     ):
         blockers.append(
             "cloudflare_reference_missing"
+        )
+    elif (
+        context.execution_mode == "provider_enabled"
+        and _required_context_value(
+            reference.account_id,
+            label="Cloudflare account ID",
+        )
+        is None
+    ):
+        blockers.append(
+            "cloudflare_account_context_missing"
         )
 
     if context.execution_mode != "provider_enabled":
