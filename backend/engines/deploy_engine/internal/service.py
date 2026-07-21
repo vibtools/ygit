@@ -151,6 +151,12 @@ class DeployInternalService:
             deployment_id=deployment.id,
             project_id=project.id,
             user_id=user_id,
+            repository_id=deployment.repository_id,
+            analysis_id=deployment.analysis_id,
+            domain_id=deployment.domain_id,
+            source_deployment_id=(
+                deployment.source_deployment_id
+            ),
             job_type="deploy_project",
             trace_id=trace_id,
             build_configuration=build_configuration,
@@ -209,6 +215,12 @@ class DeployInternalService:
             deployment_id=deployment.id,
             project_id=deployment.project_id,
             user_id=user_id,
+            repository_id=deployment.repository_id,
+            analysis_id=deployment.analysis_id,
+            domain_id=deployment.domain_id,
+            source_deployment_id=(
+                deployment.source_deployment_id
+            ),
             job_type="redeploy_project",
             trace_id=trace_id,
             build_configuration=build_configuration,
@@ -295,7 +307,12 @@ class DeployInternalService:
         """
 
         configuration: dict[str, object] = {}
-        for key in ("package_manager", "build_command", "output_directory"):
+        for key in (
+            "framework",
+            "package_manager",
+            "build_command",
+            "output_directory",
+        ):
             value = getattr(analysis, key, None)
             if value is None:
                 continue
@@ -315,24 +332,51 @@ class DeployInternalService:
         deployment_id: str,
         project_id: str,
         user_id: str,
+        repository_id: str,
+        analysis_id: str,
+        domain_id: str | None,
+        source_deployment_id: str | None,
         job_type: str,
         trace_id: str | None,
         build_configuration: dict[str, object] | None = None,
         repository_configuration: dict[str, object] | None = None,
     ) -> DeploymentJobRef:
         try:
+            job_trace_id = (
+                trace_id
+                or f"trace_{uuid4().hex}"
+            )
+
             payload_data: dict[str, object] = {
                 "deployment_id": deployment_id,
                 "project_id": project_id,
                 "user_id": user_id,
+                "repository_id": repository_id,
+                "analysis_id": analysis_id,
+                "trace_id": job_trace_id,
             }
-            payload_data.update(build_configuration or {})
-            payload_data.update(repository_configuration or {})
+
+            if domain_id:
+                payload_data[
+                    "domain_id"
+                ] = domain_id
+
+            if source_deployment_id:
+                payload_data[
+                    "source_deployment_id"
+                ] = source_deployment_id
+
+            payload_data.update(
+                build_configuration or {}
+            )
+            payload_data.update(
+                repository_configuration or {}
+            )
 
             payload = JobPayload(
                 job_type=job_type,
                 payload=payload_data,
-                trace_id=trace_id or f"trace_{uuid4().hex}",
+                trace_id=job_trace_id,
             )
             try:
                 job = await self.queue_client.enqueue(payload, db=db)

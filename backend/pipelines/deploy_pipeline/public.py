@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from backend.pipelines.deploy_pipeline.internal.service import DeployPipelineService
-from backend.pipelines.deploy_pipeline.schemas import DeploymentPipelineResult
+from backend.pipelines.deploy_pipeline.schemas import (
+    DeploymentPipelineContext,
+    DeploymentPipelineResult,
+)
 from backend.pipelines.deploy_pipeline.internal.build_stage import DeployBuildStageInput, DeployBuildStageResult, DeployPipelineBuildStage
 
 
@@ -15,17 +18,28 @@ class DeployPipeline:
     def __init__(self, service: DeployPipelineService | None = None) -> None:
         self.service = service or DeployPipelineService()
 
-    async def execute_deployment(self, deployment_id: str) -> DeploymentPipelineResult:
-        return await self.service.execute_deployment(deployment_id)
+    async def execute_deployment(
+        self,
+        deployment_id: str,
+        *,
+        context: DeploymentPipelineContext | None = None,
+    ) -> DeploymentPipelineResult:
+        return await self.service.execute_deployment(
+            deployment_id,
+            context=context,
+        )
 
     async def execute_redeployment(
         self,
         deployment_id: str,
         source_deployment_id: str | None = None,
+        *,
+        context: DeploymentPipelineContext | None = None,
     ) -> DeploymentPipelineResult:
         return await self.service.execute_redeployment(
             deployment_id,
             source_deployment_id=source_deployment_id,
+            context=context,
         )
 
 

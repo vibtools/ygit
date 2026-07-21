@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import inspect
+
 from collections.abc import Callable
 from pathlib import Path
 
 from backend.pipelines.deploy_pipeline.public import (
     DeployBuildStageInput,
+    DeploymentPipelineContext,
 )
 from backend.workers.git_checkout import GitCheckoutRequest
 
@@ -238,5 +241,158 @@ def build_stage_input(
         ),
         environment=payload_environment(
             payload.get("environment")
+        ),
+    )
+
+def deployment_pipeline_context(
+    deployment_id: str,
+    payload: dict[str, object],
+    *,
+    build_result: object | None = None,
+    source_deployment_id: str | None = None,
+) -> DeploymentPipelineContext:
+    """Build the secret-safe context passed to Deploy Pipeline."""
+
+    artifact_path = None
+
+    if (
+        build_result is not None
+        and getattr(
+            build_result,
+            "artifact_ready",
+            False,
+        )
+        is True
+    ):
+        artifact_path = optional_str(
+            getattr(
+                build_result,
+                "output_directory",
+                None,
+            )
+        )
+
+    return DeploymentPipelineContext(
+        deployment_id=deployment_id,
+        project_id=optional_str(
+            payload.get("project_id")
+        ),
+        user_id=optional_str(
+            payload.get("user_id")
+        ),
+        repository_id=optional_str(
+            payload.get("repository_id")
+        ),
+        analysis_id=optional_str(
+            payload.get("analysis_id")
+        ),
+        domain_id=optional_str(
+            payload.get("domain_id")
+        ),
+        source_deployment_id=(
+            optional_str(source_deployment_id)
+        ),
+        repository_url=optional_str(
+            payload.get("repository_url")
+        ),
+        branch=payload_checkout_ref(payload),
+        commit_sha=optional_str(
+            payload.get("commit_sha")
+        ),
+        repository_path=optional_str(
+            payload.get("repository_path")
+        ),
+        workspace_path=optional_str(
+            payload.get("workspace_path")
+        ),
+        artifacts_path=optional_str(
+            payload.get("artifacts_path")
+        ),
+        artifact_path=artifact_path,
+        framework=optional_str(
+            payload.get("framework")
+        ),
+        package_manager=optional_str(
+            payload.get("package_manager")
+        ),
+        build_command=optional_str(
+            payload.get("build_command")
+        ),
+        output_directory=optional_str(
+            payload.get("output_directory")
+        ),
+        trace_id=optional_str(
+            payload.get("trace_id")
+        ),
+    )
+
+
+def _accepts_context_keyword(
+    method: object,
+) -> bool:
+    try:
+        parameters = inspect.signature(
+            method
+        ).parameters.values()
+    except (TypeError, ValueError):
+        return False
+
+    return any(
+        parameter.name == "context"
+        or parameter.kind
+        == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters
+    )
+
+
+async def execute_deployment_with_context(
+    pipeline: object,
+    deployment_id: str,
+    *,
+    context: DeploymentPipelineContext,
+) -> object:
+    """Call the new context API while preserving legacy test fakes."""
+
+    method = getattr(
+        pipeline,
+        "execute_deployment",
+    )
+
+    if _accepts_context_keyword(method):
+        return await method(
+            deployment_id,
+            context=context,
+        )
+
+    return await method(deployment_id)
+
+
+async def execute_redeployment_with_context(
+    pipeline: object,
+    deployment_id: str,
+    *,
+    source_deployment_id: str | None,
+    context: DeploymentPipelineContext,
+) -> object:
+    """Call redeploy with context and legacy fake compatibility."""
+
+    method = getattr(
+        pipeline,
+        "execute_redeployment",
+    )
+
+    if _accepts_context_keyword(method):
+        return await method(
+            deployment_id,
+            source_deployment_id=(
+                source_deployment_id
+            ),
+            context=context,
+        )
+
+    return await method(
+        deployment_id,
+        source_deployment_id=(
+            source_deployment_id
         ),
     )

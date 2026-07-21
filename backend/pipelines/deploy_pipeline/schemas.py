@@ -46,6 +46,10 @@ class DeploymentPipelineContext(BaseModel):
     repository_url: str | None = None
     branch: str | None = None
     commit_sha: str | None = None
+    repository_path: str | None = None
+    workspace_path: str | None = None
+    artifacts_path: str | None = None
+    artifact_path: str | None = None
     framework: str | None = None
     package_manager: str | None = None
     build_command: str | None = None

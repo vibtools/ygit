@@ -98,14 +98,17 @@ def repository_detail(
     )
 
 
-def completed_source_deployment() -> DeploymentRecord:
+def completed_source_deployment(
+    *,
+    domain_id: str | None = None,
+) -> DeploymentRecord:
     return DeploymentRecord(
         id="dep_source_1",
         project_id="proj_1",
         user_id="user_1",
         repository_id="repo_1",
         analysis_id="analysis_1",
-        domain_id=None,
+        domain_id=domain_id,
         job_id="job_source_1",
         status="completed",
         requested_by="user",
@@ -279,6 +282,11 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
     assert payload["deployment_id"] == "dep_1"
     assert payload["project_id"] == "proj_1"
     assert payload["user_id"] == "user_1"
+    assert payload["repository_id"] == "repo_1"
+    assert payload["analysis_id"] == "analysis_1"
+    assert payload["trace_id"] == "trace_test"
+    assert queue.payloads[0].trace_id == "trace_test"
+    assert payload["framework"] == "vite"
     assert payload["repository_url"] == "https://github.com/vibtools/ygit"
     assert payload["git_ref"] == "main"
     assert payload["package_manager"] == "npm"
@@ -286,6 +294,48 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
     assert payload["output_directory"] == "dist"
     assert payload["root_directory"] == "."
     assert "repository_path" not in payload
+
+
+@pytest.mark.asyncio
+async def test_request_deployment_copies_generated_trace_into_handler_payload() -> None:
+    queue = FakeQueue()
+
+    service = DeployInternalService(
+        repository=FakeRepository(),
+        project_public_service=FakeProjectService(
+            project_detail()
+        ),
+        analysis_public_service=FakeAnalysisService(
+            analysis_detail()
+        ),
+        repository_public_service=(
+            FakeRepositoryMetadataService(
+                repository_detail()
+            )
+        ),
+        connected_accounts_public_service=(
+            FakeConnectedAccounts()
+        ),
+        queue_client=queue,
+    )
+
+    await service.request_deployment(
+        FakeDB(),
+        user_id="user_1",
+        project_id="proj_1",
+        input_data=DeploymentRequestInput(),
+    )
+
+    job_payload = queue.payloads[0]
+
+    assert job_payload.trace_id.startswith(
+        "trace_"
+    )
+
+    assert (
+        job_payload.payload["trace_id"]
+        == job_payload.trace_id
+    )
 
 
 @pytest.mark.asyncio
@@ -331,7 +381,9 @@ async def test_request_redeploy_preserves_repository_and_build_configuration() -
     )
     service = DeployInternalService(
         repository=FakeRedeployRepository(
-            completed_source_deployment()
+            completed_source_deployment(
+                domain_id="domain_1"
+            )
         ),
         project_public_service=FakeProjectService(
             project_detail()
@@ -363,6 +415,27 @@ async def test_request_redeploy_preserves_repository_and_build_configuration() -
     assert payload["deployment_id"] == "dep_1"
     assert payload["project_id"] == "proj_1"
     assert payload["user_id"] == "user_1"
+    assert payload["repository_id"] == "repo_1"
+    assert payload["analysis_id"] == "analysis_1"
+    assert payload["domain_id"] == "domain_1"
+
+    assert (
+        payload["source_deployment_id"]
+        == "dep_source_1"
+    )
+
+    assert (
+        payload["trace_id"]
+        == "trace_redeploy_test"
+    )
+
+    assert (
+        queue.payloads[0].trace_id
+        == "trace_redeploy_test"
+    )
+
+    assert payload["framework"] == "vite"
+
     assert (
         payload["repository_url"]
         == "https://github.com/vibtools/ygit"
@@ -382,6 +455,10 @@ def test_deploy_engine_queue_build_settings_keeps_architecture_boundaries() -> N
     assert "_repository_checkout_configuration" in source
     assert "build_configuration" in source
     assert "repository_configuration" in source
+    assert "job_trace_id" in source
+    assert '"source_deployment_id"' in source
+    assert '"repository_id"' in source
+    assert '"analysis_id"' in source
     assert "backend.engines.repository_engine.public" in source
     assert "backend.engines.repository_engine.internal" not in source
     assert '"repository_path"' not in source

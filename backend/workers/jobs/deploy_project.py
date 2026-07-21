@@ -8,6 +8,8 @@ from backend.workers.git_checkout import run_git_checkout
 from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result
 from backend.workers.jobs.deployment_runtime import (
     build_stage_input,
+    deployment_pipeline_context,
+    execute_deployment_with_context,
     optional_str,
     payload_checkout_ref,
     payload_checkout_timeout_seconds,
@@ -110,6 +112,7 @@ async def run(payload: dict[str, object]) -> None:
     deployment_id = str(payload["deployment_id"])
     runtime_payload = _payload_with_workspace_if_checkout_ready(deployment_id, payload)
     build_input = _build_stage_input(deployment_id, runtime_payload)
+    build_result = None
 
     if build_input is not None:
         build_result = deploy_pipeline.execute_build_stage(
@@ -126,8 +129,18 @@ async def run(payload: dict[str, object]) -> None:
                 build_status=build_status,
             )
 
-    deployment_result = await deploy_pipeline.execute_deployment(
-        deployment_id
+    pipeline_context = deployment_pipeline_context(
+        deployment_id,
+        runtime_payload,
+        build_result=build_result,
+    )
+
+    deployment_result = (
+        await execute_deployment_with_context(
+            deploy_pipeline,
+            deployment_id,
+            context=pipeline_context,
+        )
     )
 
     require_completed_pipeline_result(

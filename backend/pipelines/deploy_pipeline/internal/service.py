@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 from backend.pipelines.deploy_pipeline.contract import DeployPipelineStage
+from backend.pipelines.deploy_pipeline.errors import (
+    DeployPipelineContextInvalidError,
+)
 from backend.pipelines.deploy_pipeline.internal.events import build_stage_event
 from backend.pipelines.deploy_pipeline.internal.history_contract import build_history_write
-from backend.pipelines.deploy_pipeline.internal.provider_gateway import ContractSkeletonProviderGateway
+from backend.pipelines.deploy_pipeline.internal.provider_gateway import (
+    ContractSkeletonProviderGateway,
+    DeployProviderGateway,
+)
 from backend.pipelines.deploy_pipeline.schemas import (
     DeploymentPipelineContext,
     DeploymentPipelineResult,
@@ -20,23 +26,96 @@ class DeployPipelineService:
     implemented against real pipeline event shapes instead of placeholders.
     """
 
-    def __init__(self, provider_gateway: ContractSkeletonProviderGateway | None = None) -> None:
-        self.provider_gateway = provider_gateway or ContractSkeletonProviderGateway()
+    def __init__(
+        self,
+        provider_gateway: DeployProviderGateway | None = None,
+    ) -> None:
+        self.provider_gateway = (
+            provider_gateway
+            or ContractSkeletonProviderGateway()
+        )
 
-    async def execute_deployment(self, deployment_id: str) -> DeploymentPipelineResult:
-        context = DeploymentPipelineContext(deployment_id=deployment_id)
-        return await self.prepare_provider_handoff(context)
+    async def execute_deployment(
+        self,
+        deployment_id: str,
+        *,
+        context: DeploymentPipelineContext | None = None,
+    ) -> DeploymentPipelineResult:
+        runtime_context = self._resolve_context(
+            deployment_id=deployment_id,
+            context=context,
+        )
+
+        return await self.prepare_provider_handoff(
+            runtime_context
+        )
 
     async def execute_redeployment(
         self,
         deployment_id: str,
         source_deployment_id: str | None = None,
+        *,
+        context: DeploymentPipelineContext | None = None,
     ) -> DeploymentPipelineResult:
-        context = DeploymentPipelineContext(
+        runtime_context = self._resolve_context(
             deployment_id=deployment_id,
-            source_deployment_id=source_deployment_id,
+            context=context,
+            source_deployment_id=(
+                source_deployment_id
+            ),
         )
-        return await self.prepare_provider_handoff(context)
+
+        return await self.prepare_provider_handoff(
+            runtime_context
+        )
+
+    def _resolve_context(
+        self,
+        *,
+        deployment_id: str,
+        context: DeploymentPipelineContext | None,
+        source_deployment_id: str | None = None,
+    ) -> DeploymentPipelineContext:
+        if context is None:
+            return DeploymentPipelineContext(
+                deployment_id=deployment_id,
+                source_deployment_id=(
+                    source_deployment_id
+                ),
+            )
+
+        if context.deployment_id != deployment_id:
+            raise DeployPipelineContextInvalidError(
+                "Deploy Pipeline context deployment ID "
+                "does not match the requested deployment."
+            )
+
+        if (
+            source_deployment_id is not None
+            and context.source_deployment_id
+            not in {
+                None,
+                source_deployment_id,
+            }
+        ):
+            raise DeployPipelineContextInvalidError(
+                "Deploy Pipeline source deployment ID "
+                "does not match the redeploy request."
+            )
+
+        if (
+            source_deployment_id is not None
+            and context.source_deployment_id is None
+        ):
+            return context.model_copy(
+                update={
+                    "source_deployment_id": (
+                        source_deployment_id
+                    )
+                }
+            )
+
+        return context
 
     async def prepare_provider_handoff(
         self,

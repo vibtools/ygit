@@ -6,6 +6,8 @@ from backend.workers.git_checkout import run_git_checkout
 from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result
 from backend.workers.jobs.deployment_runtime import (
     build_stage_input,
+    deployment_pipeline_context,
+    execute_redeployment_with_context,
     optional_str,
     payload_with_workspace_if_checkout_ready,
 )
@@ -42,6 +44,7 @@ async def run(
         deployment_id,
         runtime_payload,
     )
+    build_result = None
 
     if build_input is not None:
         build_result = (
@@ -64,14 +67,27 @@ async def run(
                 build_status=build_status,
             )
 
+    normalized_source_deployment_id = (
+        optional_str(source_deployment_id)
+    )
+
+    pipeline_context = deployment_pipeline_context(
+        deployment_id,
+        runtime_payload,
+        build_result=build_result,
+        source_deployment_id=(
+            normalized_source_deployment_id
+        ),
+    )
+
     deployment_result = (
-        await deploy_pipeline.execute_redeployment(
+        await execute_redeployment_with_context(
+            deploy_pipeline,
             deployment_id,
             source_deployment_id=(
-                str(source_deployment_id)
-                if source_deployment_id
-                else None
+                normalized_source_deployment_id
             ),
+            context=pipeline_context,
         )
     )
 
