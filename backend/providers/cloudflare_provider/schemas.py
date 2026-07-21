@@ -23,6 +23,22 @@ class CloudflarePagesProject(BaseModel):
     subdomain: str | None = None
 
 
+class CloudflarePagesArtifactFile(BaseModel):
+    relative_path: str
+    content_hash: str = Field(
+        pattern=r"^[0-9a-f]{32}$"
+    )
+    size_bytes: int = Field(ge=0)
+
+
+class CloudflarePagesArtifactManifest(BaseModel):
+    output_directory_name: str
+    file_count: int = Field(ge=1, le=20_000)
+    total_bytes: int = Field(ge=0)
+    files: list[CloudflarePagesArtifactFile]
+    manifest: dict[str, str]
+
+
 class CloudflareAccountValidation(BaseModel):
     provider: str = "cloudflare"
     account_id: str

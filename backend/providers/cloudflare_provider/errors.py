@@ -25,5 +25,11 @@ class CloudflarePagesProjectError(CloudflareProviderError):
     """Cloudflare Pages project operation failed."""
 
 
+class CloudflarePagesArtifactError(
+    CloudflareProviderError
+):
+    "Cloudflare Pages build artifact is invalid."
+
+
 class CloudflareProviderUnavailableError(CloudflareProviderError):
     """Cloudflare provider API is unavailable."""
