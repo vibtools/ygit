@@ -5,6 +5,9 @@ from urllib.parse import quote, urlencode
 import httpx
 import re
 
+from backend.providers.cloudflare_provider.artifacts import (
+    CloudflarePagesAssetUploadBatch,
+)
 from backend.providers.cloudflare_provider.errors import (
     CloudflareAccountValidationError,
     CloudflareOAuthConfigurationError,
@@ -18,6 +21,7 @@ from backend.providers.cloudflare_provider.schemas import (
     CloudflareAccount,
     CloudflareAccountValidation,
     CloudflareOAuthResponse,
+    CloudflarePagesAssetUploadBatchResult,
     CloudflarePagesAssetUploadPlan,
     CloudflarePagesProject,
     CloudflarePagesUploadToken,
@@ -690,6 +694,113 @@ class CloudflareProviderClient:
         }
         return await self.check_missing_pages_assets(
             **request_fields
+        )
+
+
+    async def upload_pages_asset_batch(
+        self,
+        *,
+        upload_session: CloudflarePagesUploadToken,
+        batch: CloudflarePagesAssetUploadBatch,
+    ) -> CloudflarePagesAssetUploadBatchResult:
+        upload_value = (
+            upload_session.upload_token
+            .get_secret_value()
+            .strip()
+        )
+
+        if (
+            not upload_value
+            or any(
+                character in upload_value
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload token is invalid."
+            )
+
+        if not batch.items:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload batch is empty."
+            )
+
+        hashes = [
+            item.content_hash
+            for item in batch.items
+        ]
+
+        if (
+            len(hashes) != len(set(hashes))
+            or batch.total_bytes
+            != sum(
+                item.size_bytes
+                for item in batch.items
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload batch is invalid."
+            )
+
+        url = (
+            f"{self.api_base_url}/pages/assets/"
+            "upload"
+        )
+        headers = {
+            "Authorization": f"Bearer {upload_value}",
+            "Content-Type": "application/json",
+        }
+        payload = [
+            item.api_payload()
+            for item in batch.items
+        ]
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.post(
+                    url,
+                    json=payload,
+                )
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages asset upload API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages asset upload failed."
+            )
+
+        try:
+            response_payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid asset upload response."
+            ) from exc
+
+        if (
+            not isinstance(response_payload, dict)
+            or response_payload.get("success")
+            is not True
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid asset upload response."
+            )
+
+        result_fields = {
+            "uploaded_hashes": sorted(hashes),
+            "uploaded_file_count": len(hashes),
+            "uploaded_bytes": batch.total_bytes,
+        }
+        return CloudflarePagesAssetUploadBatchResult(
+            **result_fields
         )
 
     async def list_accounts(self, bearer_value: str) -> list[CloudflareAccount]:

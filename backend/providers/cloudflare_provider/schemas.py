@@ -53,6 +53,12 @@ class CloudflarePagesAssetUploadPlan(BaseModel):
     cached_hash_count: int = Field(ge=0)
 
 
+class CloudflarePagesAssetUploadBatchResult(BaseModel):
+    uploaded_hashes: list[str]
+    uploaded_file_count: int = Field(ge=1)
+    uploaded_bytes: int = Field(ge=0)
+
+
 class CloudflareAccountValidation(BaseModel):
     provider: str = "cloudflare"
     account_id: str
