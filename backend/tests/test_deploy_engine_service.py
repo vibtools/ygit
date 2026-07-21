@@ -16,6 +16,7 @@ from backend.engines.deploy_engine.internal.service import DeployInternalService
 from backend.engines.deploy_engine.schemas import DeploymentRecord, DeploymentRequestInput
 from backend.engines.project_engine.schemas import ProjectDetail
 from backend.engines.repository_analysis_engine.schemas import AnalysisDetail
+from backend.engines.repository_engine.schemas import RepositoryDetail
 from backend.workers.queue.schemas import JobRef
 
 NOW = datetime.now(timezone.utc)
@@ -67,6 +68,46 @@ def analysis_detail(
         updated_at=NOW,
         deleted_at=None,
     )
+
+
+def repository_detail(
+    *,
+    repository_url: str = "https://github.com/vibtools/ygit",
+    default_branch: str | None = "main",
+) -> RepositoryDetail:
+    return RepositoryDetail(
+        id="repo_1",
+        user_id="user_1",
+        provider="github",
+        repository_url=repository_url,
+        owner="vibtools",
+        name="ygit",
+        default_branch=default_branch,
+        visibility="public",
+        latest_commit_sha="abc123",
+        fetched_at=NOW,
+        created_at=NOW,
+        updated_at=NOW,
+        file_tree_snapshot=None,
+        metadata=None,
+        deleted_at=None,
+    )
+
+
+class FakeRepositoryMetadataService:
+    def __init__(self, repository: RepositoryDetail) -> None:
+        self.repository = repository
+
+    async def get_repository_metadata(
+        self,
+        db,
+        *,
+        user_id: str,
+        repository_id: str,
+    ) -> RepositoryDetail:
+        assert user_id == self.repository.user_id
+        assert repository_id == self.repository.id
+        return self.repository
 
 
 class FakeProjectService:
@@ -162,6 +203,7 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail()),
         analysis_public_service=FakeAnalysisService(analysis_detail()),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
         queue_client=queue,
     )
@@ -181,6 +223,8 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
     assert payload["deployment_id"] == "dep_1"
     assert payload["project_id"] == "proj_1"
     assert payload["user_id"] == "user_1"
+    assert payload["repository_url"] == "https://github.com/vibtools/ygit"
+    assert payload["git_ref"] == "main"
     assert payload["package_manager"] == "npm"
     assert payload["build_command"] == "npm run build"
     assert payload["output_directory"] == "dist"
@@ -197,6 +241,7 @@ async def test_request_deployment_omits_missing_build_settings_without_crashing(
         analysis_public_service=FakeAnalysisService(
             analysis_detail(build_command=None, output_directory=None)
         ),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
         queue_client=queue,
     )
@@ -214,6 +259,8 @@ async def test_request_deployment_omits_missing_build_settings_without_crashing(
     assert payload["deployment_id"] == "dep_1"
     assert payload["project_id"] == "proj_1"
     assert payload["user_id"] == "user_1"
+    assert payload["repository_url"] == "https://github.com/vibtools/ygit"
+    assert payload["git_ref"] == "main"
     assert payload["package_manager"] == "npm"
     assert "build_command" not in payload
     assert "output_directory" not in payload
@@ -225,7 +272,11 @@ def test_deploy_engine_queue_build_settings_keeps_architecture_boundaries() -> N
     source = Path("backend/engines/deploy_engine/internal/service.py").read_text(encoding="utf-8")
 
     assert "_build_configuration_from_analysis" in source
+    assert "_repository_checkout_configuration" in source
     assert "build_configuration" in source
+    assert "repository_configuration" in source
+    assert "backend.engines.repository_engine.public" in source
+    assert "backend.engines.repository_engine.internal" not in source
     assert '"repository_path"' not in source
     assert "\'repository_path\'" not in source
     assert "backend.providers" not in source
@@ -239,6 +290,7 @@ async def test_request_deployment_requires_repository() -> None:
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail(repository_id=None)),
         analysis_public_service=FakeAnalysisService(analysis_detail()),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
         queue_client=FakeQueue(),
     )
@@ -252,6 +304,7 @@ async def test_request_deployment_requires_analysis() -> None:
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail(analysis_id=None)),
         analysis_public_service=FakeAnalysisService(analysis_detail()),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
         queue_client=FakeQueue(),
     )
@@ -265,6 +318,7 @@ async def test_request_deployment_requires_deploy_ready_analysis() -> None:
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail()),
         analysis_public_service=FakeAnalysisService(analysis_detail(deploy_ready=False)),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(),
         queue_client=FakeQueue(),
     )
@@ -278,6 +332,7 @@ async def test_request_deployment_requires_cloudflare_connection() -> None:
         repository=FakeRepository(),
         project_public_service=FakeProjectService(project_detail()),
         analysis_public_service=FakeAnalysisService(analysis_detail()),
+        repository_public_service=FakeRepositoryMetadataService(repository_detail()),
         connected_accounts_public_service=FakeConnectedAccounts(missing={"cloudflare"}),
         queue_client=FakeQueue(),
     )

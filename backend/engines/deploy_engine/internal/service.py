@@ -36,6 +36,10 @@ from backend.engines.repository_analysis_engine.public import (
     RepositoryAnalysisPublicService,
     repository_analysis_service,
 )
+from backend.engines.repository_engine.public import (
+    RepositoryPublicService,
+    repository_service,
+)
 from backend.workers.queue.client import QueueClient
 from backend.workers.queue.schemas import JobPayload
 
@@ -53,12 +57,14 @@ class DeployInternalService:
         repository: DeploymentRepository | None = None,
         project_public_service: ProjectPublicService | None = None,
         analysis_public_service: RepositoryAnalysisPublicService | None = None,
+        repository_public_service: RepositoryPublicService | None = None,
         connected_accounts_public_service: ConnectedAccountsPublicService | None = None,
         queue_client: QueueClient | None = None,
     ) -> None:
         self.repository = repository or DeploymentRepository()
         self.project_service = project_public_service or project_service
         self.analysis_service = analysis_public_service or repository_analysis_service
+        self.repository_service = repository_public_service or repository_service
         self.connected_accounts = connected_accounts_public_service or connected_accounts_service
         self.queue_client = queue_client or QueueClient()
 
@@ -125,6 +131,13 @@ class DeployInternalService:
         await self._require_provider(db, user_id=user_id, provider="github")
         await self._require_provider(db, user_id=user_id, provider="cloudflare")
 
+        repository_configuration = await self._repository_checkout_configuration(
+            db,
+            user_id=user_id,
+            repository_id=project.repository_id,
+        )
+        build_configuration = self._build_configuration_from_analysis(analysis)
+
         deployment = await self.repository.create_queued_deployment(
             db,
             user_id=user_id,
@@ -140,7 +153,8 @@ class DeployInternalService:
             user_id=user_id,
             job_type="deploy_project",
             trace_id=trace_id,
-            build_configuration=self._build_configuration_from_analysis(analysis),
+            build_configuration=build_configuration,
+            repository_configuration=repository_configuration,
         )
         deployment = await self.repository.attach_job_id(db, deployment_id=deployment.id, job_id=job.id)
         await db.commit()
@@ -228,6 +242,37 @@ class DeployInternalService:
             return False
         return True
 
+    async def _repository_checkout_configuration(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        repository_id: str,
+    ) -> dict[str, object]:
+        """Return worker-safe checkout metadata through Repository Engine public API."""
+
+        repository = await self.repository_service.get_repository_metadata(
+            db,
+            user_id=user_id,
+            repository_id=repository_id,
+        )
+
+        repository_url = str(repository.repository_url).strip()
+        if not repository_url:
+            raise DeploymentProjectNotReadyError(
+                "Project repository metadata does not contain a checkout URL."
+            )
+
+        configuration: dict[str, object] = {
+            "repository_url": repository_url,
+        }
+
+        default_branch = str(repository.default_branch or "").strip()
+        if default_branch:
+            configuration["git_ref"] = default_branch
+
+        return configuration
+
     def _build_configuration_from_analysis(self, analysis: object) -> dict[str, object]:
         """Extract worker-safe build settings from repository analysis.
 
@@ -259,6 +304,7 @@ class DeployInternalService:
         job_type: str,
         trace_id: str | None,
         build_configuration: dict[str, object] | None = None,
+        repository_configuration: dict[str, object] | None = None,
     ) -> DeploymentJobRef:
         try:
             payload_data: dict[str, object] = {
@@ -267,6 +313,7 @@ class DeployInternalService:
                 "user_id": user_id,
             }
             payload_data.update(build_configuration or {})
+            payload_data.update(repository_configuration or {})
 
             payload = JobPayload(
                 job_type=job_type,
