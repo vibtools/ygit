@@ -61,6 +61,18 @@ class ProviderTokenInvalidError(ConnectedAccountsError):
         )
 
 
+class ProviderCredentialExpiredError(
+    ProviderTokenInvalidError
+):
+    def __init__(self) -> None:
+        ConnectedAccountsError.__init__(
+            self,
+            code="PROVIDER_CREDENTIAL_EXPIRED",
+            message="Provider credential has expired.",
+            status_code=401,
+        )
+
+
 class ProviderConnectionFailedError(ConnectedAccountsError):
     def __init__(self, message: str = "Provider connection validation failed.") -> None:
         super().__init__(

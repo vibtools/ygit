@@ -11,6 +11,7 @@ from pydantic import SecretStr
 
 from backend.core.config import get_settings
 from backend.engines.auth_engine.connected_accounts_module.errors import (
+    ProviderCredentialExpiredError,
     ProviderTokenInvalidError,
 )
 from backend.engines.auth_engine.connected_accounts_module.schemas import (
@@ -200,13 +201,16 @@ class ConnectedAccountCredentialVault:
 
         if (
             expires_at is not None
-            and (
-                expires_at.tzinfo is None
-                or expires_at
-                <= datetime.now(timezone.utc)
-            )
+            and expires_at.tzinfo is None
         ):
             raise ProviderTokenInvalidError()
+
+        if (
+            expires_at is not None
+            and expires_at
+            <= datetime.now(timezone.utc)
+        ):
+            raise ProviderCredentialExpiredError()
 
         raw_scopes = payload.get("scopes")
 

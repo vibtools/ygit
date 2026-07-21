@@ -13,6 +13,7 @@ from backend.engines.auth_engine.connected_accounts_module.errors import (
     ProviderNotConnectedError,
     ProviderNotSupportedError,
     ProviderOAuthFailedError,
+    ProviderCredentialExpiredError,
     ProviderTokenInvalidError,
 )
 from backend.engines.auth_engine.connected_accounts_module.internal.credential_vault import (
@@ -417,6 +418,26 @@ class ConnectedAccountsInternalService:
         return vault.resolve_cloudflare(
             **resolver_fields,
         )
+
+    async def acquire_cloudflare_deployment_credential(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        token_secret_ref: str,
+    ) -> ResolvedProviderCredential:
+        try:
+            return await self.resolve_cloudflare_credential(
+                db,
+                user_id=user_id,
+                token_secret_ref=token_secret_ref,
+            )
+        except ProviderCredentialExpiredError:
+            return await self.refresh_cloudflare_credential(
+                db,
+                user_id=user_id,
+                token_secret_ref=token_secret_ref,
+            )
 
     async def refresh_cloudflare_credential(
         self,
