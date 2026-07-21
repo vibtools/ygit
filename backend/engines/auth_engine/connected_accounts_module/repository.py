@@ -112,6 +112,61 @@ class ConnectedAccountRepository:
             model.token_ciphertext,
         )
 
+    async def update_credential_storage(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        provider: ProviderName,
+        token_ciphertext: str,
+        token_key_version: str,
+        scopes: list[str],
+    ) -> ConnectedAccountRecord | None:
+        model = await self.get_by_user_provider(
+            db,
+            user_id=user_id,
+            provider=provider,
+        )
+
+        if model is None:
+            return None
+
+        model.status = "connected"
+        model.token_ciphertext = token_ciphertext
+        model.token_key_version = token_key_version
+        model.scopes = scopes
+        model.last_error_code = None
+        model.last_checked_at = datetime.now(timezone.utc)
+
+        await db.flush()
+        return self.to_record(model)
+
+    async def mark_reconnect_required(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        provider: ProviderName,
+        error_code: str,
+    ) -> ConnectedAccountRecord | None:
+        model = await self.get_by_user_provider(
+            db,
+            user_id=user_id,
+            provider=provider,
+        )
+
+        if model is None:
+            return None
+
+        model.status = "reconnect_required"
+        model.token_ciphertext = None
+        model.token_key_version = None
+        model.last_error_code = error_code
+        model.last_checked_at = datetime.now(timezone.utc)
+
+        await db.flush()
+        return self.to_record(model)
+
     async def mark_disconnected(
         self,
         db: AsyncSession,

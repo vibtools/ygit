@@ -84,6 +84,19 @@ class ConnectedAccountsPublicService:
             token_secret_ref=token_secret_ref,
         )
 
+    async def refresh_cloudflare_credential(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        token_secret_ref: str,
+    ) -> ResolvedProviderCredential:
+        return await self._internal.refresh_cloudflare_credential(
+            db,
+            user_id=user_id,
+            token_secret_ref=token_secret_ref,
+        )
+
     async def check_provider_health(
         self,
         db: AsyncSession,

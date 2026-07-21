@@ -238,3 +238,110 @@ class ConnectedAccountCredentialVault:
         return ResolvedProviderCredential.model_validate(
             result_data
         )
+
+    def resolve_cloudflare_for_refresh(
+        self,
+        *,
+        ciphertext: str,
+        stored_key_version: str,
+        token_reference: str,
+    ) -> ResolvedProviderCredential:
+        normalized_reference = token_reference.strip()
+
+        if (
+            not ciphertext
+            or not hmac.compare_digest(
+                stored_key_version,
+                self._key_version,
+            )
+            or not normalized_reference.startswith(
+                "cloudflare_oauth_account:"
+            )
+        ):
+            raise ProviderTokenInvalidError()
+
+        try:
+            decoded = self._cipher.decrypt(
+                ciphertext.encode("ascii")
+            )
+            payload = json.loads(
+                decoded.decode("utf-8")
+            )
+        except (
+            InvalidToken,
+            UnicodeDecodeError,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+        ) as exc:
+            raise ProviderTokenInvalidError() from exc
+
+        stored_reference = str(
+            payload.get("token_reference")
+            or ""
+        ).strip()
+
+        if (
+            payload.get("provider") != "cloudflare"
+            or not hmac.compare_digest(
+                stored_reference,
+                normalized_reference,
+            )
+        ):
+            raise ProviderTokenInvalidError()
+
+        access_value = str(
+            payload.get("access_value")
+            or ""
+        ).strip()
+        refresh_value = str(
+            payload.get("refresh_value")
+            or ""
+        ).strip()
+
+        if not access_value or not refresh_value:
+            raise ProviderTokenInvalidError()
+
+        expires_value = payload.get("expires_at")
+
+        try:
+            expires_at = (
+                datetime.fromisoformat(
+                    str(expires_value)
+                )
+                if expires_value
+                else None
+            )
+        except ValueError as exc:
+            raise ProviderTokenInvalidError() from exc
+
+        if (
+            expires_at is not None
+            and expires_at.tzinfo is None
+        ):
+            raise ProviderTokenInvalidError()
+
+        raw_scopes = payload.get("scopes")
+
+        if not isinstance(raw_scopes, list):
+            raise ProviderTokenInvalidError()
+
+        result_data = {
+            "provider": "cloudflare",
+            "token_secret_ref": normalized_reference,
+            "access_token": SecretStr(access_value),
+            "refresh_token": SecretStr(refresh_value),
+            "token_type": str(
+                payload.get("token_type")
+                or "bearer"
+            ),
+            "expires_at": expires_at,
+            "scopes": [
+                str(scope)
+                for scope in raw_scopes
+            ],
+        }
+
+        return ResolvedProviderCredential.model_validate(
+            result_data
+        )

@@ -37,6 +37,11 @@ from backend.engines.auth_engine.connected_accounts_module.schemas import (
     ResolvedProviderCredential,
 )
 from backend.providers.cloudflare_provider.client import CloudflareProviderClient
+from backend.providers.cloudflare_provider.errors import (
+    CloudflareAccountValidationError,
+    CloudflareOAuthRefreshError,
+    CloudflareProviderUnavailableError,
+)
 from backend.providers.github_provider.client import GitHubProviderClient
 
 SUPPORTED_PROVIDERS: tuple[ProviderName, ...] = ("github", "cloudflare")
@@ -412,6 +417,216 @@ class ConnectedAccountsInternalService:
         return vault.resolve_cloudflare(
             **resolver_fields,
         )
+
+    async def refresh_cloudflare_credential(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        token_secret_ref: str,
+    ) -> ResolvedProviderCredential:
+        storage = await self.repository.get_credential_storage(
+            db,
+            user_id=user_id,
+            provider="cloudflare",
+        )
+
+        if storage is None:
+            raise ProviderNotConnectedError()
+
+        record, ciphertext = storage
+        reference_value = token_secret_ref.strip()
+
+        if (
+            record.status != "connected"
+            or not record.token_secret_ref
+        ):
+            raise ProviderNotConnectedError()
+
+        if (
+            not reference_value.startswith(
+                "cloudflare_oauth_account:"
+            )
+            or not hmac.compare_digest(
+                record.token_secret_ref,
+                reference_value,
+            )
+            or not ciphertext
+            or not record.token_key_version
+        ):
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise ProviderTokenInvalidError()
+
+        vault = self._get_credential_vault()
+        resolver_fields: dict[str, object] = {}
+        resolver_fields["ciphertext"] = ciphertext
+        resolver_fields["stored_key_version"] = (
+            record.token_key_version
+        )
+        resolver_fields["token_reference"] = reference_value
+
+        try:
+            current = vault.resolve_cloudflare_for_refresh(
+                **resolver_fields,
+            )
+        except ProviderTokenInvalidError:
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise
+
+        if current.refresh_token is None:
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise ProviderTokenInvalidError()
+
+        settings = get_settings()
+        client_value = settings.cloudflare_oauth_client_id
+        client_secret_value = (
+            settings.cloudflare_oauth_client_secret
+            .get_secret_value()
+        )
+
+        if not client_value or not client_secret_value:
+            raise ProviderConnectionFailedError(
+                "Cloudflare OAuth refresh configuration is incomplete."
+            )
+
+        refresh_fields: dict[str, str] = {}
+        refresh_fields["refresh_value"] = (
+            current.refresh_token.get_secret_value()
+        )
+        refresh_fields["client_id"] = client_value
+        refresh_fields["client_secret"] = client_secret_value
+
+        try:
+            oauth_payload = await self.cloudflare_provider.refresh_oauth_token(
+                **refresh_fields,
+            )
+        except CloudflareOAuthRefreshError as exc:
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise ProviderTokenInvalidError() from exc
+        except CloudflareProviderUnavailableError as exc:
+            raise ProviderConnectionFailedError(
+                "Cloudflare OAuth refresh is temporarily unavailable."
+            ) from exc
+
+        refreshed_scopes = (
+            oauth_payload.scope
+            or " ".join(current.scopes)
+        ).split()
+        bearer_value = oauth_payload.access_token
+
+        try:
+            validation = await self.cloudflare_provider.validate_oauth_access(
+                bearer_value=bearer_value,
+                scopes=refreshed_scopes,
+            )
+        except CloudflareProviderUnavailableError as exc:
+            raise ProviderConnectionFailedError(
+                "Cloudflare account validation is temporarily unavailable."
+            ) from exc
+        except CloudflareAccountValidationError as exc:
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise ProviderTokenInvalidError() from exc
+
+        expected_account_id = record.provider_account_id or ""
+
+        if (
+            not expected_account_id
+            or not hmac.compare_digest(
+                expected_account_id,
+                validation.account_id,
+            )
+        ):
+            await self._mark_cloudflare_reconnect_required(
+                db,
+                user_id=user_id,
+            )
+            raise ProviderTokenInvalidError()
+
+        rotated_refresh_value = (
+            oauth_payload.refresh_token
+            or current.refresh_token.get_secret_value()
+        )
+        stored_scopes = validation.scopes or refreshed_scopes
+
+        seal_fields: dict[str, object] = {}
+        seal_fields["token_reference"] = reference_value
+        seal_fields["access_value"] = oauth_payload.access_token
+        seal_fields["refresh_value"] = rotated_refresh_value
+        seal_fields["token_type"] = oauth_payload.token_type
+        seal_fields["expires_in"] = oauth_payload.expires_in
+        seal_fields["scopes"] = stored_scopes
+
+        refreshed_ciphertext = vault.seal_cloudflare_oauth(
+            **seal_fields,
+        )
+
+        storage_update_fields: dict[str, object] = {}
+        storage_update_fields["token_ciphertext"] = (
+            refreshed_ciphertext
+        )
+        storage_update_fields["token_key_version"] = (
+            vault.key_version
+        )
+        storage_update_fields["scopes"] = stored_scopes
+
+        updated = (
+            await self.repository
+            .update_credential_storage(
+                db,
+                user_id=user_id,
+                provider="cloudflare",
+                **storage_update_fields,
+            )
+        )
+
+        if updated is None:
+            raise ProviderNotConnectedError()
+
+        await db.commit()
+
+        resolved_fields: dict[str, object] = {}
+        resolved_fields["ciphertext"] = (
+            refreshed_ciphertext
+        )
+        resolved_fields["stored_key_version"] = (
+            vault.key_version
+        )
+        resolved_fields["token_reference"] = (
+            reference_value
+        )
+
+        return vault.resolve_cloudflare(
+            **resolved_fields,
+        )
+
+    async def _mark_cloudflare_reconnect_required(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+    ) -> None:
+        await self.repository.mark_reconnect_required(
+            db,
+            user_id=user_id,
+            provider="cloudflare",
+            error_code="CLOUDFLARE_OAUTH_RECONNECT_REQUIRED",
+        )
+        await db.commit()
 
     async def check_provider_health(
         self,
