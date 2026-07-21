@@ -4,6 +4,7 @@ from backend.pipelines.deploy_pipeline.internal.service import DeployPipelineSer
 from backend.pipelines.deploy_pipeline.schemas import (
     DeploymentPipelineContext,
     DeploymentPipelineResult,
+    ProviderTokenReference,
 )
 from backend.pipelines.deploy_pipeline.internal.build_stage import DeployBuildStageInput, DeployBuildStageResult, DeployPipelineBuildStage
 

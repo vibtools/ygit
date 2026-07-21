@@ -5,6 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
+from scripts.release_gate import check_secret_scan
+
 from backend.pipelines.deploy_pipeline.errors import (
     DeployPipelineContextInvalidError,
 )
@@ -24,6 +26,7 @@ from backend.workers.jobs import (
 )
 from backend.workers.jobs.deployment_runtime import (
     execute_deployment_with_context,
+    provider_token_reference,
 )
 
 
@@ -139,6 +142,20 @@ async def test_deploy_worker_passes_verified_artifact_context(
             "domain_id": "domain_context",
             "trace_id": "trace_context",
             "framework": "vite",
+            "github_token_ref": {
+                "provider": "github",
+                "token_secret_ref": (
+                    "github_app_installation:123"
+                ),
+                "account_name": "vibtools",
+            },
+            "cloudflare_token_ref": {
+                "provider": "cloudflare",
+                "token_secret_ref": (
+                    "cloudflare_oauth_account:abc"
+                ),
+                "account_name": "Vib Tools",
+            },
             "repository_url": (
                 "https://github.com/vibtools/ygit"
             ),
@@ -167,6 +184,26 @@ async def test_deploy_worker_passes_verified_artifact_context(
     assert context.domain_id == "domain_context"
     assert context.trace_id == "trace_context"
     assert context.framework == "vite"
+
+    assert context.github_token_ref is not None
+    assert (
+        context.github_token_ref.provider
+        == "github"
+    )
+    assert (
+        context.github_token_ref.token_secret_ref
+        == "github_app_installation:123"
+    )
+
+    assert context.cloudflare_token_ref is not None
+    assert (
+        context.cloudflare_token_ref.provider
+        == "cloudflare"
+    )
+    assert (
+        context.cloudflare_token_ref.token_secret_ref
+        == "cloudflare_oauth_account:abc"
+    )
 
     assert (
         context.repository_url
@@ -214,6 +251,20 @@ async def test_redeploy_worker_passes_source_and_artifact_context(
             "domain_id": "domain_context",
             "trace_id": "trace_redeploy_context",
             "framework": "vite",
+            "github_token_ref": {
+                "provider": "github",
+                "token_secret_ref": (
+                    "github_app_installation:123"
+                ),
+                "account_name": "vibtools",
+            },
+            "cloudflare_token_ref": {
+                "provider": "cloudflare",
+                "token_secret_ref": (
+                    "cloudflare_oauth_account:abc"
+                ),
+                "account_name": "Vib Tools",
+            },
             "repository_path": str(
                 repository_path
             ),
@@ -241,12 +292,70 @@ async def test_redeploy_worker_passes_source_and_artifact_context(
 
     assert context.framework == "vite"
 
+    assert context.github_token_ref is not None
+    assert (
+        context.github_token_ref.provider
+        == "github"
+    )
+    assert (
+        context.github_token_ref.token_secret_ref
+        == "github_app_installation:123"
+    )
+
+    assert context.cloudflare_token_ref is not None
+    assert (
+        context.cloudflare_token_ref.provider
+        == "cloudflare"
+    )
+    assert (
+        context.cloudflare_token_ref.token_secret_ref
+        == "cloudflare_oauth_account:abc"
+    )
+
     assert context.artifact_path == str(
         (
             repository_path
             / "dist"
         ).resolve()
     )
+
+
+def test_provider_reference_rejects_provider_mismatch() -> None:
+    with pytest.raises(
+        ValueError,
+        match="does not match",
+    ):
+        provider_token_reference(
+            {
+                "provider": "cloudflare",
+                "token_secret_ref": (
+                    "cloudflare_oauth_account:abc"
+                ),
+            },
+            expected_provider="github",
+        )
+
+
+def test_provider_reference_rejects_wrong_prefix() -> None:
+    with pytest.raises(
+        ValueError,
+        match="format is not supported",
+    ):
+        provider_token_reference(
+            {
+                "provider": "github",
+                "token_secret_ref": (
+                    "cloudflare_oauth_account:abc"
+                ),
+            },
+            expected_provider="github",
+        )
+
+
+def test_provider_reference_changes_pass_real_secret_scan() -> None:
+    result = check_secret_scan()
+
+    assert result.status == "PASS", result.details
 
 
 @pytest.mark.asyncio

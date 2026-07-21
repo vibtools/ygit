@@ -8,6 +8,7 @@ from pathlib import Path
 from backend.pipelines.deploy_pipeline.public import (
     DeployBuildStageInput,
     DeploymentPipelineContext,
+    ProviderTokenReference,
 )
 from backend.workers.git_checkout import GitCheckoutRequest
 
@@ -244,6 +245,69 @@ def build_stage_input(
         ),
     )
 
+
+def provider_token_reference(
+    value: object,
+    *,
+    expected_provider: str,
+) -> ProviderTokenReference | None:
+    """Validate a secret-safe provider reference from a job payload."""
+
+    if value is None:
+        return None
+
+    if not isinstance(value, dict):
+        raise ValueError(
+            "Provider reference must be a mapping."
+        )
+
+    reference = ProviderTokenReference.model_validate(
+        value
+    )
+
+    if reference.provider != expected_provider:
+        raise ValueError(
+            "Provider reference does not match "
+            "the expected provider."
+        )
+
+    reference_value = optional_str(
+        reference.token_secret_ref
+    )
+
+    if reference_value is None:
+        raise ValueError(
+            "Provider reference is empty."
+        )
+
+    allowed_prefixes = {
+        "github": (
+            "github_app_installation:",
+            "github_token_ref_",
+        ),
+        "cloudflare": (
+            "cloudflare_oauth_account:",
+            "cloudflare_token_ref_",
+        ),
+    }
+
+    prefixes = allowed_prefixes.get(
+        expected_provider
+    )
+
+    if (
+        prefixes is None
+        or not reference_value.startswith(
+            prefixes
+        )
+    ):
+        raise ValueError(
+            "Provider reference format is not supported."
+        )
+
+    return reference
+
+
 def deployment_pipeline_context(
     deployment_id: str,
     payload: dict[str, object],
@@ -271,6 +335,17 @@ def deployment_pipeline_context(
                 None,
             )
         )
+
+    provider_references = {
+        "github_token_ref": provider_token_reference(
+            payload.get("github_token_ref"),
+            expected_provider="github",
+        ),
+        "cloudflare_token_ref": provider_token_reference(
+            payload.get("cloudflare_token_ref"),
+            expected_provider="cloudflare",
+        ),
+    }
 
     return DeploymentPipelineContext(
         deployment_id=deployment_id,
@@ -324,6 +399,7 @@ def deployment_pipeline_context(
         trace_id=optional_str(
             payload.get("trace_id")
         ),
+        **provider_references,
     )
 
 

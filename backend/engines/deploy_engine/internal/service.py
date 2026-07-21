@@ -128,8 +128,23 @@ class DeployInternalService:
         if not analysis.deploy_ready:
             raise DeploymentProjectNotReadyError("Repository analysis is not deploy-ready.")
 
-        await self._require_provider(db, user_id=user_id, provider="github")
-        await self._require_provider(db, user_id=user_id, provider="cloudflare")
+        github_account = await self._require_provider(
+            db,
+            user_id=user_id,
+            provider="github",
+        )
+        cloudflare_account = await self._require_provider(
+            db,
+            user_id=user_id,
+            provider="cloudflare",
+        )
+
+        provider_configuration = (
+            self._provider_reference_configuration(
+                github_account,
+                cloudflare_account,
+            )
+        )
 
         repository_configuration = await self._repository_checkout_configuration(
             db,
@@ -161,6 +176,7 @@ class DeployInternalService:
             trace_id=trace_id,
             build_configuration=build_configuration,
             repository_configuration=repository_configuration,
+            provider_configuration=provider_configuration,
         )
         deployment = await self.repository.attach_job_id(db, deployment_id=deployment.id, job_id=job.id)
         await db.commit()
@@ -185,8 +201,23 @@ class DeployInternalService:
         if source.status in {"queued", "running"}:
             raise DeploymentAlreadyRunningError()
 
-        await self._require_provider(db, user_id=user_id, provider="github")
-        await self._require_provider(db, user_id=user_id, provider="cloudflare")
+        github_account = await self._require_provider(
+            db,
+            user_id=user_id,
+            provider="github",
+        )
+        cloudflare_account = await self._require_provider(
+            db,
+            user_id=user_id,
+            provider="cloudflare",
+        )
+
+        provider_configuration = (
+            self._provider_reference_configuration(
+                github_account,
+                cloudflare_account,
+            )
+        )
 
         analysis = await self.analysis_service.get_analysis_result(
             db,
@@ -225,6 +256,7 @@ class DeployInternalService:
             trace_id=trace_id,
             build_configuration=build_configuration,
             repository_configuration=repository_configuration,
+            provider_configuration=provider_configuration,
         )
         deployment = await self.repository.attach_job_id(db, deployment_id=deployment.id, job_id=job.id)
         await db.commit()
@@ -251,15 +283,97 @@ class DeployInternalService:
             raise DeploymentAccessDeniedError()
         return self.to_detail(record)
 
-    async def _require_provider(self, db: AsyncSession, *, user_id: str, provider: str) -> None:
+    async def _require_provider(
+        self,
+        db: AsyncSession,
+        *,
+        user_id: str,
+        provider: str,
+    ) -> object:
         try:
-            await self.connected_accounts.require_provider_connected(db, user_id=user_id, provider=provider)
+            return await self.connected_accounts.require_provider_connected(
+                db,
+                user_id=user_id,
+                provider=provider,
+            )
         except ProviderNotConnectedError as exc:
             if provider == "github":
                 raise DeploymentGithubNotConnectedError() from exc
             if provider == "cloudflare":
                 raise DeploymentCloudflareNotConnectedError() from exc
             raise
+
+    def _provider_reference_configuration(
+        self,
+        github_account: object,
+        cloudflare_account: object,
+    ) -> dict[str, object]:
+        return {
+            "github_token_ref": (
+                self._provider_reference_payload(
+                    github_account,
+                    expected_provider="github",
+                )
+            ),
+            "cloudflare_token_ref": (
+                self._provider_reference_payload(
+                    cloudflare_account,
+                    expected_provider="cloudflare",
+                )
+            ),
+        }
+
+    def _provider_reference_payload(
+        self,
+        account: object,
+        *,
+        expected_provider: str,
+    ) -> dict[str, object]:
+        provider = str(
+            getattr(
+                account,
+                "provider",
+                "",
+            )
+            or ""
+        ).strip().lower()
+
+        reference_value = str(
+            getattr(
+                account,
+                "token_secret_ref",
+                "",
+            )
+            or ""
+        ).strip()
+
+        if (
+            provider != expected_provider
+            or not reference_value
+        ):
+            if expected_provider == "github":
+                raise DeploymentGithubNotConnectedError()
+
+            raise DeploymentCloudflareNotConnectedError()
+
+        result: dict[str, object] = {
+            "provider": provider,
+            "token_secret_ref": reference_value,
+        }
+
+        account_name = str(
+            getattr(
+                account,
+                "provider_account_name",
+                "",
+            )
+            or ""
+        ).strip()
+
+        if account_name:
+            result["account_name"] = account_name
+
+        return result
 
     async def _is_provider_connected(self, db: AsyncSession, *, user_id: str, provider: str) -> bool:
         try:
@@ -340,6 +454,7 @@ class DeployInternalService:
         trace_id: str | None,
         build_configuration: dict[str, object] | None = None,
         repository_configuration: dict[str, object] | None = None,
+        provider_configuration: dict[str, object] | None = None,
     ) -> DeploymentJobRef:
         try:
             job_trace_id = (
@@ -371,6 +486,9 @@ class DeployInternalService:
             )
             payload_data.update(
                 repository_configuration or {}
+            )
+            payload_data.update(
+                provider_configuration or {}
             )
 
             payload = JobPayload(

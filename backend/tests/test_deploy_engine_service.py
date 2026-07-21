@@ -164,7 +164,22 @@ class FakeConnectedAccounts:
     async def require_provider_connected(self, db, *, user_id: str, provider: str):
         if provider in self.missing:
             raise ProviderNotConnectedError()
-        return SimpleNamespace(provider=provider, status="connected", token_secret_ref=f"{provider}:ref")
+        reference_value = (
+            "github_app_installation:123"
+            if provider == "github"
+            else "cloudflare_oauth_account:abc"
+        )
+
+        return SimpleNamespace(
+            provider=provider,
+            status="connected",
+            provider_account_name=(
+                f"{provider}-account"
+            ),
+            **{
+                "token_secret_ref": reference_value,
+            },
+        )
 
 
 class FakeQueue:
@@ -286,6 +301,23 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
     assert payload["analysis_id"] == "analysis_1"
     assert payload["trace_id"] == "trace_test"
     assert queue.payloads[0].trace_id == "trace_test"
+
+    assert payload["github_token_ref"] == {
+        "provider": "github",
+        "token_secret_ref": (
+            "github_app_installation:123"
+        ),
+        "account_name": "github-account",
+    }
+
+    assert payload["cloudflare_token_ref"] == {
+        "provider": "cloudflare",
+        "token_secret_ref": (
+            "cloudflare_oauth_account:abc"
+        ),
+        "account_name": "cloudflare-account",
+    }
+
     assert payload["framework"] == "vite"
     assert payload["repository_url"] == "https://github.com/vibtools/ygit"
     assert payload["git_ref"] == "main"
@@ -433,6 +465,22 @@ async def test_request_redeploy_preserves_repository_and_build_configuration() -
         queue.payloads[0].trace_id
         == "trace_redeploy_test"
     )
+
+    assert payload["github_token_ref"] == {
+        "provider": "github",
+        "token_secret_ref": (
+            "github_app_installation:123"
+        ),
+        "account_name": "github-account",
+    }
+
+    assert payload["cloudflare_token_ref"] == {
+        "provider": "cloudflare",
+        "token_secret_ref": (
+            "cloudflare_oauth_account:abc"
+        ),
+        "account_name": "cloudflare-account",
+    }
 
     assert payload["framework"] == "vite"
 
