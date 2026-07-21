@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, SecretStr
 
 
 class CloudflareOAuthResponse(BaseModel):
@@ -37,6 +37,20 @@ class CloudflarePagesArtifactManifest(BaseModel):
     total_bytes: int = Field(ge=0)
     files: list[CloudflarePagesArtifactFile]
     manifest: dict[str, str]
+
+
+class CloudflarePagesUploadToken(BaseModel):
+    upload_token: SecretStr
+
+
+class CloudflarePagesAssetUploadPlan(BaseModel):
+    upload_token: SecretStr
+    requested_hash_count: int = Field(
+        ge=1,
+        le=20_000,
+    )
+    missing_hashes: list[str]
+    cached_hash_count: int = Field(ge=0)
 
 
 class CloudflareAccountValidation(BaseModel):

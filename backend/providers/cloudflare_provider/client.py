@@ -3,12 +3,14 @@ from __future__ import annotations
 from urllib.parse import quote, urlencode
 
 import httpx
+import re
 
 from backend.providers.cloudflare_provider.errors import (
     CloudflareAccountValidationError,
     CloudflareOAuthConfigurationError,
     CloudflareOAuthExchangeError,
     CloudflareOAuthRefreshError,
+    CloudflarePagesAssetUploadError,
     CloudflarePagesProjectError,
     CloudflareProviderUnavailableError,
 )
@@ -16,7 +18,9 @@ from backend.providers.cloudflare_provider.schemas import (
     CloudflareAccount,
     CloudflareAccountValidation,
     CloudflareOAuthResponse,
+    CloudflarePagesAssetUploadPlan,
     CloudflarePagesProject,
+    CloudflarePagesUploadToken,
 )
 
 
@@ -371,6 +375,321 @@ class CloudflareProviderClient:
             project_name=project_name,
             production_branch=production_branch,
             bearer_value=bearer_value,
+        )
+
+
+    @staticmethod
+    def _required_pages_asset_value(
+        value: str,
+        *,
+        label: str,
+    ) -> str:
+        normalized = str(value or "").strip()
+
+        if (
+            not normalized
+            or any(
+                character in normalized
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                f"Cloudflare Pages {label} is invalid."
+            )
+
+        return normalized
+
+    @staticmethod
+    def _validated_pages_asset_hashes(
+        content_hashes: list[str],
+    ) -> list[str]:
+        normalized = sorted(
+            {
+                str(content_hash or "").strip()
+                for content_hash in content_hashes
+            }
+        )
+
+        if not normalized:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages asset hashes are missing."
+            )
+
+        if len(normalized) > 20_000:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages asset hash limit exceeded."
+            )
+
+        if any(
+            re.fullmatch(r"[0-9a-f]{32}", value)
+            is None
+            for value in normalized
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages asset hash is invalid."
+            )
+
+        return normalized
+
+    @staticmethod
+    def _pages_upload_token_from_payload(
+        payload: object,
+    ) -> CloudflarePagesUploadToken:
+        if not isinstance(payload, dict):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid upload-token response."
+            )
+
+        result = payload.get("result")
+
+        if (
+            payload.get("success") is not True
+            or not isinstance(result, dict)
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid upload-token response."
+            )
+
+        upload_token = str(
+            result.get("jwt")
+            or ""
+        ).strip()
+
+        if (
+            not upload_token
+            or any(
+                character in upload_token
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid upload token."
+            )
+
+        token_fields = {
+            "upload_token": upload_token,
+        }
+        return CloudflarePagesUploadToken(
+            **token_fields
+        )
+
+    async def get_pages_upload_token(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        bearer_value: str,
+    ) -> CloudflarePagesUploadToken:
+        account_value = self._required_pages_asset_value(
+            account_id,
+            label="account identifier",
+        )
+        project_value = self._required_pages_asset_value(
+            project_name,
+            label="project name",
+        )
+        access_value = self._required_pages_asset_value(
+            bearer_value,
+            label="access credential",
+        )
+
+        url = (
+            f"{self.api_base_url}/accounts/"
+            f"{quote(account_value, safe='')}/pages/projects/"
+            f"{quote(project_value, safe='')}/upload-token"
+        )
+        headers = {
+            "Authorization": f"Bearer {access_value}",
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.get(url)
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages upload-token API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload-token request failed."
+            )
+
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid upload-token response."
+            ) from exc
+
+        return self._pages_upload_token_from_payload(
+            payload
+        )
+
+    async def check_missing_pages_assets(
+        self,
+        *,
+        upload_token: CloudflarePagesUploadToken,
+        content_hashes: list[str],
+    ) -> CloudflarePagesAssetUploadPlan:
+        requested_hashes = (
+            self._validated_pages_asset_hashes(
+                content_hashes
+            )
+        )
+        upload_value = (
+            upload_token.upload_token
+            .get_secret_value()
+            .strip()
+        )
+
+        if (
+            not upload_value
+            or any(
+                character in upload_value
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload token is invalid."
+            )
+
+        url = (
+            f"{self.api_base_url}/pages/assets/"
+            "check-missing"
+        )
+        headers = {
+            "Authorization": f"Bearer {upload_value}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "hashes": requested_hashes,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.post(
+                    url,
+                    json=body,
+                )
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages asset cache API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages missing-asset check failed."
+            )
+
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid missing-asset response."
+            ) from exc
+
+        if (
+            not isinstance(payload, dict)
+            or payload.get("success") is not True
+            or not isinstance(
+                payload.get("result"),
+                list,
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid missing-asset response."
+            )
+
+        raw_missing = payload["result"]
+
+        if any(
+            not isinstance(value, str)
+            for value in raw_missing
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned invalid missing asset hashes."
+            )
+
+        missing_hashes = sorted(
+            value.strip()
+            for value in raw_missing
+        )
+
+        if (
+            len(missing_hashes)
+            != len(set(missing_hashes))
+            or any(
+                re.fullmatch(
+                    r"[0-9a-f]{32}",
+                    value,
+                )
+                is None
+                for value in missing_hashes
+            )
+            or not set(missing_hashes).issubset(
+                requested_hashes
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned invalid missing asset hashes."
+            )
+
+        plan_fields = {
+            "upload_token": upload_token.upload_token,
+            "requested_hash_count": len(
+                requested_hashes
+            ),
+            "missing_hashes": missing_hashes,
+            "cached_hash_count": (
+                len(requested_hashes)
+                - len(missing_hashes)
+            ),
+        }
+        return CloudflarePagesAssetUploadPlan(
+            **plan_fields
+        )
+
+    async def prepare_pages_asset_upload(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        bearer_value: str,
+        content_hashes: list[str],
+    ) -> CloudflarePagesAssetUploadPlan:
+        upload_token = (
+            await self.get_pages_upload_token(
+                account_id=account_id,
+                project_name=project_name,
+                bearer_value=bearer_value,
+            )
+        )
+
+        request_fields = {
+            "upload_token": upload_token,
+            "content_hashes": content_hashes,
+        }
+        return await self.check_missing_pages_assets(
+            **request_fields
         )
 
     async def list_accounts(self, bearer_value: str) -> list[CloudflareAccount]:

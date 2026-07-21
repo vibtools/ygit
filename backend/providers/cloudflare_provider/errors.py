@@ -31,5 +31,11 @@ class CloudflarePagesArtifactError(
     "Cloudflare Pages build artifact is invalid."
 
 
+class CloudflarePagesAssetUploadError(
+    CloudflareProviderError
+):
+    """Cloudflare Pages asset upload operation failed."""
+
+
 class CloudflareProviderUnavailableError(CloudflareProviderError):
     """Cloudflare provider API is unavailable."""
