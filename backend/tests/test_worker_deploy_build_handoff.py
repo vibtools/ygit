@@ -379,6 +379,238 @@ async def test_deploy_worker_rejects_missing_provider_proof(
 
 
 @pytest.mark.asyncio
+async def test_redeploy_worker_runs_checkout_and_build_before_redeployment(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        build_status="succeeded"
+    )
+    checkout_calls = []
+
+    def fake_checkout(request):
+        checkout_calls.append(request)
+        request.destination_path.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        (
+            request.destination_path
+            / "package.json"
+        ).write_text(
+            "{}",
+            encoding="utf-8",
+        )
+
+        return SimpleNamespace(
+            commit_sha="redeploy123"
+        )
+
+    monkeypatch.setattr(
+        redeploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+    monkeypatch.setattr(
+        redeploy_project,
+        "run_git_checkout",
+        fake_checkout,
+    )
+    monkeypatch.setenv(
+        "YGIT_WORKSPACE_ROOT",
+        str(tmp_path),
+    )
+
+    await redeploy_project.run(
+        {
+            "deployment_id": "dep_redeploy_build",
+            "source_deployment_id": "dep_source",
+            "repository_url": (
+                "https://github.com/vibtools/ygit"
+            ),
+            "git_ref": "main",
+            "checkout_timeout_seconds": "45",
+            "package_manager": "npm",
+            "build_command": "npm run build",
+            "output_directory": "dist",
+            "root_directory": ".",
+            "timeout_seconds": "900",
+            "environment": {
+                "NODE_ENV": "production",
+            },
+        }
+    )
+
+    assert len(checkout_calls) == 1
+    assert (
+        checkout_calls[0].repository_url
+        == "https://github.com/vibtools/ygit"
+    )
+    assert checkout_calls[0].ref == "main"
+    assert (
+        checkout_calls[0].timeout_seconds
+        == 45
+    )
+
+    assert [
+        call[0]
+        for call in fake_pipeline.calls
+    ] == [
+        "build",
+        "redeploy",
+    ]
+
+    build_input = fake_pipeline.calls[0][1]
+
+    assert Path(
+        build_input.repository_path
+    ) == (
+        tmp_path
+        / "dep_redeploy_build"
+        / "repository"
+    ).resolve()
+
+    assert (
+        build_input.build_command
+        == "npm run build"
+    )
+    assert (
+        build_input.output_directory
+        == "dist"
+    )
+    assert build_input.timeout_seconds == 900
+    assert build_input.environment == {
+        "NODE_ENV": "production"
+    }
+
+    assert fake_pipeline.calls[1] == (
+        "redeploy",
+        "dep_redeploy_build",
+        "dep_source",
+    )
+
+
+@pytest.mark.asyncio
+async def test_redeploy_worker_stops_when_checkout_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline()
+
+    def fake_checkout(_request):
+        raise WorkerGitCheckoutError(
+            "redeploy checkout failed"
+        )
+
+    monkeypatch.setattr(
+        redeploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+    monkeypatch.setattr(
+        redeploy_project,
+        "run_git_checkout",
+        fake_checkout,
+    )
+    monkeypatch.setenv(
+        "YGIT_WORKSPACE_ROOT",
+        str(tmp_path),
+    )
+
+    with pytest.raises(
+        WorkerGitCheckoutError
+    ):
+        await redeploy_project.run(
+            {
+                "deployment_id": (
+                    "dep_redeploy_checkout_fail"
+                ),
+                "source_deployment_id": (
+                    "dep_source"
+                ),
+                "repository_url": (
+                    "https://github.com/vibtools/ygit"
+                ),
+                "build_command": "npm run build",
+                "output_directory": "dist",
+            }
+        )
+
+    assert fake_pipeline.calls == []
+
+
+@pytest.mark.asyncio
+async def test_redeploy_worker_raises_when_build_stage_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        build_status="failed"
+    )
+
+    def fake_checkout(request):
+        request.destination_path.mkdir(
+            parents=True,
+            exist_ok=True,
+        )
+        (
+            request.destination_path
+            / "package.json"
+        ).write_text(
+            "{}",
+            encoding="utf-8",
+        )
+
+        return SimpleNamespace(
+            commit_sha="redeploy-failed-build"
+        )
+
+    monkeypatch.setattr(
+        redeploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+    monkeypatch.setattr(
+        redeploy_project,
+        "run_git_checkout",
+        fake_checkout,
+    )
+    monkeypatch.setenv(
+        "YGIT_WORKSPACE_ROOT",
+        str(tmp_path),
+    )
+
+    with pytest.raises(
+        WorkerBuildStageFailedError
+    ) as error_info:
+        await redeploy_project.run(
+            {
+                "deployment_id": (
+                    "dep_redeploy_build_fail"
+                ),
+                "source_deployment_id": (
+                    "dep_source"
+                ),
+                "repository_url": (
+                    "https://github.com/vibtools/ygit"
+                ),
+                "build_command": "npm run build",
+                "output_directory": "dist",
+            }
+        )
+
+    assert (
+        error_info.value.code
+        == "DEPLOY_BUILD_STAGE_FAILED"
+    )
+
+    assert [
+        call[0]
+        for call in fake_pipeline.calls
+    ] == ["build"]
+
+
+@pytest.mark.asyncio
 async def test_redeploy_worker_accepts_completed_pipeline_result(
     monkeypatch,
 ) -> None:
@@ -473,8 +705,9 @@ def test_deploy_worker_build_handoff_keeps_architecture_boundaries() -> None:
 
     assert "from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline" in source
     assert "from backend.workers.workspace import prepare_repository_workspace" in source
-    assert "from backend.workers.git_checkout import GitCheckoutRequest, run_git_checkout" in source
+    assert "from backend.workers.git_checkout import run_git_checkout" in source
     assert "from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result" in source
+    assert "from backend.workers.jobs.deployment_runtime import (" in source
     assert "WorkerBuildStageFailedError" in source
     assert "execute_build_stage" in source
     assert "require_completed_pipeline_result" in source
@@ -482,3 +715,37 @@ def test_deploy_worker_build_handoff_keeps_architecture_boundaries() -> None:
     assert "backend.providers" not in source
     assert "github_provider" not in source
     assert "cloudflare_provider" not in source
+
+def test_redeploy_worker_build_handoff_keeps_architecture_boundaries() -> None:
+    source = Path(
+        "backend/workers/jobs/redeploy_project.py"
+    ).read_text(encoding="utf-8")
+
+    runtime_source = Path(
+        "backend/workers/jobs/deployment_runtime.py"
+    ).read_text(encoding="utf-8")
+
+    assert (
+        "from backend.workers.jobs."
+        "deployment_runtime import ("
+        in source
+    )
+    assert "run_git_checkout" in source
+    assert "prepare_repository_workspace" in source
+    assert "execute_build_stage" in source
+    assert "execute_redeployment" in source
+    assert "WorkerBuildStageFailedError" in source
+    assert "require_completed_pipeline_result" in source
+
+    for worker_source in (
+        source,
+        runtime_source,
+    ):
+        assert "backend.providers" not in worker_source
+        assert (
+            "backend.pipelines."
+            "deploy_pipeline.internal"
+            not in worker_source
+        )
+        assert "github_provider" not in worker_source
+        assert "cloudflare_provider" not in worker_source

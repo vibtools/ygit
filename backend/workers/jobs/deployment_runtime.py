@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+from pathlib import Path
+
+from backend.pipelines.deploy_pipeline.public import (
+    DeployBuildStageInput,
+)
+from backend.workers.git_checkout import GitCheckoutRequest
+
+
+_REQUIRED_BUILD_PAYLOAD_FIELDS = (
+    "repository_path",
+    "build_command",
+    "output_directory",
+)
+
+
+def optional_str(
+    value: object,
+) -> str | None:
+    if value is None:
+        return None
+
+    text = str(value).strip()
+    return text or None
+
+
+def payload_has_build_stage_fields(
+    payload: dict[str, object],
+) -> bool:
+    return all(
+        optional_str(payload.get(field))
+        for field in _REQUIRED_BUILD_PAYLOAD_FIELDS
+    )
+
+
+def payload_needs_worker_workspace(
+    payload: dict[str, object],
+) -> bool:
+    return (
+        optional_str(
+            payload.get("repository_path")
+        )
+        is None
+        and optional_str(
+            payload.get("build_command")
+        )
+        is not None
+        and optional_str(
+            payload.get("output_directory")
+        )
+        is not None
+    )
+
+
+def repository_contains_checkout(
+    repository_path: Path,
+) -> bool:
+    try:
+        return (
+            repository_path.is_dir()
+            and any(repository_path.iterdir())
+        )
+    except OSError:
+        return False
+
+
+def payload_timeout_seconds(
+    value: object,
+) -> int:
+    if value is None:
+        return 600
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 600
+
+
+def payload_checkout_ref(
+    payload: dict[str, object],
+) -> str | None:
+    return (
+        optional_str(payload.get("git_ref"))
+        or optional_str(payload.get("branch"))
+    )
+
+
+def payload_checkout_timeout_seconds(
+    value: object,
+) -> int:
+    if value is None:
+        return 180
+
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 180
+
+
+def payload_environment(
+    value: object,
+) -> dict[str, str]:
+    if not isinstance(value, dict):
+        return {}
+
+    return {
+        str(key): str(item)
+        for key, item in value.items()
+        if key is not None
+        and item is not None
+    }
+
+
+def payload_with_workspace_if_checkout_ready(
+    deployment_id: str,
+    payload: dict[str, object],
+    *,
+    checkout_runner: Callable[
+        [GitCheckoutRequest],
+        object,
+    ],
+    workspace_preparer: Callable[
+        [str],
+        object,
+    ],
+) -> dict[str, object]:
+    """Prepare workspace and checkout when build input requires it."""
+
+    if not payload_needs_worker_workspace(
+        payload
+    ):
+        return payload
+
+    runtime_payload = dict(payload)
+
+    workspace = workspace_preparer(
+        deployment_id
+    )
+
+    runtime_payload["workspace_path"] = str(
+        workspace.workspace_path
+    )
+    runtime_payload["artifacts_path"] = str(
+        workspace.artifacts_path
+    )
+
+    repository_url = optional_str(
+        payload.get("repository_url")
+    )
+
+    checkout_exists = repository_contains_checkout(
+        workspace.repository_path
+    )
+
+    if repository_url and not checkout_exists:
+        checkout_result = checkout_runner(
+            GitCheckoutRequest(
+                repository_url=repository_url,
+                destination_path=(
+                    workspace.repository_path
+                ),
+                ref=payload_checkout_ref(
+                    payload
+                ),
+                timeout_seconds=(
+                    payload_checkout_timeout_seconds(
+                        payload.get(
+                            "checkout_timeout_seconds"
+                        )
+                    )
+                ),
+            )
+        )
+
+        commit_sha = optional_str(
+            getattr(
+                checkout_result,
+                "commit_sha",
+                None,
+            )
+        )
+
+        if commit_sha:
+            runtime_payload[
+                "commit_sha"
+            ] = commit_sha
+
+    if repository_contains_checkout(
+        workspace.repository_path
+    ):
+        runtime_payload[
+            "repository_path"
+        ] = str(
+            workspace.repository_path
+        )
+
+    return runtime_payload
+
+
+def build_stage_input(
+    deployment_id: str,
+    payload: dict[str, object],
+) -> DeployBuildStageInput | None:
+    """Create build input only when checkout and build data are complete."""
+
+    if not payload_has_build_stage_fields(
+        payload
+    ):
+        return None
+
+    return DeployBuildStageInput(
+        deployment_id=deployment_id,
+        repository_path=str(
+            payload["repository_path"]
+        ),
+        package_manager=optional_str(
+            payload.get("package_manager")
+        ),
+        build_command=str(
+            payload["build_command"]
+        ),
+        output_directory=str(
+            payload["output_directory"]
+        ),
+        root_directory=(
+            optional_str(
+                payload.get("root_directory")
+            )
+            or "."
+        ),
+        install_command=optional_str(
+            payload.get("install_command")
+        ),
+        timeout_seconds=payload_timeout_seconds(
+            payload.get("timeout_seconds")
+        ),
+        environment=payload_environment(
+            payload.get("environment")
+        ),
+    )
