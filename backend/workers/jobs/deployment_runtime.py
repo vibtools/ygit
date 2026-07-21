@@ -1,14 +1,28 @@
 from __future__ import annotations
 
+import hmac
 import inspect
 
 from collections.abc import Callable
 from pathlib import Path
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from backend.engines.auth_engine.connected_accounts_module.public import (
+    ConnectedAccountsPublicService,
+    connected_accounts_service,
+)
+from backend.engines.auth_engine.connected_accounts_module.schemas import (
+    ResolvedProviderCredential,
+)
 from backend.pipelines.deploy_pipeline.public import (
     DeployBuildStageInput,
     DeploymentPipelineContext,
     ProviderTokenReference,
+    build_provider_execution_plan,
+)
+from backend.workers.errors import (
+    WorkerCloudflareCredentialAcquisitionBlockedError,
 )
 from backend.workers.git_checkout import GitCheckoutRequest
 
@@ -306,6 +320,78 @@ def provider_token_reference(
         )
 
     return reference
+
+
+async def acquire_cloudflare_deployment_credential(
+    db: AsyncSession,
+    context: DeploymentPipelineContext,
+    *,
+    connected_accounts: (
+        ConnectedAccountsPublicService | None
+    ) = None,
+) -> ResolvedProviderCredential:
+    """Acquire a runtime-only Cloudflare credential behind plan readiness."""
+
+    plan = build_provider_execution_plan(
+        context
+    )
+
+    if not plan.ready_to_execute:
+        raise (
+            WorkerCloudflareCredentialAcquisitionBlockedError(
+                deployment_id=context.deployment_id,
+                blockers=[
+                    str(blocker)
+                    for blocker in plan.blockers
+                ],
+            )
+        )
+
+    reference = context.cloudflare_token_ref
+    user_id = optional_str(context.user_id)
+
+    if reference is None or user_id is None:
+        raise (
+            WorkerCloudflareCredentialAcquisitionBlockedError(
+                deployment_id=context.deployment_id,
+                blockers=[
+                    "credential_context_incomplete"
+                ],
+            )
+        )
+
+    service = (
+        connected_accounts
+        or connected_accounts_service
+    )
+    credential = (
+        await service
+        .acquire_cloudflare_deployment_credential(
+            db,
+            user_id=user_id,
+            token_secret_ref=(
+                reference.token_secret_ref
+            ),
+        )
+    )
+
+    if (
+        credential.provider != "cloudflare"
+        or not hmac.compare_digest(
+            credential.token_secret_ref,
+            reference.token_secret_ref,
+        )
+    ):
+        raise (
+            WorkerCloudflareCredentialAcquisitionBlockedError(
+                deployment_id=context.deployment_id,
+                blockers=[
+                    "credential_reference_mismatch"
+                ],
+            )
+        )
+
+    return credential
 
 
 def deployment_pipeline_context(

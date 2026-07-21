@@ -77,3 +77,29 @@ class WorkerDeploymentIncompleteError(YGITError):
                 "provider_calls_executed": provider_calls_executed,
             },
         )
+
+
+class WorkerCloudflareCredentialAcquisitionBlockedError(
+    YGITError
+):
+    def __init__(
+        self,
+        *,
+        deployment_id: str,
+        blockers: list[str],
+    ) -> None:
+        super().__init__(
+            code=(
+                "DEPLOY_CLOUDFLARE_CREDENTIAL_"
+                "ACQUISITION_BLOCKED"
+            ),
+            message=(
+                "Cloudflare deployment credential "
+                "acquisition is not ready."
+            ),
+            status_code=409,
+            metadata={
+                "deployment_id": deployment_id,
+                "blockers": list(blockers),
+            },
+        )
