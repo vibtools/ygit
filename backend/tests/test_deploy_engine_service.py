@@ -13,7 +13,11 @@ from backend.engines.deploy_engine.errors import (
     DeploymentProjectNotReadyError,
 )
 from backend.engines.deploy_engine.internal.service import DeployInternalService
-from backend.engines.deploy_engine.schemas import DeploymentRecord, DeploymentRequestInput
+from backend.engines.deploy_engine.schemas import (
+    DeploymentRecord,
+    DeploymentRequestInput,
+    RedeployRequestInput,
+)
 from backend.engines.project_engine.schemas import ProjectDetail
 from backend.engines.repository_analysis_engine.schemas import AnalysisDetail
 from backend.engines.repository_engine.schemas import RepositoryDetail
@@ -94,6 +98,30 @@ def repository_detail(
     )
 
 
+def completed_source_deployment() -> DeploymentRecord:
+    return DeploymentRecord(
+        id="dep_source_1",
+        project_id="proj_1",
+        user_id="user_1",
+        repository_id="repo_1",
+        analysis_id="analysis_1",
+        domain_id=None,
+        job_id="job_source_1",
+        status="completed",
+        requested_by="user",
+        source_deployment_id=None,
+        queued_at=NOW,
+        started_at=NOW,
+        completed_at=NOW,
+        cancelled_at=None,
+        failure_code=None,
+        failure_summary=None,
+        created_at=NOW,
+        updated_at=NOW,
+        version=3,
+    )
+
+
 class FakeRepositoryMetadataService:
     def __init__(self, repository: RepositoryDetail) -> None:
         self.repository = repository
@@ -137,15 +165,29 @@ class FakeConnectedAccounts:
 
 
 class FakeQueue:
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        *,
+        expected_job_type: str = "deploy_project",
+        expected_deployment_id: str = "dep_1",
+    ) -> None:
         self.payloads = []
+        self.expected_job_type = expected_job_type
+        self.expected_deployment_id = expected_deployment_id
 
     async def enqueue(self, payload, db=None) -> JobRef:
         _ = db
-        assert payload.job_type == "deploy_project"
-        assert payload.payload["deployment_id"] == "dep_1"
+        assert payload.job_type == self.expected_job_type
+        assert (
+            payload.payload["deployment_id"]
+            == self.expected_deployment_id
+        )
         self.payloads.append(payload)
-        return JobRef(id="job_1", type=payload.job_type, status="queued")
+        return JobRef(
+            id="job_1",
+            type=payload.job_type,
+            status="queued",
+        )
 
 
 class FakeRepository:
@@ -189,6 +231,20 @@ class FakeRepository:
             updated_at=NOW,
             version=2,
         )
+
+
+class FakeRedeployRepository(FakeRepository):
+    def __init__(self, source: DeploymentRecord) -> None:
+        self.source = source
+
+    async def get_by_id(self, db, deployment_id: str):
+        _ = db
+        assert deployment_id == self.source.id
+        return self.source
+
+    def to_record(self, model) -> DeploymentRecord:
+        assert model is self.source
+        return self.source
 
 
 class FakeDB:
@@ -265,6 +321,57 @@ async def test_request_deployment_omits_missing_build_settings_without_crashing(
     assert "build_command" not in payload
     assert "output_directory" not in payload
     assert "root_directory" not in payload
+    assert "repository_path" not in payload
+
+
+@pytest.mark.asyncio
+async def test_request_redeploy_preserves_repository_and_build_configuration() -> None:
+    queue = FakeQueue(
+        expected_job_type="redeploy_project",
+    )
+    service = DeployInternalService(
+        repository=FakeRedeployRepository(
+            completed_source_deployment()
+        ),
+        project_public_service=FakeProjectService(
+            project_detail()
+        ),
+        analysis_public_service=FakeAnalysisService(
+            analysis_detail()
+        ),
+        repository_public_service=FakeRepositoryMetadataService(
+            repository_detail()
+        ),
+        connected_accounts_public_service=FakeConnectedAccounts(),
+        queue_client=queue,
+    )
+
+    result = await service.request_redeploy(
+        FakeDB(),
+        user_id="user_1",
+        deployment_id="dep_source_1",
+        input_data=RedeployRequestInput(),
+        trace_id="trace_redeploy_test",
+    )
+
+    assert result.deployment.id == "dep_1"
+    assert result.job.id == "job_1"
+    assert result.job.type == "redeploy_project"
+
+    payload = queue.payloads[0].payload
+
+    assert payload["deployment_id"] == "dep_1"
+    assert payload["project_id"] == "proj_1"
+    assert payload["user_id"] == "user_1"
+    assert (
+        payload["repository_url"]
+        == "https://github.com/vibtools/ygit"
+    )
+    assert payload["git_ref"] == "main"
+    assert payload["package_manager"] == "npm"
+    assert payload["build_command"] == "npm run build"
+    assert payload["output_directory"] == "dist"
+    assert payload["root_directory"] == "."
     assert "repository_path" not in payload
 
 

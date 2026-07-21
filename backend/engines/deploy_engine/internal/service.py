@@ -182,6 +182,18 @@ class DeployInternalService:
         await self._require_provider(db, user_id=user_id, provider="github")
         await self._require_provider(db, user_id=user_id, provider="cloudflare")
 
+        analysis = await self.analysis_service.get_analysis_result(
+            db,
+            user_id=user_id,
+            analysis_id=source.analysis_id,
+        )
+        repository_configuration = await self._repository_checkout_configuration(
+            db,
+            user_id=user_id,
+            repository_id=source.repository_id,
+        )
+        build_configuration = self._build_configuration_from_analysis(analysis)
+
         deployment = await self.repository.create_queued_deployment(
             db,
             user_id=user_id,
@@ -199,6 +211,8 @@ class DeployInternalService:
             user_id=user_id,
             job_type="redeploy_project",
             trace_id=trace_id,
+            build_configuration=build_configuration,
+            repository_configuration=repository_configuration,
         )
         deployment = await self.repository.attach_job_id(db, deployment_id=deployment.id, job_id=job.id)
         await db.commit()
