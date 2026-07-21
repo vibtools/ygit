@@ -37,3 +37,43 @@ class JobTransitionInvalidError(YGITError):
             message=message,
             status_code=409,
         )
+
+
+class WorkerBuildStageFailedError(YGITError):
+    def __init__(
+        self,
+        *,
+        deployment_id: str,
+        build_status: str,
+    ) -> None:
+        super().__init__(
+            code="DEPLOY_BUILD_STAGE_FAILED",
+            message="Deployment build stage did not complete successfully.",
+            status_code=500,
+            metadata={
+                "deployment_id": deployment_id,
+                "build_status": build_status,
+            },
+        )
+
+
+class WorkerDeploymentIncompleteError(YGITError):
+    def __init__(
+        self,
+        *,
+        deployment_id: str,
+        pipeline_status: str,
+        pipeline_stage: str | None = None,
+        provider_calls_executed: bool | None = None,
+    ) -> None:
+        super().__init__(
+            code="DEPLOY_PIPELINE_INCOMPLETE",
+            message="Deployment pipeline did not prove provider deployment completion.",
+            status_code=500,
+            metadata={
+                "deployment_id": deployment_id,
+                "pipeline_status": pipeline_status,
+                "pipeline_stage": pipeline_stage,
+                "provider_calls_executed": provider_calls_executed,
+            },
+        )

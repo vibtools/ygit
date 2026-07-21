@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+from backend.workers.errors import WorkerDeploymentIncompleteError
 from backend.workers.queue.client import QueueClient
 from backend.workers.queue.schemas import JobPayload
 from backend.workers.runner.retry import RetryPolicy
@@ -72,6 +73,29 @@ class FakeDispatcher:
             raise RuntimeError("boom")
 
 
+class FakeIncompleteDeploymentDispatcher:
+    async def dispatch(
+        self,
+        job_type: str,
+        payload: dict[str, object],
+    ) -> None:
+        _ = job_type
+
+        deployment_id = str(
+            payload.get(
+                "deployment_id",
+                "missing",
+            )
+        )
+
+        raise WorkerDeploymentIncompleteError(
+            deployment_id=deployment_id,
+            pipeline_status="prepared",
+            pipeline_stage="provider_deploying",
+            provider_calls_executed=False,
+        )
+
+
 class FakeDB:
     def __init__(self) -> None:
         self.commits = 0
@@ -124,6 +148,45 @@ async def test_worker_runtime_retries_failed_job_before_max_attempts() -> None:
     result = await worker.run_once(FakeDB())
     assert result.status == "retry_waiting"
     assert result.error_code == "JOB_EXECUTION_FAILED"
+    assert repository.retried == "job_1"
+
+
+@pytest.mark.asyncio
+async def test_worker_runtime_does_not_complete_incomplete_deployment_job() -> None:
+    repository = FakeRepository(
+        leased=job_record(
+            job_type="deploy_project",
+            payload={
+                "deployment_id": "dep_incomplete",
+            },
+            attempts=1,
+            max_attempts=3,
+        )
+    )
+
+    worker = WorkerRuntime(
+        worker_id="worker_1",
+        queue_name="default",
+        repository=repository,
+        dispatcher=FakeIncompleteDeploymentDispatcher(),
+        retry_policy=RetryPolicy(
+            max_attempts=3,
+            base_delay_seconds=1,
+        ),
+    )
+
+    result = await worker.run_once(
+        FakeDB()
+    )
+
+    assert result.status == "retry_waiting"
+
+    assert (
+        result.error_code
+        == "DEPLOY_PIPELINE_INCOMPLETE"
+    )
+
+    assert repository.completed is None
     assert repository.retried == "job_1"
 
 

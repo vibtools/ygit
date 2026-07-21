@@ -3,7 +3,9 @@ from __future__ import annotations
 from pathlib import Path
 
 from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline
+from backend.workers.errors import WorkerBuildStageFailedError
 from backend.workers.git_checkout import GitCheckoutRequest, run_git_checkout
+from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result
 from backend.workers.workspace import prepare_repository_workspace
 
 JOB_TYPE = "deploy_project"
@@ -134,8 +136,25 @@ async def run(payload: dict[str, object]) -> None:
     build_input = _build_stage_input(deployment_id, runtime_payload)
 
     if build_input is not None:
-        build_result = deploy_pipeline.execute_build_stage(build_input)
-        if build_result.status != "succeeded":
-            return
+        build_result = deploy_pipeline.execute_build_stage(
+            build_input
+        )
 
-    await deploy_pipeline.execute_deployment(deployment_id)
+        build_status = _optional_str(
+            getattr(build_result, "status", None)
+        ) or "missing"
+
+        if build_status != "succeeded":
+            raise WorkerBuildStageFailedError(
+                deployment_id=deployment_id,
+                build_status=build_status,
+            )
+
+    deployment_result = await deploy_pipeline.execute_deployment(
+        deployment_id
+    )
+
+    require_completed_pipeline_result(
+        deployment_id=deployment_id,
+        result=deployment_result,
+    )

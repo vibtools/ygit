@@ -5,21 +5,78 @@ from types import SimpleNamespace
 
 import pytest
 
+from backend.workers.errors import (
+    WorkerBuildStageFailedError,
+    WorkerDeploymentIncompleteError,
+)
 from backend.workers.git_checkout import WorkerGitCheckoutError
-from backend.workers.jobs import deploy_project
+from backend.workers.jobs import deploy_project, redeploy_project
 
 
 class FakeDeployPipeline:
-    def __init__(self, *, build_status: str = "succeeded") -> None:
+    def __init__(
+        self,
+        *,
+        build_status: str = "succeeded",
+        deployment_status: str = "completed",
+        provider_calls_executed: bool | None = True,
+    ) -> None:
         self.build_status = build_status
-        self.calls: list[tuple[str, object]] = []
+        self.deployment_status = deployment_status
+        self.provider_calls_executed = (
+            provider_calls_executed
+        )
+        self.calls: list[tuple] = []
 
     def execute_build_stage(self, input_data):
         self.calls.append(("build", input_data))
-        return SimpleNamespace(status=self.build_status)
+        return SimpleNamespace(
+            status=self.build_status
+        )
 
-    async def execute_deployment(self, deployment_id: str):
-        self.calls.append(("deploy", deployment_id))
+    def _deployment_result(self):
+        stage = (
+            "completed"
+            if self.deployment_status == "completed"
+            else "provider_deploying"
+        )
+
+        metadata = {}
+
+        if self.provider_calls_executed is not None:
+            metadata["provider_calls_executed"] = (
+                self.provider_calls_executed
+            )
+
+        return SimpleNamespace(
+            status=self.deployment_status,
+            stage=stage,
+            metadata=metadata,
+        )
+
+    async def execute_deployment(
+        self,
+        deployment_id: str,
+    ):
+        self.calls.append(
+            ("deploy", deployment_id)
+        )
+        return self._deployment_result()
+
+    async def execute_redeployment(
+        self,
+        deployment_id: str,
+        source_deployment_id: str | None = None,
+    ):
+        self.calls.append(
+            (
+                "redeploy",
+                deployment_id,
+                source_deployment_id,
+            )
+        )
+
+        return self._deployment_result()
 
 
 @pytest.mark.asyncio
@@ -193,20 +250,191 @@ async def test_deploy_worker_uses_workspace_repository_path_after_checkout_conte
 
 
 @pytest.mark.asyncio
-async def test_deploy_worker_stops_before_deployment_when_build_stage_fails(monkeypatch) -> None:
-    fake_pipeline = FakeDeployPipeline(build_status="failed")
-    monkeypatch.setattr(deploy_project, "deploy_pipeline", fake_pipeline)
+async def test_deploy_worker_raises_when_build_stage_fails(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        build_status="failed"
+    )
 
-    await deploy_project.run(
+    monkeypatch.setattr(
+        deploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    with pytest.raises(
+        WorkerBuildStageFailedError
+    ) as error_info:
+        await deploy_project.run(
+            {
+                "deployment_id": "dep_3",
+                "repository_path": (
+                    "C:/ygit/work/dep_3/repository"
+                ),
+                "build_command": "npm run build",
+                "output_directory": "dist",
+            }
+        )
+
+    assert (
+        error_info.value.code
+        == "DEPLOY_BUILD_STAGE_FAILED"
+    )
+
+    assert [
+        call[0] for call in fake_pipeline.calls
+    ] == ["build"]
+
+
+@pytest.mark.asyncio
+async def test_deploy_worker_rejects_prepared_pipeline_result(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        deployment_status="prepared",
+        provider_calls_executed=False,
+    )
+
+    monkeypatch.setattr(
+        deploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    with pytest.raises(
+        WorkerDeploymentIncompleteError
+    ) as error_info:
+        await deploy_project.run(
+            {
+                "deployment_id": "dep_prepared",
+            }
+        )
+
+    assert (
+        error_info.value.code
+        == "DEPLOY_PIPELINE_INCOMPLETE"
+    )
+
+    assert fake_pipeline.calls == [
+        ("deploy", "dep_prepared")
+    ]
+
+
+@pytest.mark.asyncio
+async def test_deploy_worker_rejects_false_provider_completion(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        deployment_status="completed",
+        provider_calls_executed=False,
+    )
+
+    monkeypatch.setattr(
+        deploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    with pytest.raises(
+        WorkerDeploymentIncompleteError
+    ):
+        await deploy_project.run(
+            {
+                "deployment_id": "dep_false_complete",
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_deploy_worker_rejects_missing_provider_proof(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        deployment_status="completed",
+        provider_calls_executed=None,
+    )
+
+    monkeypatch.setattr(
+        deploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    with pytest.raises(
+        WorkerDeploymentIncompleteError
+    ) as error_info:
+        await deploy_project.run(
+            {
+                "deployment_id": "dep_missing_proof",
+            }
+        )
+
+    assert (
+        error_info.value.metadata[
+            "provider_calls_executed"
+        ]
+        is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_redeploy_worker_accepts_completed_pipeline_result(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline()
+
+    monkeypatch.setattr(
+        redeploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    await redeploy_project.run(
         {
-            "deployment_id": "dep_3",
-            "repository_path": "C:/ygit/work/dep_3/repository",
-            "build_command": "npm run build",
-            "output_directory": "dist",
+            "deployment_id": "dep_redeploy",
+            "source_deployment_id": "dep_source",
         }
     )
 
-    assert [call[0] for call in fake_pipeline.calls] == ["build"]
+    assert fake_pipeline.calls == [
+        (
+            "redeploy",
+            "dep_redeploy",
+            "dep_source",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+async def test_redeploy_worker_rejects_prepared_pipeline_result(
+    monkeypatch,
+) -> None:
+    fake_pipeline = FakeDeployPipeline(
+        deployment_status="prepared",
+        provider_calls_executed=False,
+    )
+
+    monkeypatch.setattr(
+        redeploy_project,
+        "deploy_pipeline",
+        fake_pipeline,
+    )
+
+    with pytest.raises(
+        WorkerDeploymentIncompleteError
+    ) as error_info:
+        await redeploy_project.run(
+            {
+                "deployment_id": "dep_redeploy_prepared",
+                "source_deployment_id": "dep_source",
+            }
+        )
+
+    assert (
+        error_info.value.code
+        == "DEPLOY_PIPELINE_INCOMPLETE"
+    )
 
 
 def test_deploy_worker_ignores_partial_build_payload_until_checkout_contract_is_complete() -> None:
@@ -246,7 +474,10 @@ def test_deploy_worker_build_handoff_keeps_architecture_boundaries() -> None:
     assert "from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, deploy_pipeline" in source
     assert "from backend.workers.workspace import prepare_repository_workspace" in source
     assert "from backend.workers.git_checkout import GitCheckoutRequest, run_git_checkout" in source
+    assert "from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result" in source
+    assert "WorkerBuildStageFailedError" in source
     assert "execute_build_stage" in source
+    assert "require_completed_pipeline_result" in source
     assert "backend.pipelines.deploy_pipeline.internal" not in source
     assert "backend.providers" not in source
     assert "github_provider" not in source
