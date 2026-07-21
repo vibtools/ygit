@@ -912,3 +912,54 @@ body {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Step 38C UI title weight refinement */
+:root {
+  --ygit-title-weight-xl: 520;
+  --ygit-title-weight-lg: 500;
+  --ygit-title-weight-md: 500;
+  --ygit-title-weight-label: 450;
+}
+
+#view-title,
+.page-title,
+.view h1 {
+  font-weight: var(--ygit-title-weight-xl) !important;
+}
+
+.hero-card h2,
+.view h2,
+.card h2,
+.panel h2 {
+  font-weight: var(--ygit-title-weight-lg) !important;
+}
+
+.timeline h3,
+.empty-state h3,
+.view h3,
+.deployment-empty-copy h3 {
+  font-weight: var(--ygit-title-weight-md) !important;
+}
+
+.project-card strong,
+.account-card strong,
+.list-item strong,
+.card-title,
+.dashboard-metric-title,
+.dashboard-metric-value {
+  font-weight: var(--ygit-title-weight-md) !important;
+}
+
+.brand-title,
+.sidebar-title,
+.sidebar .brand span {
+  font-weight: var(--ygit-title-weight-lg) !important;
+}
+
+.sidebar-section > p,
+.sidebar-label,
+.sidebar .section-label,
+.eyebrow,
+.metric-card span {
+  font-weight: var(--ygit-title-weight-label) !important;
+}
