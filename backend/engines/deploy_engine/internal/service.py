@@ -143,6 +143,7 @@ class DeployInternalService:
             self._provider_reference_configuration(
                 github_account,
                 cloudflare_account,
+                cloudflare_project_name=project.slug,
             )
         )
 
@@ -201,6 +202,12 @@ class DeployInternalService:
         if source.status in {"queued", "running"}:
             raise DeploymentAlreadyRunningError()
 
+        project = await self.project_service.get_project(
+            db,
+            user_id=user_id,
+            project_id=source.project_id,
+        )
+
         github_account = await self._require_provider(
             db,
             user_id=user_id,
@@ -216,6 +223,7 @@ class DeployInternalService:
             self._provider_reference_configuration(
                 github_account,
                 cloudflare_account,
+                cloudflare_project_name=project.slug,
             )
         )
 
@@ -307,6 +315,8 @@ class DeployInternalService:
         self,
         github_account: object,
         cloudflare_account: object,
+        *,
+        cloudflare_project_name: str,
     ) -> dict[str, object]:
         return {
             "github_token_ref": (
@@ -321,7 +331,35 @@ class DeployInternalService:
                     expected_provider="cloudflare",
                 )
             ),
+            "cloudflare_project_name": (
+                self._cloudflare_project_name(
+                    cloudflare_project_name
+                )
+            ),
         }
+
+    @staticmethod
+    def _cloudflare_project_name(
+        value: object,
+    ) -> str:
+        normalized = str(value or "").strip().lower()
+
+        if (
+            not normalized
+            or any(
+                character in normalized
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise DeploymentProjectNotReadyError(
+                "Project slug is invalid for Cloudflare Pages."
+            )
+
+        return normalized
 
     def _provider_reference_payload(
         self,
@@ -360,6 +398,31 @@ class DeployInternalService:
             "provider": provider,
             "token_secret_ref": reference_value,
         }
+
+        if expected_provider == "cloudflare":
+            account_id = str(
+                getattr(
+                    account,
+                    "provider_account_id",
+                    "",
+                )
+                or ""
+            ).strip()
+
+            if (
+                not account_id
+                or any(
+                    character in account_id
+                    for character in (
+                        "\x00",
+                        "\r",
+                        "\n",
+                    )
+                )
+            ):
+                raise DeploymentCloudflareNotConnectedError()
+
+            result["account_id"] = account_id
 
         account_name = str(
             getattr(

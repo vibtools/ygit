@@ -173,6 +173,11 @@ class FakeConnectedAccounts:
         return SimpleNamespace(
             provider=provider,
             status="connected",
+            provider_account_id=(
+                "cf-account-1"
+                if provider == "cloudflare"
+                else "github-installation-123"
+            ),
             provider_account_name=(
                 f"{provider}-account"
             ),
@@ -315,8 +320,10 @@ async def test_request_deployment_queues_job_without_provider_logic() -> None:
         "token_secret_ref": (
             "cloudflare_oauth_account:abc"
         ),
+        "account_id": "cf-account-1",
         "account_name": "cloudflare-account",
     }
+    assert payload["cloudflare_project_name"] == "demo"
 
     assert payload["framework"] == "vite"
     assert payload["repository_url"] == "https://github.com/vibtools/ygit"
@@ -479,8 +486,10 @@ async def test_request_redeploy_preserves_repository_and_build_configuration() -
         "token_secret_ref": (
             "cloudflare_oauth_account:abc"
         ),
+        "account_id": "cf-account-1",
         "account_name": "cloudflare-account",
     }
+    assert payload["cloudflare_project_name"] == "demo"
 
     assert payload["framework"] == "vite"
 
