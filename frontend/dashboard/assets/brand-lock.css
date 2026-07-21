@@ -869,3 +869,46 @@ body {
     align-items: flex-start;
   }
 }
+
+/* Step 31A dashboard operational metrics */
+.metrics {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(190px, 1fr)
+  ) !important;
+  align-items: stretch !important;
+}
+
+.dashboard-metric-card {
+  min-height: 124px;
+  display: grid !important;
+  grid-template-rows: auto 1fr auto;
+  gap: 8px;
+}
+
+.dashboard-metric-card .dashboard-metric-header {
+  margin-bottom: 0;
+}
+
+.dashboard-metric-card .dashboard-metric-value {
+  align-self: center;
+}
+
+.dashboard-metric-card .dashboard-metric-helper {
+  align-self: end;
+  margin: 0;
+}
+
+.dashboard-metric-value.is-warning {
+  color: var(--ygit-warning) !important;
+}
+
+.dashboard-metric-value.is-error {
+  color: var(--ygit-error) !important;
+}
+
+@media (max-width: 520px) {
+  .metrics {
+    grid-template-columns: 1fr !important;
+  }
+}

@@ -90,12 +90,52 @@
             <div class="timeline-track" id="deployment-timeline"></div>
           </aside>
         </div>
-        <section class="metrics" id="metric-grid" aria-label="Dashboard metrics">
-          <article class="metric-card"><span>Projects</span><strong id="metric-projects">00</strong><em id="metric-projects-note">No projects yet</em></article>
-          <article class="metric-card"><span>Deployments</span><strong id="metric-deployments">00</strong><em id="metric-deployments-note">Worker ready</em></article>
-          <article class="metric-card"><span>Success Rate</span><strong id="metric-success-rate">—</strong><em>Latest loaded history</em></article>
-          <article class="metric-card"><span>Connected Accounts</span><strong id="metric-accounts">00</strong><em>GitHub + Cloudflare</em></article>
-          <article class="metric-card"><span>Live Sites</span><strong id="metric-live-sites">00</strong><em>Cloudflare Pages</em></article>
+        <section class="metrics" id="metric-grid" data-dashboard-metrics aria-label="Dashboard operational metrics">
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="projects">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Projects</span></div>
+            <strong class="dashboard-metric-value is-primary" id="metric-projects">00</strong>
+            <em class="dashboard-metric-helper" id="metric-projects-note">No projects yet</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="deployments">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Deployments</span></div>
+            <strong class="dashboard-metric-value is-primary" id="metric-deployments">00</strong>
+            <em class="dashboard-metric-helper" id="metric-deployments-note">Worker ready</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="deploy-success">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Deploy Success %</span></div>
+            <strong class="dashboard-metric-value is-success" id="metric-success-rate">—</strong>
+            <em class="dashboard-metric-helper" id="metric-success-rate-note">No terminal deployments</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="connected-accounts">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Connected Accounts</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-accounts">00</strong>
+            <em class="dashboard-metric-helper" id="metric-accounts-note">GitHub + Cloudflare</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="live-sites">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Live Sites</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-live-sites">00</strong>
+            <em class="dashboard-metric-helper" id="metric-live-sites-note">Cloudflare Pages</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="last-deployment">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Last Deployment</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-last-deployment">None</strong>
+            <em class="dashboard-metric-helper" id="metric-last-deployment-note">No deployment history</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="framework-usage">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Framework Usage</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-framework-usage">Pending</strong>
+            <em class="dashboard-metric-helper" id="metric-framework-usage-note">Available after analysis</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="platform-status">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Platform Status</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-platform-status">Unknown</strong>
+            <em class="dashboard-metric-helper" id="metric-platform-status-note">Status not loaded</em>
+          </article>
+          <article class="metric-card dashboard-metric-card" data-dashboard-metric="queue-status">
+            <div class="dashboard-metric-header"><span class="dashboard-metric-title">Queue Status</span></div>
+            <strong class="dashboard-metric-value is-muted" id="metric-queue-status">Idle</strong>
+            <em class="dashboard-metric-helper" id="metric-queue-status-note">No queued or running deployments</em>
+          </article>
         </section>
         <div class="dashboard-grid">
           <article class="panel">

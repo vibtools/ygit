@@ -93,19 +93,400 @@ function showSystemAlert(message, tone = "warning") {
   alert.classList.remove("hidden");
 }
 
+function normalizeMetricStatus(value) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function titleCaseMetric(value) {
+  return String(value || "")
+    .replaceAll("_", " ")
+    .replaceAll("-", " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function deploymentMetricTimestamp(deployment) {
+  const candidates = [
+    deployment?.updated_at,
+    deployment?.completed_at,
+    deployment?.started_at,
+    deployment?.queued_at,
+    deployment?.created_at,
+  ]
+    .map((value) => Date.parse(value || ""))
+    .filter((value) => Number.isFinite(value));
+
+  return candidates.length ? Math.max(...candidates) : 0;
+}
+
+function latestDeploymentMetric() {
+  return [...state.deployments]
+    .sort(
+      (left, right) =>
+        deploymentMetricTimestamp(right) -
+        deploymentMetricTimestamp(left)
+    )[0] || null;
+}
+
+function formatMetricTimestamp(timestamp) {
+  if (!timestamp) return "Timestamp unavailable";
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(timestamp));
+}
+
+function projectFrameworkName(project) {
+  const candidates = [
+    project?.framework,
+    project?.detected_framework,
+    project?.analysis?.framework,
+    project?.analysis_result?.framework,
+  ];
+
+  const detected = candidates.find(
+    (value) => String(value || "").trim()
+  );
+
+  return detected
+    ? titleCaseMetric(detected)
+    : null;
+}
+
+function frameworkUsageMetric() {
+  const frameworks = state.projects
+    .map(projectFrameworkName)
+    .filter(Boolean);
+
+  if (!frameworks.length) {
+    return {
+      value: "Pending",
+      note: "Available after repository analysis",
+      tone: "muted",
+    };
+  }
+
+  const counts = new Map();
+
+  frameworks.forEach((framework) => {
+    counts.set(
+      framework,
+      (counts.get(framework) || 0) + 1
+    );
+  });
+
+  const [topFramework, topCount] = [...counts.entries()]
+    .sort((left, right) => {
+      if (right[1] !== left[1]) {
+        return right[1] - left[1];
+      }
+
+      return left[0].localeCompare(right[0]);
+    })[0];
+
+  return {
+    value: topFramework,
+    note: `${topCount} of ${frameworks.length} detected projects`,
+    tone: "primary",
+  };
+}
+
+function platformStatusMetric() {
+  if (!state.status) {
+    return {
+      value: "Unknown",
+      note: "Status endpoint unavailable",
+      tone: "muted",
+    };
+  }
+
+  const message =
+    state.status.message ||
+    state.status.summary ||
+    "Platform status endpoint responded";
+
+  if (state.status.maintenance === true) {
+    return {
+      value: "Maintenance",
+      note: message,
+      tone: "warning",
+    };
+  }
+
+  const rawStatus = normalizeMetricStatus(
+    state.status.status ||
+    state.status.overall_status ||
+    state.status.state
+  );
+
+  const degraded =
+    state.status.healthy === false ||
+    ["degraded", "unhealthy", "failed", "error"]
+      .some((value) => rawStatus.includes(value));
+
+  if (degraded) {
+    return {
+      value: "Degraded",
+      note: message,
+      tone: "error",
+    };
+  }
+
+  return {
+    value: rawStatus
+      ? titleCaseMetric(rawStatus)
+      : "Operational",
+    note: message,
+    tone: "success",
+  };
+}
+
+function queueStatusMetric() {
+  const activeStatuses = new Set([
+    "pending",
+    "queued",
+    "running",
+    "retry_waiting",
+  ]);
+
+  const activeCount = state.deployments.filter(
+    (deployment) =>
+      activeStatuses.has(
+        normalizeMetricStatus(deployment.status)
+      )
+  ).length;
+
+  const failedCount = state.deployments.filter(
+    (deployment) =>
+      normalizeMetricStatus(deployment.status) === "failed"
+  ).length;
+
+  if (activeCount) {
+    return {
+      value: "Active",
+      note: `${activeCount} queued or running deployments`,
+      tone: "warning",
+    };
+  }
+
+  return {
+    value: "Idle",
+    note: failedCount
+      ? `${failedCount} failed in loaded history`
+      : "No queued or running deployments",
+    tone: "muted",
+  };
+}
+
+function deploymentMetricTone(status) {
+  const normalized = normalizeMetricStatus(status);
+
+  if (["completed", "success"].includes(normalized)) {
+    return "success";
+  }
+
+  if (normalized === "failed") {
+    return "error";
+  }
+
+  if (
+    ["pending", "queued", "running", "retry_waiting"]
+      .includes(normalized)
+  ) {
+    return "warning";
+  }
+
+  return "muted";
+}
+
+function setDashboardMetric(
+  valueId,
+  noteId,
+  value,
+  note,
+  tone = "muted"
+) {
+  const valueNode = $(`#${valueId}`);
+  const noteNode = $(`#${noteId}`);
+
+  if (!valueNode) return;
+
+  valueNode.textContent = value;
+  valueNode.classList.remove(
+    "is-primary",
+    "is-success",
+    "is-warning",
+    "is-error",
+    "is-muted"
+  );
+  valueNode.classList.add(`is-${tone}`);
+
+  if (noteNode) {
+    noteNode.textContent = note;
+  }
+}
+
 function renderMetrics() {
   const projectCount = state.projects.length;
   const deploymentCount = state.deployments.length;
-  const connectedCount = state.accounts.filter((item) => item.connected || item.status === "connected").length;
-  const completedCount = state.deployments.filter((item) => item.status === "completed" || item.status === "success").length;
-  const liveSites = state.deployments.filter((item) => item.deployment_url && (item.status === "completed" || item.status === "success")).length;
-  $("#metric-projects").textContent = two(projectCount);
-  $("#metric-projects-note").textContent = projectCount ? "+0 this week" : "No projects yet";
-  $("#metric-deployments").textContent = two(deploymentCount);
-  $("#metric-deployments-note").textContent = deploymentCount ? "Loaded from history" : "Worker ready";
-  $("#metric-accounts").textContent = two(connectedCount);
-  $("#metric-live-sites").textContent = two(liveSites);
-  $("#metric-success-rate").textContent = deploymentCount ? `${Math.round((completedCount / deploymentCount) * 100)}%` : "—";
+
+  const connectedCount = state.accounts.filter(
+    (item) =>
+      item.connected ||
+      item.status === "connected"
+  ).length;
+
+  const completedStatuses = new Set([
+    "completed",
+    "success",
+  ]);
+
+  const terminalStatuses = new Set([
+    "completed",
+    "success",
+    "failed",
+    "cancelled",
+  ]);
+
+  const completedCount = state.deployments.filter(
+    (deployment) =>
+      completedStatuses.has(
+        normalizeMetricStatus(deployment.status)
+      )
+  ).length;
+
+  const terminalCount = state.deployments.filter(
+    (deployment) =>
+      terminalStatuses.has(
+        normalizeMetricStatus(deployment.status)
+      )
+  ).length;
+
+  const liveSites = state.deployments.filter(
+    (deployment) =>
+      deployment.deployment_url &&
+      completedStatuses.has(
+        normalizeMetricStatus(deployment.status)
+      )
+  ).length;
+
+  const successPercent = terminalCount
+    ? Math.round(
+        (completedCount / terminalCount) * 100
+      )
+    : null;
+
+  const latestDeployment = latestDeploymentMetric();
+  const latestStatus = normalizeMetricStatus(
+    latestDeployment?.status
+  );
+
+  const frameworkMetric = frameworkUsageMetric();
+  const platformMetric = platformStatusMetric();
+  const queueMetric = queueStatusMetric();
+
+  setDashboardMetric(
+    "metric-projects",
+    "metric-projects-note",
+    two(projectCount),
+    projectCount
+      ? "Loaded from Project Engine"
+      : "No projects yet",
+    projectCount ? "primary" : "muted"
+  );
+
+  setDashboardMetric(
+    "metric-deployments",
+    "metric-deployments-note",
+    two(deploymentCount),
+    deploymentCount
+      ? "Loaded from deployment history"
+      : "Worker ready",
+    deploymentCount ? "primary" : "muted"
+  );
+
+  setDashboardMetric(
+    "metric-success-rate",
+    "metric-success-rate-note",
+    successPercent === null
+      ? "—"
+      : `${successPercent}%`,
+    terminalCount
+      ? `${completedCount} successful of ${terminalCount} terminal deployments`
+      : "No terminal deployments",
+    successPercent === null
+      ? "muted"
+      : "success"
+  );
+
+  setDashboardMetric(
+    "metric-accounts",
+    "metric-accounts-note",
+    two(connectedCount),
+    `${connectedCount} of 2 providers connected`,
+    connectedCount === 2
+      ? "success"
+      : "muted"
+  );
+
+  setDashboardMetric(
+    "metric-live-sites",
+    "metric-live-sites-note",
+    two(liveSites),
+    liveSites
+      ? "Cloudflare Pages URLs available"
+      : "No live site URL yet",
+    liveSites
+      ? "success"
+      : "muted"
+  );
+
+  setDashboardMetric(
+    "metric-last-deployment",
+    "metric-last-deployment-note",
+    latestDeployment
+      ? titleCaseMetric(
+          latestStatus || "unknown"
+        )
+      : "None",
+    latestDeployment
+      ? formatMetricTimestamp(
+          deploymentMetricTimestamp(
+            latestDeployment
+          )
+        )
+      : "No deployment history",
+    latestDeployment
+      ? deploymentMetricTone(latestStatus)
+      : "muted"
+  );
+
+  setDashboardMetric(
+    "metric-framework-usage",
+    "metric-framework-usage-note",
+    frameworkMetric.value,
+    frameworkMetric.note,
+    frameworkMetric.tone
+  );
+
+  setDashboardMetric(
+    "metric-platform-status",
+    "metric-platform-status-note",
+    platformMetric.value,
+    platformMetric.note,
+    platformMetric.tone
+  );
+
+  setDashboardMetric(
+    "metric-queue-status",
+    "metric-queue-status-note",
+    queueMetric.value,
+    queueMetric.note,
+    queueMetric.tone
+  );
 }
 
 
