@@ -13,6 +13,10 @@ class CloudflareOAuthExchangeError(CloudflareProviderError):
     """Cloudflare OAuth exchange failed."""
 
 
+class CloudflareOAuthRefreshError(CloudflareProviderError):
+    """Cloudflare OAuth refresh failed."""
+
+
 class CloudflareAccountValidationError(CloudflareProviderError):
     """Cloudflare account validation failed."""
 

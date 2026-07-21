@@ -8,6 +8,7 @@ from backend.providers.cloudflare_provider.errors import (
     CloudflareAccountValidationError,
     CloudflareOAuthConfigurationError,
     CloudflareOAuthExchangeError,
+    CloudflareOAuthRefreshError,
     CloudflareProviderUnavailableError,
 )
 from backend.providers.cloudflare_provider.schemas import (
@@ -103,6 +104,60 @@ class CloudflareProviderClient:
             raise CloudflareOAuthExchangeError("Cloudflare OAuth token exchange failed.")
 
         return CloudflareOAuthResponse.model_validate(response.json())
+
+    async def refresh_oauth_token(
+        self,
+        *,
+        refresh_value: str,
+        client_id: str,
+        client_secret: str,
+    ) -> CloudflareOAuthResponse:
+        normalized_refresh = refresh_value.strip()
+
+        if not normalized_refresh:
+            raise CloudflareOAuthRefreshError(
+                "Cloudflare OAuth refresh value is missing."
+            )
+
+        if not client_id or not client_secret:
+            raise CloudflareOAuthConfigurationError(
+                "Cloudflare OAuth credentials are missing."
+            )
+
+        form_data = {
+            "grant_type": "refresh_token",
+            "refresh_token": normalized_refresh,
+            "client_id": client_id,
+            "client_secret": client_secret,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds
+            ) as client:
+                response = await client.post(
+                    self.token_url,
+                    data=form_data,
+                )
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare OAuth token endpoint is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflareOAuthRefreshError(
+                "Cloudflare OAuth refresh failed."
+            )
+
+        try:
+            payload = response.json()
+            return CloudflareOAuthResponse.model_validate(
+                payload
+            )
+        except (TypeError, ValueError) as exc:
+            raise CloudflareOAuthRefreshError(
+                "Cloudflare OAuth refresh returned an invalid response."
+            ) from exc
 
     async def list_accounts(self, bearer_value: str) -> list[CloudflareAccount]:
         if not bearer_value:
