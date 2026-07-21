@@ -155,27 +155,126 @@ class DeployPipelineService:
                 )
             )
 
-        provider_summary = await self.provider_gateway.deploy_to_cloudflare(context)
-        provider_summaries.append(provider_summary)
+        provider_summary = (
+            await self.provider_gateway
+            .deploy_to_cloudflare(context)
+        )
+        provider_summaries.append(
+            provider_summary
+        )
         history_writes[-1] = build_history_write(
             event=events[-1],
             logs=[logs[-1]],
             provider_summary=provider_summary,
-            metadata={"source": "deploy_pipeline_contract_skeleton"},
+            metadata={
+                "source": (
+                    "deploy_pipeline_contract_skeleton"
+                )
+            },
         )
+
+        if provider_summary.status != "succeeded":
+            return DeploymentPipelineResult(
+                deployment_id=(
+                    context.deployment_id
+                ),
+                status="prepared",
+                stage=(
+                    DeployPipelineStage
+                    .PROVIDER_DEPLOYING
+                ),
+                deployment_url=None,
+                events=events,
+                logs=logs,
+                provider_summaries=(
+                    provider_summaries
+                ),
+                history_writes=history_writes,
+                metadata={
+                    "execution_mode": (
+                        context.execution_mode
+                    ),
+                    "provider_calls_executed": (
+                        False
+                    ),
+                    "history_contract_ready": True,
+                },
+            )
+
+        if not provider_summary.deployment_url:
+            raise DeployPipelineContextInvalidError(
+                "Deploy Pipeline provider result "
+                "is missing a deployment URL."
+            )
+
+        for stage, message in (
+            (
+                DeployPipelineStage.VERIFYING,
+                "Typed provider deployment response validated.",
+            ),
+            (
+                DeployPipelineStage.COMPLETED,
+                "Deployment pipeline completed.",
+            ),
+        ):
+            event = build_stage_event(
+                deployment_id=(
+                    context.deployment_id
+                ),
+                stage=stage,
+                trace_id=context.trace_id,
+                metadata={
+                    "execution_mode": (
+                        context.execution_mode
+                    )
+                },
+            )
+            log = PipelineLogEntry(
+                level="info",
+                message=message,
+                metadata={
+                    "stage": stage.value,
+                    "execution_mode": (
+                        context.execution_mode
+                    ),
+                },
+            )
+            events.append(event)
+            logs.append(log)
+            history_writes.append(
+                build_history_write(
+                    event=event,
+                    logs=[log],
+                    provider_summary=(
+                        provider_summary
+                        if stage
+                        == DeployPipelineStage.COMPLETED
+                        else None
+                    ),
+                    metadata={
+                        "source": (
+                            "deploy_pipeline_provider_execution"
+                        )
+                    },
+                )
+            )
 
         return DeploymentPipelineResult(
             deployment_id=context.deployment_id,
-            status="prepared",
-            stage=DeployPipelineStage.PROVIDER_DEPLOYING,
-            deployment_url=None,
+            status="completed",
+            stage=DeployPipelineStage.COMPLETED,
+            deployment_url=(
+                provider_summary.deployment_url
+            ),
             events=events,
             logs=logs,
             provider_summaries=provider_summaries,
             history_writes=history_writes,
             metadata={
-                "execution_mode": context.execution_mode,
-                "provider_calls_executed": False,
+                "execution_mode": (
+                    context.execution_mode
+                ),
+                "provider_calls_executed": True,
                 "history_contract_ready": True,
             },
         )

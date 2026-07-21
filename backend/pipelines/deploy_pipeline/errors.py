@@ -17,3 +17,9 @@ class DeployPipelineContextInvalidError(DeployPipelineError):
 
 class DeployPipelineProviderExecutionNotEnabledError(DeployPipelineError):
     code = DeployPipelineErrorCode.PROVIDER_EXECUTION_NOT_ENABLED
+
+
+class DeployPipelineCloudflareExecutionError(
+    DeployPipelineError
+):
+    code = DeployPipelineErrorCode.CLOUDFLARE_FAILED

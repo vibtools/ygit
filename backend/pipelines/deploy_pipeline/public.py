@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from backend.pipelines.deploy_pipeline.internal.provider_gateway import (
+    build_cloudflare_pages_provider_gateway as build_provider_gateway,
     build_cloudflare_provider_execution_plan as build_provider_execution_plan,
 )
 from backend.pipelines.deploy_pipeline.internal.service import DeployPipelineService
