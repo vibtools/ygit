@@ -59,6 +59,14 @@ class CloudflarePagesAssetUploadBatchResult(BaseModel):
     uploaded_bytes: int = Field(ge=0)
 
 
+class CloudflarePagesHashUpsertResult(BaseModel):
+    registered_hashes: list[str]
+    registered_hash_count: int = Field(
+        ge=1,
+        le=20_000,
+    )
+
+
 class CloudflareAccountValidation(BaseModel):
     provider: str = "cloudflare"
     account_id: str

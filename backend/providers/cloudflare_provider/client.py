@@ -23,6 +23,7 @@ from backend.providers.cloudflare_provider.schemas import (
     CloudflareOAuthResponse,
     CloudflarePagesAssetUploadBatchResult,
     CloudflarePagesAssetUploadPlan,
+    CloudflarePagesHashUpsertResult,
     CloudflarePagesProject,
     CloudflarePagesUploadToken,
 )
@@ -800,6 +801,96 @@ class CloudflareProviderClient:
             "uploaded_bytes": batch.total_bytes,
         }
         return CloudflarePagesAssetUploadBatchResult(
+            **result_fields
+        )
+
+
+    async def upsert_pages_asset_hashes(
+        self,
+        *,
+        upload_session: CloudflarePagesUploadToken,
+        content_hashes: list[str],
+    ) -> CloudflarePagesHashUpsertResult:
+        registered_hashes = (
+            self._validated_pages_asset_hashes(
+                content_hashes
+            )
+        )
+        upload_value = (
+            upload_session.upload_token
+            .get_secret_value()
+            .strip()
+        )
+
+        if (
+            not upload_value
+            or any(
+                character in upload_value
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages upload token is invalid."
+            )
+
+        url = (
+            f"{self.api_base_url}/pages/assets/"
+            "upsert-hashes"
+        )
+        headers = {
+            "Authorization": f"Bearer {upload_value}",
+            "Content-Type": "application/json",
+        }
+        body = {
+            "hashes": registered_hashes,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.post(
+                    url,
+                    json=body,
+                )
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages hash registration API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages hash registration failed."
+            )
+
+        try:
+            response_payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid hash registration response."
+            ) from exc
+
+        if (
+            not isinstance(response_payload, dict)
+            or response_payload.get("success")
+            is not True
+        ):
+            raise CloudflarePagesAssetUploadError(
+                "Cloudflare Pages returned an invalid hash registration response."
+            )
+
+        result_fields = {
+            "registered_hashes": registered_hashes,
+            "registered_hash_count": len(
+                registered_hashes
+            ),
+        }
+        return CloudflarePagesHashUpsertResult(
             **result_fields
         )
 
