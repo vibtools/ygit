@@ -41,6 +41,39 @@ STAGE_EVENT_MAP: dict[DeployPipelineStage, DeployPipelineEventName] = {
 }
 
 
+
+class CloudflareProviderOperation(StrEnum):
+    """Ordered Cloudflare Pages operations owned by provider orchestration."""
+
+    ENSURE_PROJECT = "ensure_project"
+    BUILD_ARTIFACT_MANIFEST = (
+        "build_artifact_manifest"
+    )
+    PREPARE_ASSET_UPLOAD = (
+        "prepare_asset_upload"
+    )
+    UPLOAD_MISSING_ASSETS = (
+        "upload_missing_assets"
+    )
+    UPSERT_ASSET_HASHES = (
+        "upsert_asset_hashes"
+    )
+    CREATE_DEPLOYMENT = "create_deployment"
+
+
+CLOUDFLARE_PROVIDER_OPERATION_ORDER: tuple[
+    CloudflareProviderOperation,
+    ...,
+] = (
+    CloudflareProviderOperation.ENSURE_PROJECT,
+    CloudflareProviderOperation.BUILD_ARTIFACT_MANIFEST,
+    CloudflareProviderOperation.PREPARE_ASSET_UPLOAD,
+    CloudflareProviderOperation.UPLOAD_MISSING_ASSETS,
+    CloudflareProviderOperation.UPSERT_ASSET_HASHES,
+    CloudflareProviderOperation.CREATE_DEPLOYMENT,
+)
+
+
 class DeployPipelineErrorCode(StrEnum):
     CONTEXT_INVALID = "DEPLOY_PIPELINE_CONTEXT_INVALID"
     GITHUB_FAILED = "DEPLOY_PIPELINE_GITHUB_FAILED"

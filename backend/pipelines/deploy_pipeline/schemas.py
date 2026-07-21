@@ -3,9 +3,16 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from backend.pipelines.deploy_pipeline.contract import (
+    CLOUDFLARE_PROVIDER_OPERATION_ORDER,
+    CloudflareProviderOperation,
     DeployPipelineEventName,
     DeployPipelineStage,
 )
@@ -59,6 +66,86 @@ class DeploymentPipelineContext(BaseModel):
     cloudflare_token_ref: ProviderTokenReference | None = None
     trace_id: str | None = None
     execution_mode: Literal["contract_skeleton", "provider_enabled"] = "contract_skeleton"
+
+
+
+CloudflareProviderPlanBlocker = Literal[
+    "user_context_missing",
+    "project_context_missing",
+    "artifact_context_missing",
+    "branch_context_missing",
+    "cloudflare_reference_missing",
+    "provider_execution_disabled",
+]
+
+
+class CloudflareProviderExecutionPlan(BaseModel):
+    deployment_id: str
+    execution_mode: Literal[
+        "contract_skeleton",
+        "provider_enabled",
+    ]
+    operations: list[
+        CloudflareProviderOperation
+    ]
+    ready_to_execute: bool
+    blockers: list[
+        CloudflareProviderPlanBlocker
+    ] = Field(default_factory=list)
+
+    @field_validator("deployment_id")
+    @classmethod
+    def validate_deployment_id(
+        cls,
+        value: str,
+    ) -> str:
+        normalized = str(value or "").strip()
+
+        if (
+            not normalized
+            or any(
+                character in normalized
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+        ):
+            raise ValueError(
+                "deployment ID is invalid"
+            )
+
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_plan_consistency(
+        self,
+    ) -> "CloudflareProviderExecutionPlan":
+        expected_operations = list(
+            CLOUDFLARE_PROVIDER_OPERATION_ORDER
+        )
+
+        if self.operations != expected_operations:
+            raise ValueError(
+                "Cloudflare provider operation order is invalid"
+            )
+
+        if self.ready_to_execute == bool(
+            self.blockers
+        ):
+            raise ValueError(
+                "Cloudflare provider plan readiness is inconsistent"
+            )
+
+        if len(self.blockers) != len(
+            set(self.blockers)
+        ):
+            raise ValueError(
+                "Cloudflare provider plan blockers are duplicated"
+            )
+
+        return self
 
 
 class PipelineLogEntry(BaseModel):
