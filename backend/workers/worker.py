@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime, timezone
 from typing import Any
@@ -13,6 +14,21 @@ from backend.workers.runner.retry import RetryPolicy
 from backend.workers.schemas import JobRecord, JobRunResult, WorkerHeartbeat
 
 logger = logging.getLogger(__name__)
+
+
+def _accepts_db_keyword(method: object) -> bool:
+    """Return whether a callable accepts an explicit or arbitrary db keyword."""
+
+    try:
+        parameters = inspect.signature(method).parameters.values()
+    except (TypeError, ValueError):
+        return False
+
+    return any(
+        parameter.name == "db"
+        or parameter.kind == inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters
+    )
 
 
 class WorkerRuntime:
@@ -62,7 +78,19 @@ class WorkerRuntime:
 
     async def run_job_record(self, db: AsyncSession, job: JobRecord) -> JobRunResult:
         try:
-            await self.dispatcher.dispatch(job.job_type, job.payload)
+            dispatch = self.dispatcher.dispatch
+
+            if _accepts_db_keyword(dispatch):
+                await dispatch(
+                    job.job_type,
+                    job.payload,
+                    db=db,
+                )
+            else:
+                await dispatch(
+                    job.job_type,
+                    job.payload,
+                )
         except YGITError as exc:
             return await self._record_failure(
                 db,
