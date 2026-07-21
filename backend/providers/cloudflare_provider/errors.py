@@ -37,5 +37,11 @@ class CloudflarePagesAssetUploadError(
     """Cloudflare Pages asset upload operation failed."""
 
 
+class CloudflarePagesDeploymentError(
+    CloudflareProviderError
+):
+    """Cloudflare Pages deployment operation failed."""
+
+
 class CloudflareProviderUnavailableError(CloudflareProviderError):
     """Cloudflare provider API is unavailable."""

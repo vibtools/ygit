@@ -2,8 +2,10 @@ from __future__ import annotations
 
 from urllib.parse import quote, urlencode
 
-import httpx
+import json
 import re
+
+import httpx
 
 from backend.providers.cloudflare_provider.artifacts import (
     CloudflarePagesAssetUploadBatch,
@@ -14,6 +16,7 @@ from backend.providers.cloudflare_provider.errors import (
     CloudflareOAuthExchangeError,
     CloudflareOAuthRefreshError,
     CloudflarePagesAssetUploadError,
+    CloudflarePagesDeploymentError,
     CloudflarePagesProjectError,
     CloudflareProviderUnavailableError,
 )
@@ -21,8 +24,10 @@ from backend.providers.cloudflare_provider.schemas import (
     CloudflareAccount,
     CloudflareAccountValidation,
     CloudflareOAuthResponse,
+    CloudflarePagesArtifactManifest,
     CloudflarePagesAssetUploadBatchResult,
     CloudflarePagesAssetUploadPlan,
+    CloudflarePagesDeployment,
     CloudflarePagesHashUpsertResult,
     CloudflarePagesProject,
     CloudflarePagesUploadToken,
@@ -892,6 +897,472 @@ class CloudflareProviderClient:
         }
         return CloudflarePagesHashUpsertResult(
             **result_fields
+        )
+
+
+    @staticmethod
+    def _required_pages_deployment_value(
+        value: str,
+        *,
+        label: str,
+        max_length: int | None = None,
+    ) -> str:
+        normalized = str(value or "").strip()
+
+        if (
+            not normalized
+            or any(
+                character in normalized
+                for character in (
+                    "\x00",
+                    "\r",
+                    "\n",
+                )
+            )
+            or (
+                max_length is not None
+                and len(normalized) > max_length
+            )
+        ):
+            raise CloudflarePagesDeploymentError(
+                f"Cloudflare Pages deployment {label} is invalid."
+            )
+
+        return normalized
+
+    @staticmethod
+    def _truncate_utf8_bytes(
+        value: str,
+        *,
+        max_bytes: int,
+    ) -> str:
+        if max_bytes < 1:
+            raise ValueError(
+                "max_bytes must be positive."
+            )
+
+        encoded = value.encode("utf-8")
+
+        if len(encoded) <= max_bytes:
+            return value
+
+        truncated = encoded[:max_bytes]
+
+        while truncated:
+            try:
+                return truncated.decode("utf-8")
+            except UnicodeDecodeError:
+                truncated = truncated[:-1]
+
+        return ""
+
+    @staticmethod
+    def _validated_pages_deployment_manifest(
+        manifest: CloudflarePagesArtifactManifest,
+    ) -> dict[str, str]:
+        expected_manifest = {
+            item.relative_path: item.content_hash
+            for item in manifest.files
+        }
+
+        if (
+            manifest.file_count
+            != len(manifest.files)
+            or manifest.file_count
+            != len(expected_manifest)
+            or manifest.total_bytes
+            != sum(
+                item.size_bytes
+                for item in manifest.files
+            )
+            or expected_manifest
+            != manifest.manifest
+        ):
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages deployment manifest is inconsistent."
+            )
+
+        deployment_manifest: dict[str, str] = {}
+
+        for relative_path, content_hash in sorted(
+            expected_manifest.items()
+        ):
+            if (
+                not relative_path
+                or relative_path.startswith("/")
+                or "\\" in relative_path
+                or "\x00" in relative_path
+                or any(
+                    part in (
+                        "",
+                        ".",
+                        "..",
+                    )
+                    for part in relative_path.split("/")
+                )
+                or re.fullmatch(
+                    r"[0-9a-f]{32}",
+                    content_hash,
+                )
+                is None
+            ):
+                raise CloudflarePagesDeploymentError(
+                    "Cloudflare Pages deployment manifest is invalid."
+                )
+
+            deployment_manifest[
+                "/" + relative_path
+            ] = content_hash
+
+        if (
+            not deployment_manifest
+            or len(deployment_manifest) > 20_000
+        ):
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages deployment manifest is invalid."
+            )
+
+        return deployment_manifest
+
+    @staticmethod
+    def _pages_deployment_from_payload(
+        payload: object,
+    ) -> CloudflarePagesDeployment:
+        if not isinstance(payload, dict):
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned an invalid deployment response."
+            )
+
+        result = payload.get("result")
+
+        if (
+            payload.get("success") is not True
+            or not isinstance(result, dict)
+        ):
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned an invalid deployment response."
+            )
+
+        aliases_value = result.get("aliases")
+
+        if aliases_value is None:
+            aliases: list[str] = []
+        elif (
+            isinstance(aliases_value, list)
+            and all(
+                isinstance(value, str)
+                and value.strip()
+                for value in aliases_value
+            )
+        ):
+            aliases = sorted(
+                value.strip()
+                for value in aliases_value
+            )
+        else:
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned invalid deployment aliases."
+            )
+
+        latest_stage = result.get("latest_stage")
+        stage_name: str | None = None
+        stage_status: str | None = None
+
+        if latest_stage is not None:
+            if not isinstance(latest_stage, dict):
+                raise CloudflarePagesDeploymentError(
+                    "Cloudflare Pages returned an invalid deployment stage."
+                )
+
+            if latest_stage.get("name") is not None:
+                stage_name = str(
+                    latest_stage.get("name")
+                ).strip() or None
+
+            if latest_stage.get("status") is not None:
+                stage_status = str(
+                    latest_stage.get("status")
+                ).strip() or None
+
+        trigger = result.get("deployment_trigger")
+        metadata: dict[str, object] = {}
+
+        if trigger is not None:
+            if not isinstance(trigger, dict):
+                raise CloudflarePagesDeploymentError(
+                    "Cloudflare Pages returned an invalid deployment trigger."
+                )
+
+            raw_metadata = trigger.get("metadata")
+
+            if raw_metadata is not None:
+                if not isinstance(
+                    raw_metadata,
+                    dict,
+                ):
+                    raise CloudflarePagesDeploymentError(
+                        "Cloudflare Pages returned invalid deployment metadata."
+                    )
+
+                metadata = raw_metadata
+
+        deployment_fields = {
+            "deployment_id": str(
+                result.get("id") or ""
+            ).strip(),
+            "project_id": str(
+                result.get("project_id") or ""
+            ).strip(),
+            "project_name": str(
+                result.get("project_name") or ""
+            ).strip(),
+            "environment": str(
+                result.get("environment") or ""
+            ).strip(),
+            "url": str(
+                result.get("url") or ""
+            ).strip(),
+            "aliases": aliases,
+            "created_on": str(
+                result.get("created_on") or ""
+            ).strip(),
+            "stage_name": stage_name,
+            "stage_status": stage_status,
+            "branch": (
+                str(metadata.get("branch")).strip()
+                if metadata.get("branch")
+                else None
+            ),
+            "commit_hash": (
+                str(
+                    metadata.get(
+                        "commit_hash"
+                    )
+                ).strip()
+                if metadata.get("commit_hash")
+                else None
+            ),
+            "commit_message": (
+                str(
+                    metadata.get(
+                        "commit_message"
+                    )
+                ).strip()
+                if metadata.get(
+                    "commit_message"
+                )
+                else None
+            ),
+            "commit_dirty": (
+                metadata.get("commit_dirty")
+                if isinstance(
+                    metadata.get(
+                        "commit_dirty"
+                    ),
+                    bool,
+                )
+                else None
+            ),
+        }
+
+        required_values = (
+            deployment_fields[
+                "deployment_id"
+            ],
+            deployment_fields["project_id"],
+            deployment_fields[
+                "project_name"
+            ],
+            deployment_fields["environment"],
+            deployment_fields["url"],
+            deployment_fields["created_on"],
+        )
+
+        if (
+            any(
+                not value
+                for value in required_values
+            )
+            or deployment_fields["environment"]
+            not in (
+                "preview",
+                "production",
+            )
+        ):
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned incomplete deployment data."
+            )
+
+        try:
+            return CloudflarePagesDeployment.model_validate(
+                deployment_fields
+            )
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned invalid deployment data."
+            ) from exc
+
+    async def create_pages_deployment(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        bearer_value: str,
+        branch: str,
+        manifest: CloudflarePagesArtifactManifest,
+        commit_hash: str | None = None,
+        commit_message: str | None = None,
+        commit_dirty: bool = False,
+    ) -> CloudflarePagesDeployment:
+        account_value = (
+            self._required_pages_deployment_value(
+                account_id,
+                label="account identifier",
+                max_length=32,
+            )
+        )
+        project_value = (
+            self._required_pages_deployment_value(
+                project_name,
+                label="project name",
+            )
+        )
+        access_value = (
+            self._required_pages_deployment_value(
+                bearer_value,
+                label="access credential",
+            )
+        )
+        branch_value = (
+            self._required_pages_deployment_value(
+                branch,
+                label="branch",
+                max_length=255,
+            )
+        )
+        deployment_manifest = (
+            self._validated_pages_deployment_manifest(
+                manifest
+            )
+        )
+
+        commit_hash_value: str | None = None
+
+        if commit_hash is not None:
+            candidate_hash = str(
+                commit_hash
+            ).strip()
+
+            if re.fullmatch(
+                r"[0-9a-fA-F]{7,64}",
+                candidate_hash,
+            ) is None:
+                raise CloudflarePagesDeploymentError(
+                    "Cloudflare Pages deployment commit hash is invalid."
+                )
+
+            commit_hash_value = (
+                candidate_hash.lower()
+            )
+
+        commit_message_value: str | None = None
+
+        if commit_message is not None:
+            candidate_message = str(
+                commit_message
+            ).strip()
+
+            if "\x00" in candidate_message:
+                raise CloudflarePagesDeploymentError(
+                    "Cloudflare Pages deployment commit message is invalid."
+                )
+
+            if candidate_message:
+                commit_message_value = (
+                    self._truncate_utf8_bytes(
+                        candidate_message,
+                        max_bytes=384,
+                    )
+                )
+
+        url = (
+            f"{self.api_base_url}/accounts/"
+            f"{quote(account_value, safe='')}/pages/projects/"
+            f"{quote(project_value, safe='')}/deployments"
+        )
+        headers = {
+            "Authorization": f"Bearer {access_value}",
+        }
+        form_fields: dict[
+            str,
+            tuple[None, str],
+        ] = {
+            "manifest": (
+                None,
+                json.dumps(
+                    deployment_manifest,
+                    sort_keys=True,
+                    separators=(",", ":"),
+                ),
+            ),
+            "branch": (
+                None,
+                branch_value,
+            ),
+            "commit_dirty": (
+                None,
+                (
+                    "true"
+                    if commit_dirty
+                    else "false"
+                ),
+            ),
+            "pages_build_output_dir": (
+                None,
+                manifest.output_directory_name,
+            ),
+        }
+
+        if commit_hash_value is not None:
+            form_fields["commit_hash"] = (
+                None,
+                commit_hash_value,
+            )
+
+        if commit_message_value is not None:
+            form_fields["commit_message"] = (
+                None,
+                commit_message_value,
+            )
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.post(
+                    url,
+                    files=form_fields,
+                )
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages deployment API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages deployment creation failed."
+            )
+
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesDeploymentError(
+                "Cloudflare Pages returned an invalid deployment response."
+            ) from exc
+
+        return self._pages_deployment_from_payload(
+            payload
         )
 
     async def list_accounts(self, bearer_value: str) -> list[CloudflareAccount]:

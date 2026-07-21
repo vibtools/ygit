@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal
+
 from pydantic import BaseModel, Field, SecretStr
 
 
@@ -65,6 +67,27 @@ class CloudflarePagesHashUpsertResult(BaseModel):
         ge=1,
         le=20_000,
     )
+
+
+class CloudflarePagesDeployment(BaseModel):
+    deployment_id: str
+    project_id: str
+    project_name: str
+    environment: Literal[
+        "preview",
+        "production",
+    ]
+    url: str
+    aliases: list[str] = Field(
+        default_factory=list
+    )
+    created_on: str
+    stage_name: str | None = None
+    stage_status: str | None = None
+    branch: str | None = None
+    commit_hash: str | None = None
+    commit_message: str | None = None
+    commit_dirty: bool | None = None
 
 
 class CloudflareAccountValidation(BaseModel):
