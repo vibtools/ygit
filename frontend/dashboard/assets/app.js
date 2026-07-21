@@ -527,10 +527,71 @@ function renderProjects() {
   renderMetrics();
 }
 
+function deploymentEmptyState() {
+  return `<div class="empty-state deployment-empty-state">
+    <div class="deployment-empty-layout">
+      <div class="deployment-empty-illustration" aria-hidden="true">
+        <svg viewBox="0 0 520 340" role="presentation" focusable="false">
+          <defs>
+            <linearGradient id="deployment-card-fill" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stop-color="#172235"/>
+              <stop offset="1" stop-color="#0b1220"/>
+            </linearGradient>
+            <linearGradient id="deployment-flow-line" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color="#3b82f6"/>
+              <stop offset="1" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+          <rect x="42" y="38" width="436" height="264" rx="24" fill="url(#deployment-card-fill)" stroke="rgba(148,163,184,.24)"/>
+          <circle cx="76" cy="72" r="6" fill="#ef4444" opacity=".75"/>
+          <circle cx="98" cy="72" r="6" fill="#f59e0b" opacity=".75"/>
+          <circle cx="120" cy="72" r="6" fill="#10b981" opacity=".75"/>
+          <path d="M64 98h392" stroke="rgba(148,163,184,.18)"/>
+          <path d="M112 208h294" stroke="url(#deployment-flow-line)" stroke-width="4" stroke-linecap="round"/>
+          <path d="m394 196 16 12-16 12" fill="none" stroke="#38bdf8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          <g transform="translate(76 142)">
+            <rect width="82" height="94" rx="16" fill="#101a2b" stroke="rgba(59,130,246,.48)"/>
+            <path d="M24 30h34M24 45h26M24 60h34" stroke="#93c5fd" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <g transform="translate(188 142)">
+            <rect width="82" height="94" rx="16" fill="#101a2b" stroke="rgba(56,189,248,.40)"/>
+            <circle cx="31" cy="37" r="12" fill="none" stroke="#7dd3fc" stroke-width="4"/>
+            <path d="M48 57h13M54.5 50.5v13" stroke="#7dd3fc" stroke-width="4" stroke-linecap="round"/>
+          </g>
+          <g transform="translate(300 142)">
+            <rect width="82" height="94" rx="16" fill="#101a2b" stroke="rgba(16,185,129,.42)"/>
+            <path d="M41 24v39M27 49l14 14 14-14M24 74h34" fill="none" stroke="#6ee7b7" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+          </g>
+          <circle cx="424" cy="208" r="28" fill="rgba(16,185,129,.16)" stroke="rgba(16,185,129,.55)"/>
+          <path d="m412 208 8 8 17-20" fill="none" stroke="#6ee7b7" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="deployment-empty-copy">
+        <p class="eyebrow">Deployment path</p>
+        <h3>No deployments yet.</h3>
+        <p class="muted">Complete the deployment path once and every queued, running, completed, or failed deployment will appear here.</p>
+        <div class="deployment-empty-flow" aria-label="Deployment onboarding flow">
+          <span><b>1</b><strong>Create a project</strong></span>
+          <i aria-hidden="true">→</i>
+          <span><b>2</b><strong>Connect GitHub</strong></span>
+          <i aria-hidden="true">→</i>
+          <span><b>3</b><strong>Deploy</strong></span>
+          <i aria-hidden="true">→</i>
+          <span><b>4</b><strong>Website Live</strong></span>
+        </div>
+        <div class="form-actions deployment-empty-actions">
+          <button class="primary-button" data-deployment-empty-view="projects" type="button">Create Project</button>
+          <button class="secondary-button" data-deployment-empty-view="connected-accounts" type="button">Connect Accounts</button>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderDeployments() {
   const target = $("#deployment-list");
   if (!state.deployments.length) {
-    target.innerHTML = `<div class="empty-state"><p class="eyebrow">Empty State</p><h3>No deployment history yet</h3><p class="muted">Deployments will appear after a project runs through the worker and Deploy Pipeline.</p></div>`;
+    target.innerHTML = deploymentEmptyState();
     renderMetrics();
     return;
   }
@@ -691,6 +752,19 @@ function bindUi() {
   $("#cancel-project-form").addEventListener("click", () => $("#project-form").classList.add("hidden"));
   $("#project-form").addEventListener("submit", createProject);
   $("#refresh-deployments").addEventListener("click", loadDeployments);
+  document.addEventListener("click", (event) => {
+    const trigger = event.target.closest("[data-deployment-empty-view]");
+    if (!trigger) return;
+
+    const targetView = trigger.dataset.deploymentEmptyView;
+    if (!viewMeta[targetView]) return;
+
+    setView(targetView);
+
+    if (targetView === "projects") {
+      $("#project-form")?.classList.remove("hidden");
+    }
+  });
 }
 
 async function boot() {
