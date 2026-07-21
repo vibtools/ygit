@@ -746,5 +746,7 @@ class ConnectedAccountsInternalService:
             status=status,
             account_name=record.provider_account_name if connected else None,
             connected_at=record.connected_at if connected else None,
+            last_checked_at=record.last_checked_at if connected else None,
+            scopes=list(record.scopes) if connected else [],
             last_error_code=record.last_error_code,
         )

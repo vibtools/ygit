@@ -172,8 +172,28 @@
 
       <section class="view hidden" data-view-panel="connected-accounts">
         <article class="panel">
-          <div class="panel-header"><div><p class="eyebrow">Connected Accounts</p><h2>GitHub and Cloudflare</h2></div></div>
-          <div class="account-grid" id="connected-account-grid" aria-live="polite"></div>
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Connected Accounts</p>
+              <h2>GitHub and Cloudflare</h2>
+              <p class="muted">Provider identity, scopes, connection health, and imported repository access.</p>
+            </div>
+          </div>
+          <div class="account-grid connected-account-grid" id="connected-account-grid" aria-live="polite"></div>
+        </article>
+      </section>
+
+      <section class="view hidden" data-view-panel="github-repositories">
+        <article class="panel">
+          <div class="panel-header">
+            <div>
+              <p class="eyebrow">Connected Accounts</p>
+              <h2>Imported GitHub repositories</h2>
+              <p class="muted">Repositories already imported into this YGIT workspace from the connected GitHub account.</p>
+            </div>
+            <button class="secondary-button" data-view-trigger="connected-accounts" type="button">Back to Accounts</button>
+          </div>
+          <div class="repository-browser-list" id="github-repository-list" aria-live="polite"></div>
         </article>
       </section>
 

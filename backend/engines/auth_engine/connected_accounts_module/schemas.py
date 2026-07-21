@@ -44,6 +44,8 @@ class ConnectedAccountSummary(BaseModel):
     status: ConnectedAccountStatus
     account_name: str | None = None
     connected_at: datetime | None = None
+    last_checked_at: datetime | None = None
+    scopes: list[str] = Field(default_factory=list)
     last_error_code: str | None = None
 
 

@@ -470,3 +470,268 @@ h3 {
 .provider-manage-link:hover {
   color: var(--text);
 }
+/* YGIT_CONNECTED_ACCOUNTS_METADATA_UI_START */
+.connected-account-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.account-card {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, .14);
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, .56), rgba(15, 23, 42, .48)),
+    rgba(255, 255, 255, .018);
+}
+
+.account-card-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+}
+
+.provider-avatar {
+  width: 42px;
+  height: 42px;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 42px;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .05);
+}
+
+.provider-avatar svg {
+  width: 23px;
+  height: 23px;
+  fill: currentColor;
+  stroke: currentColor;
+  stroke-width: 1.5;
+}
+
+.provider-avatar-github {
+  color: #f8fafc;
+  background: linear-gradient(145deg, rgba(248, 250, 252, .12), rgba(148, 163, 184, .05));
+}
+
+.provider-avatar-cloudflare {
+  color: #fb923c;
+  background: linear-gradient(145deg, rgba(251, 146, 60, .16), rgba(245, 158, 11, .05));
+}
+
+.provider-avatar-cloudflare svg {
+  fill: none;
+}
+
+.account-identity {
+  min-width: 0;
+}
+
+.account-identity strong,
+.account-identity span {
+  display: block;
+}
+
+.account-identity strong {
+  color: var(--text);
+  font-size: 16px;
+}
+
+.account-identity span {
+  margin-top: 3px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-status-badge {
+  justify-self: end;
+  margin: 0;
+  text-transform: capitalize;
+}
+
+.pill.neutral {
+  color: var(--muted);
+}
+
+.account-metadata-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.account-metadata-grid > div {
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(9, 13, 20, .44);
+}
+
+.account-metadata-grid span,
+.account-meta-label {
+  display: block;
+  margin: 0 0 5px;
+  color: var(--muted-2);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.account-metadata-grid strong {
+  display: block;
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-scope-block {
+  display: grid;
+  gap: 6px;
+}
+
+.scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scope-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 25px;
+  margin: 0;
+  padding: 3px 8px;
+  color: #bfdbfe;
+  border: 1px solid rgba(59, 130, 246, .26);
+  border-radius: 999px;
+  background: rgba(59, 130, 246, .08);
+  font-size: 11px;
+}
+
+.scope-chip-muted {
+  color: var(--muted);
+  border-color: var(--border);
+  background: rgba(255, 255, 255, .025);
+}
+
+.account-repository-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid rgba(56, 189, 248, .18);
+  border-radius: 10px;
+  background: rgba(56, 189, 248, .055);
+}
+
+.account-repository-summary span {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.compact-button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
+}
+
+.repository-browser-list {
+  display: grid;
+  gap: 10px;
+}
+
+.repository-browser-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, .024);
+}
+
+.repository-browser-identity {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.repository-browser-identity > div {
+  min-width: 0;
+}
+
+.repository-browser-identity strong,
+.repository-browser-identity span {
+  display: block;
+}
+
+.repository-browser-identity span {
+  margin-top: 4px;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.repository-browser-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .connected-account-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .repository-browser-card,
+  .repository-browser-meta {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .repository-browser-meta {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  .account-card-header {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .account-status-badge {
+    grid-column: 1 / -1;
+    justify-self: start;
+  }
+
+  .account-metadata-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .account-repository-summary {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+/* YGIT_CONNECTED_ACCOUNTS_METADATA_UI_END */

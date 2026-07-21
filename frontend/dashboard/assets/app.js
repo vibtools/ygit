@@ -9,6 +9,7 @@ const viewMeta = {
   projects: ["Projects", "Create, inspect, and deploy Git-backed projects."],
   deployments: ["Deployments", "Track queued, running, completed, and failed deployments."],
   "connected-accounts": ["Connected Accounts", "Connect GitHub and Cloudflare without exposing raw provider tokens."],
+  "github-repositories": ["GitHub Repositories", "Review imported repositories and use one to create another YGIT project."],
   templates: ["Templates", "Beta starter templates for supported repository types."],
   settings: ["Settings", "MVP-safe defaults and platform constraints."],
   "feature-preview": ["Feature Preview", "Future capabilities are grouped here to keep the MVP dashboard clean."],
@@ -41,6 +42,104 @@ function escapeHtml(value) {
 function two(value) {
   const n = Number(value || 0);
   return n < 10 ? `0${n}` : String(n);
+}
+
+function formatAccountDate(value) {
+  const parsed = Date.parse(value || "");
+  if (!Number.isFinite(parsed)) return "Not available";
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+  }).format(new Date(parsed));
+}
+
+function formatRelativeTime(value) {
+  const parsed = Date.parse(value || "");
+  if (!Number.isFinite(parsed)) return "Not checked yet";
+
+  const seconds = Math.max(0, Math.round((Date.now() - parsed) / 1000));
+  if (seconds < 60) return "just now";
+
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hr ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+
+  return formatAccountDate(value);
+}
+
+function providerAvatar(provider) {
+  if (provider === "github") {
+    return `<span class="provider-avatar provider-avatar-github" aria-hidden="true">
+      <svg viewBox="0 0 24 24"><path d="M12 2.8a9.2 9.2 0 0 0-2.9 17.9c.5.1.7-.2.7-.5v-1.8c-2.9.6-3.5-1.2-3.5-1.2-.5-1.2-1.2-1.5-1.2-1.5-.9-.7.1-.7.1-.7 1.1.1 1.6 1.1 1.6 1.1.9 1.6 2.5 1.1 3 .8.1-.7.4-1.1.7-1.3-2.3-.3-4.7-1.2-4.7-5.1 0-1.1.4-2.1 1.1-2.8-.1-.3-.5-1.3.1-2.7 0 0 .9-.3 3 1.1a10.2 10.2 0 0 1 5.4 0c2.1-1.4 3-1.1 3-1.1.6 1.4.2 2.4.1 2.7.7.7 1.1 1.7 1.1 2.8 0 4-2.4 4.8-4.7 5.1.4.3.7 1 .7 2v2.6c0 .3.2.6.7.5A9.2 9.2 0 0 0 12 2.8Z"/></svg>
+    </span>`;
+  }
+
+  return `<span class="provider-avatar provider-avatar-cloudflare" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M7.2 17.5h10.9a3.3 3.3 0 0 0 .5-6.6A5.9 5.9 0 0 0 7.4 9.1a4.2 4.2 0 0 0-.2 8.4Z"/><path d="M4.5 17.5h2.7"/></svg>
+  </span>`;
+}
+
+function githubImportedRepositories() {
+  const repositories = new Map();
+
+  state.projects.forEach((project) => {
+    const repositoryUrl = String(
+      project?.repository_url ||
+      project?.repository?.url ||
+      ""
+    ).trim();
+
+    if (!repositoryUrl || !repositoryUrl.toLowerCase().includes("github.com/")) {
+      return;
+    }
+
+    const key = repositoryUrl.replace(/\.git$/i, "").toLowerCase();
+    const existing = repositories.get(key);
+
+    if (existing) {
+      existing.projectCount += 1;
+      return;
+    }
+
+    repositories.set(key, {
+      url: repositoryUrl,
+      name: repositoryNameFromUrl(repositoryUrl),
+      projectCount: 1,
+    });
+  });
+
+  return [...repositories.values()].sort((left, right) =>
+    left.name.localeCompare(right.name)
+  );
+}
+
+function repositoryNameFromUrl(repositoryUrl) {
+  const normalized = String(repositoryUrl || "")
+    .replace(/\.git$/i, "")
+    .replace(/\/$/, "");
+  const segments = normalized.split("/").filter(Boolean);
+  return segments.slice(-2).join("/") || "GitHub repository";
+}
+
+function repositoryProjectName(repositoryUrl) {
+  const repositoryName = repositoryNameFromUrl(repositoryUrl).split("/").pop();
+  return String(repositoryName || "GitHub Project")
+    .replaceAll("-", " ")
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function repositoryProjectSlug(repositoryUrl) {
+  const repositoryName = repositoryNameFromUrl(repositoryUrl).split("/").pop();
+  return String(repositoryName || "github-project")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 63) || "github-project";
 }
 
 
@@ -606,15 +705,48 @@ function accountCard(provider) {
   const account = state.accounts.find((item) => item.provider === provider);
   const connected = account?.connected || account?.status === "connected";
   const label = provider === "github" ? "GitHub" : "Cloudflare";
-  const accountName = escapeHtml(account?.account_name || account?.provider_account_name || "account");
-  const manageUrl = provider === "github" ? "https://github.com/settings/installations" : "https://dash.cloudflare.com";
-  const manageLabel = provider === "github" ? "Manage on GitHub" : "Manage on Cloudflare";
+  const accountName = escapeHtml(
+    account?.account_name ||
+    account?.provider_account_name ||
+    "Account not connected"
+  );
+  const status = String(account?.status || "disconnected").toLowerCase();
+  const statusLabel = status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+  const statusTone = connected
+    ? "success"
+    : status === "error"
+      ? "danger"
+      : status === "reconnect_required"
+        ? "warning"
+        : "neutral";
+  const manageUrl = provider === "github"
+    ? "https://github.com/settings/installations"
+    : "https://dash.cloudflare.com";
+  const manageLabel = provider === "github"
+    ? "Manage on GitHub"
+    : "Manage on Cloudflare";
   const connectLabel = !connected && account ? "Reconnect" : "Connect";
-  const statusCopy = connected ? `Status: Connected · ${accountName}` : "Status: Not connected";
+  const statusCopy = connected ? "Status: Connected" : `Status: ${statusLabel}`;
+  const scopes = Array.isArray(account?.scopes) ? account.scopes : [];
+  const scopeHtml = scopes.length
+    ? scopes.map((scope) => `<span class="scope-chip">${escapeHtml(scope)}</span>`).join("")
+    : `<span class="scope-chip scope-chip-muted">No scopes reported</span>`;
+  const repositories = provider === "github"
+    ? githubImportedRepositories()
+    : [];
+  const repositoryLabel = `${repositories.length} ${repositories.length === 1 ? "repository" : "repositories"} imported`;
+  const repositorySummary = provider === "github" && connected
+    ? `<div class="account-repository-summary">
+        <span>${repositoryLabel}</span>
+        <button class="ghost-button compact-button" type="button" data-view-github-repositories>View List</button>
+      </div>`
+    : "";
 
   const actions = connected
     ? `<div class="form-actions account-actions">
-        <button class="danger-button" type="button" data-disconnect-provider="${provider}">Disconnect</button>
+        <button class="danger-button compact-button" type="button" data-disconnect-provider="${provider}">Disconnect</button>
         <a class="provider-manage-link" href="${manageUrl}" target="_blank" rel="noreferrer">${manageLabel}</a>
       </div>`
     : `<div class="form-actions account-actions">
@@ -622,16 +754,73 @@ function accountCard(provider) {
       </div>`;
 
   return `<article class="account-card" id="${provider}-account-card">
-    <strong>${label}</strong>
-    <span>${statusCopy}</span>
+    <header class="account-card-header">
+      ${providerAvatar(provider)}
+      <div class="account-identity">
+        <strong>${label}</strong>
+        <span>${accountName}</span>
+      </div>
+      <span class="pill ${statusTone} account-status-badge" aria-label="${escapeHtml(statusCopy)}">${escapeHtml(statusLabel)}</span>
+    </header>
+    <div class="account-metadata-grid">
+      <div>
+        <span>Connection date</span>
+        <strong>${connected ? escapeHtml(formatAccountDate(account?.connected_at)) : "—"}</strong>
+      </div>
+      <div>
+        <span>Last sync</span>
+        <strong>${connected ? escapeHtml(formatRelativeTime(account?.last_checked_at)) : "—"}</strong>
+      </div>
+    </div>
+    <div class="account-scope-block">
+      <span class="account-meta-label">Scopes</span>
+      <div class="scope-list">${scopeHtml}</div>
+    </div>
+    ${repositorySummary}
     ${actions}
   </article>`;
+}
+
+function renderGitHubRepositories() {
+  const target = $("#github-repository-list");
+  if (!target) return;
+
+  const repositories = githubImportedRepositories();
+
+  if (!repositories.length) {
+    target.innerHTML = `<div class="empty-state">
+      <p class="eyebrow">Imported repositories</p>
+      <h3>No GitHub repositories imported yet</h3>
+      <p class="muted">Create a project with a GitHub repository URL. Imported repositories will appear here for quick reuse.</p>
+      <button class="primary-button" data-use-empty-repository type="button">Create Project</button>
+    </div>`;
+    return;
+  }
+
+  target.innerHTML = repositories.map((repository) => `<article class="repository-browser-card">
+    <div class="repository-browser-identity">
+      ${providerAvatar("github")}
+      <div>
+        <strong>${escapeHtml(repository.name)}</strong>
+        <span>${escapeHtml(repository.url)}</span>
+      </div>
+    </div>
+    <div class="repository-browser-meta">
+      <span>${repository.projectCount} ${repository.projectCount === 1 ? "project" : "projects"} using this repository</span>
+      <button
+        class="primary-button compact-button"
+        type="button"
+        data-use-repository-url="${escapeHtml(repository.url)}"
+      >Use this repository</button>
+    </div>
+  </article>`).join("");
 }
 
 function renderAccounts() {
   const html = ["github", "cloudflare"].map(accountCard).join("");
   $("#connected-account-grid").innerHTML = html;
   $("#dashboard-account-grid").innerHTML = html;
+  renderGitHubRepositories();
   renderMetrics();
 }
 
@@ -678,6 +867,7 @@ async function loadProjects() {
     state.projects = [];
   }
   renderProjects();
+  renderGitHubRepositories();
   renderTimeline();
 }
 
@@ -764,6 +954,49 @@ function bindUi() {
     if (targetView === "projects") {
       $("#project-form")?.classList.remove("hidden");
     }
+  });
+
+  document.addEventListener("click", (event) => {
+    const listTrigger = event.target.closest("[data-view-github-repositories]");
+    if (listTrigger) {
+      event.preventDefault();
+      renderGitHubRepositories();
+      setView("github-repositories");
+      return;
+    }
+
+    const emptyTrigger = event.target.closest("[data-use-empty-repository]");
+    if (emptyTrigger) {
+      event.preventDefault();
+      setView("projects");
+      $("#project-form")?.classList.remove("hidden");
+      $("#repository-url")?.focus();
+      return;
+    }
+
+    const repositoryTrigger = event.target.closest("[data-use-repository-url]");
+    if (!repositoryTrigger) return;
+
+    event.preventDefault();
+    const repositoryUrl = repositoryTrigger.dataset.useRepositoryUrl;
+    if (!repositoryUrl) return;
+
+    setView("projects");
+    $("#project-form")?.classList.remove("hidden");
+
+    const repositoryInput = $("#repository-url");
+    const nameInput = $("#project-name");
+    const slugInput = $("#project-slug");
+
+    if (repositoryInput) repositoryInput.value = repositoryUrl;
+    if (nameInput && !nameInput.value.trim()) {
+      nameInput.value = repositoryProjectName(repositoryUrl);
+    }
+    if (slugInput && !slugInput.value.trim()) {
+      slugInput.value = repositoryProjectSlug(repositoryUrl);
+    }
+
+    nameInput?.focus();
   });
 }
 
