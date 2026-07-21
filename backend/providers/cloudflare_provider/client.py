@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import httpx
 
@@ -9,12 +9,14 @@ from backend.providers.cloudflare_provider.errors import (
     CloudflareOAuthConfigurationError,
     CloudflareOAuthExchangeError,
     CloudflareOAuthRefreshError,
+    CloudflarePagesProjectError,
     CloudflareProviderUnavailableError,
 )
 from backend.providers.cloudflare_provider.schemas import (
     CloudflareAccount,
     CloudflareAccountValidation,
     CloudflareOAuthResponse,
+    CloudflarePagesProject,
 )
 
 
@@ -158,6 +160,218 @@ class CloudflareProviderClient:
             raise CloudflareOAuthRefreshError(
                 "Cloudflare OAuth refresh returned an invalid response."
             ) from exc
+
+    @staticmethod
+    def _required_pages_value(
+        value: str,
+        *,
+        label: str,
+    ) -> str:
+        normalized = str(value or "").strip()
+
+        if (
+            not normalized
+            or any(
+                character in normalized
+                for character in ("\x00", "\r", "\n")
+            )
+        ):
+            raise CloudflarePagesProjectError(
+                f"Cloudflare Pages {label} is invalid."
+            )
+
+        return normalized
+
+    @staticmethod
+    def _pages_project_from_payload(
+        payload: object,
+    ) -> CloudflarePagesProject:
+        if not isinstance(payload, dict):
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned an invalid response."
+            )
+
+        result = payload.get("result")
+
+        if (
+            payload.get("success") is not True
+            or not isinstance(result, dict)
+        ):
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned an invalid response."
+            )
+
+        project_data = {
+            "project_id": str(result.get("id") or "").strip(),
+            "project_name": str(result.get("name") or "").strip(),
+            "production_branch": str(
+                result.get("production_branch") or ""
+            ).strip(),
+            "subdomain": (
+                str(result.get("subdomain")).strip()
+                if result.get("subdomain")
+                else None
+            ),
+        }
+
+        if (
+            not project_data["project_id"]
+            or not project_data["project_name"]
+            or not project_data["production_branch"]
+        ):
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned incomplete project data."
+            )
+
+        try:
+            return CloudflarePagesProject.model_validate(project_data)
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned invalid project data."
+            ) from exc
+
+    async def get_pages_project(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        bearer_value: str,
+    ) -> CloudflarePagesProject | None:
+        account_value = self._required_pages_value(
+            account_id,
+            label="account identifier",
+        )
+        project_value = self._required_pages_value(
+            project_name,
+            label="project name",
+        )
+        access_value = self._required_pages_value(
+            bearer_value,
+            label="access credential",
+        )
+
+        url = (
+            f"{self.api_base_url}/accounts/"
+            f"{quote(account_value, safe='')}/pages/projects/"
+            f"{quote(project_value, safe='')}"
+        )
+        headers = {
+            "Authorization": f"Bearer {access_value}",
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.get(url)
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages project API is unavailable."
+            ) from exc
+
+        if response.status_code == 404:
+            return None
+
+        if response.status_code >= 400:
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages project lookup failed."
+            )
+
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned an invalid response."
+            ) from exc
+
+        return self._pages_project_from_payload(payload)
+
+    async def create_pages_project(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        production_branch: str,
+        bearer_value: str,
+    ) -> CloudflarePagesProject:
+        account_value = self._required_pages_value(
+            account_id,
+            label="account identifier",
+        )
+        project_value = self._required_pages_value(
+            project_name,
+            label="project name",
+        )
+        branch_value = self._required_pages_value(
+            production_branch,
+            label="production branch",
+        )
+        access_value = self._required_pages_value(
+            bearer_value,
+            label="access credential",
+        )
+
+        url = (
+            f"{self.api_base_url}/accounts/"
+            f"{quote(account_value, safe='')}/pages/projects"
+        )
+        headers = {
+            "Authorization": f"Bearer {access_value}",
+        }
+        body = {
+            "name": project_value,
+            "production_branch": branch_value,
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.timeout_seconds,
+                headers=headers,
+            ) as client:
+                response = await client.post(url, json=body)
+        except httpx.HTTPError as exc:
+            raise CloudflareProviderUnavailableError(
+                "Cloudflare Pages project API is unavailable."
+            ) from exc
+
+        if response.status_code >= 400:
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages project creation failed."
+            )
+
+        try:
+            payload = response.json()
+        except (TypeError, ValueError) as exc:
+            raise CloudflarePagesProjectError(
+                "Cloudflare Pages returned an invalid response."
+            ) from exc
+
+        return self._pages_project_from_payload(payload)
+
+    async def ensure_pages_project(
+        self,
+        *,
+        account_id: str,
+        project_name: str,
+        production_branch: str,
+        bearer_value: str,
+    ) -> CloudflarePagesProject:
+        existing = await self.get_pages_project(
+            account_id=account_id,
+            project_name=project_name,
+            bearer_value=bearer_value,
+        )
+
+        if existing is not None:
+            return existing
+
+        return await self.create_pages_project(
+            account_id=account_id,
+            project_name=project_name,
+            production_branch=production_branch,
+            bearer_value=bearer_value,
+        )
 
     async def list_accounts(self, bearer_value: str) -> list[CloudflareAccount]:
         if not bearer_value:

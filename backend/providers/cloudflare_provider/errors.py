@@ -21,5 +21,9 @@ class CloudflareAccountValidationError(CloudflareProviderError):
     """Cloudflare account validation failed."""
 
 
+class CloudflarePagesProjectError(CloudflareProviderError):
+    """Cloudflare Pages project operation failed."""
+
+
 class CloudflareProviderUnavailableError(CloudflareProviderError):
     """Cloudflare provider API is unavailable."""

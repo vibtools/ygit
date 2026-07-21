@@ -16,6 +16,13 @@ class CloudflareAccount(BaseModel):
     account_name: str
 
 
+class CloudflarePagesProject(BaseModel):
+    project_id: str
+    project_name: str
+    production_branch: str
+    subdomain: str | None = None
+
+
 class CloudflareAccountValidation(BaseModel):
     provider: str = "cloudflare"
     account_id: str
