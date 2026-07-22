@@ -201,3 +201,21 @@ The following files are current project references:
 - `AUDIT_REPORT.md`
 
 The MVP release-gate and live-runtime-smoke-plan documents remain historical versioned artifacts. They should not be interpreted as the complete current implementation snapshot.
+
+---
+
+<!-- YGIT-UI-V2-DOCS:START -->
+## YGIT UI V2
+
+YGIT UI V2 is currently in the documentation-freeze phase. It will be developed as an isolated React frontend and migrated page by page while the existing dashboard remains available.
+
+- [UI V2 documentation index](./docs/ui-v2/README.md)
+- [Master Architecture](./docs/ui-v2/UI_V2_MASTER_ARCHITECTURE.md)
+- [API Architecture](./docs/ui-v2/UI_V2_API_ARCHITECTURE.md)
+- [Design System Freeze](./docs/ui-v2/UI_V2_DESIGN_SYSTEM_FREEZE.md)
+- [Migration Plan](./docs/ui-v2/UI_V2_MIGRATION_PLAN.md)
+- [Testing and Release Gate](./docs/ui-v2/UI_V2_TESTING_AND_RELEASE_GATE.md)
+- [Decision Log](./docs/ui-v2/UI_V2_DECISION_LOG.md)
+
+> UI V2 implementation has not started. The existing YGIT backend, engines, providers, workers, authentication, and production dashboard remain unchanged.
+<!-- YGIT-UI-V2-DOCS:END -->
