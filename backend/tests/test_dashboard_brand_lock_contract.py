@@ -31,22 +31,36 @@ def test_brand_lock_uses_compact_vibtools_ecosystem_tokens() -> None:
     assert "0 1px 2px" in css
 
 
-def test_project_cards_disable_deploy_until_deploy_ready() -> None:
+def test_project_cards_use_server_authoritative_deploy_review() -> None:
     app = APP.read_text(encoding="utf-8")
+    card = app.split(
+        "function projectCard(project) {",
+        1,
+    )[1].split(
+        "function emptyProjectState() {",
+        1,
+    )[0]
+
+    compact = " ".join(card.split())
 
     assert "function isProjectDeployReady(project)" in app
     assert 'project?.status === "deploy_ready"' in app
-    assert 'disabled aria-disabled="true"' in app
-    assert "Deploy locked" in app
-    assert "$$('[data-deploy-project]:not([disabled])')" in app
+    assert 'const deployLabel = deployReady ? "Deploy" : "Review & Deploy";' in compact
+    assert 'disabled aria-disabled="true"' not in card
+    assert "Deploy locked" not in card
+    assert "$$('[data-deploy-project]')" in app
+    assert "loadProjectDeployReadiness(" in app
 
 
-def test_dashboard_maps_raw_deployment_not_ready_error_to_human_message() -> None:
+def test_dashboard_maps_deployment_errors_to_safe_messages() -> None:
     app = APP.read_text(encoding="utf-8")
 
     assert "function friendlyErrorMessage(error)" in app
     assert "DEPLOYMENT_PROJECT_NOT_READY" in app
-    assert "not deploy-ready yet" in app
+    assert "DEPLOYMENT_ANALYSIS_REQUIRED" in app
+    assert "DEPLOYMENT_GITHUB_NOT_CONNECTED" in app
+    assert "DEPLOYMENT_CLOUDFLARE_NOT_CONNECTED" in app
+    assert "Review the current deployment blockers" in app
     assert "showSystemAlert(error, \"warning\")" in app
 
 

@@ -91,18 +91,21 @@ def test_backend_values_are_escaped_before_rendering() -> None:
     assert "escapeHtml(item)" in source
 
 
-def test_deploy_brand_lock_contract_is_unchanged() -> None:
+def test_project_open_action_remains_independent_from_deploy_action() -> None:
     source = app_source()
+    open_flow = source.split(
+        "function projectOpenErrorMessage(",
+        1,
+    )[1].split(
+        "function deployReadinessMessage(readiness) {",
+        1,
+    )[0]
 
-    assert "function isProjectDeployReady(project)" in source
-    assert 'project?.status === "deploy_ready"' in source
-    assert 'disabled aria-disabled="true"' in source
-    assert "Deploy locked" in source
-    assert (
-        "$$('[data-deploy-project]:not([disabled])')"
-        in source
-    )
-    assert "not deploy-ready yet" in source
+    assert "async function openProject(" in open_flow
+    assert "loadProjectOpenContext(" in open_flow
+    assert 'method: "POST"' not in open_flow
+    assert "requestDeploy(" not in open_flow
+    assert "loadProjectDeployReadiness(" not in open_flow
 
 
 def test_project_detail_styles_are_present() -> None:

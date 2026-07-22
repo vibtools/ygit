@@ -163,13 +163,46 @@ function isProjectDeployReady(project) {
 }
 
 function friendlyErrorMessage(error) {
-  const raw = typeof error === "string" ? error : error?.message || String(error || "");
-  if (raw.includes("DEPLOYMENT_PROJECT_NOT_READY")) {
-    return "This project has been analyzed, but it is not deploy-ready yet. Review the repository analysis before deployment.";
+  const raw =
+    typeof error === "string"
+      ? error
+      : error?.message || String(error || "");
+
+  const messages = {
+    DEPLOYMENT_PROJECT_NOT_READY:
+      "Deployment is blocked. Review the current deployment blockers.",
+    DEPLOYMENT_ANALYSIS_REQUIRED:
+      "Repository Analysis must complete before deployment.",
+    DEPLOYMENT_GITHUB_NOT_CONNECTED:
+      "Connect the GitHub App installation before deployment.",
+    DEPLOYMENT_CLOUDFLARE_NOT_CONNECTED:
+      "Connect the Cloudflare account before deployment.",
+    DEPLOYMENT_ALREADY_RUNNING:
+      "A deployment is already queued or running for this Project.",
+    DEPLOYMENT_QUEUE_FAILED:
+      "YGIT could not queue the deployment. The Project was not changed.",
+    AUTH_REQUIRED:
+      "Your session has expired. Sign in again.",
+  };
+
+  const matched = Object.entries(messages).find(([code]) =>
+    raw.includes(code)
+  );
+
+  if (matched) return matched[1];
+
+  if (
+    error instanceof TypeError ||
+    raw.includes("Failed to fetch") ||
+    raw.includes("NetworkError")
+  ) {
+    return "YGIT could not be reached. Check the connection and try again.";
   }
+
   if (raw.includes(":")) {
     return raw.split(":").slice(1).join(":").trim() || raw;
   }
+
   return raw || "Request failed. Please try again.";
 }
 
@@ -854,13 +887,71 @@ async function openProject(projectId, button = null) {
 }
 
 
+function deployReadinessMessage(readiness) {
+  if (readiness?.deploy_ready === true) {
+    return "Deploy Engine readiness checks passed.";
+  }
+
+  const reasons = Array.isArray(readiness?.blocking_reasons)
+    ? readiness.blocking_reasons
+    : [];
+
+  if (!reasons.length) {
+    return "Deployment is blocked by an unspecified readiness check.";
+  }
+
+  return reasons
+    .map(projectReadinessMessage)
+    .join(" ");
+}
+
+async function loadProjectDeployReadiness(projectId) {
+  const payload = await fetchJson(
+    `/projects/${encodeURIComponent(projectId)}/readiness`
+  );
+
+  return payload?.readiness || payload;
+}
+
+function setDeployButtonBusy(button, busy, label = null) {
+  if (!button) return;
+
+  if (busy) {
+    if (!button.dataset.originalLabel) {
+      button.dataset.originalLabel =
+        button.textContent || "Deploy";
+    }
+
+    button.disabled = true;
+    button.setAttribute("aria-busy", "true");
+
+    if (label) {
+      button.textContent = label;
+    }
+
+    return;
+  }
+
+  button.disabled = false;
+  button.removeAttribute("aria-busy");
+
+  if (button.dataset.originalLabel) {
+    button.textContent = button.dataset.originalLabel;
+    delete button.dataset.originalLabel;
+  }
+}
+
+
 function projectCard(project) {
   const status = project.status || "draft";
   const statusView = projectStatusView(status);
   const deployReady = isProjectDeployReady(project);
-  const repositoryRef = project.repository_url || project.repository_id || "Repository pending";
-  const deployAttrs = deployReady ? "" : 'disabled aria-disabled="true" title="Repository analysis is not deploy-ready yet"';
-  const deployLabel = deployReady ? "Deploy" : "Deploy locked";
+  const repositoryRef =
+    project.repository_url ||
+    project.repository_id ||
+    "Repository pending";
+  const deployLabel =
+    deployReady ? "Deploy" : "Review & Deploy";
 
   return `<article class="list-item project-card ${escapeHtml(status)}">
     <div class="project-card-main">
@@ -872,7 +963,7 @@ function projectCard(project) {
       <p class="project-readiness">${escapeHtml(statusView.copy)}</p>
     </div>
     <div class="form-actions project-actions">
-      <button class="secondary-button deploy-button ${deployReady ? "" : "is-disabled"}" data-deploy-project="${escapeHtml(project.id)}" data-project-status="${escapeHtml(status)}" type="button" ${deployAttrs}>${deployLabel}</button>
+      <button class="secondary-button deploy-button" data-deploy-project="${escapeHtml(project.id)}" data-project-status="${escapeHtml(status)}" type="button" title="YGIT checks current backend readiness before deployment">${deployLabel}</button>
       <button class="secondary-button" data-project-id="${escapeHtml(project.id)}" type="button">Open</button>
     </div>
   </article>`;
@@ -886,7 +977,7 @@ function renderProjects() {
   const html = state.projects.length ? state.projects.map(projectCard).join("") : emptyProjectState();
   $("#project-list").innerHTML = html;
   $("#dashboard-project-list").innerHTML = state.projects.length ? state.projects.slice(0, 4).map(projectCard).join("") : emptyProjectState();
-  $$('[data-deploy-project]:not([disabled])').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject)));
+  $$('[data-deploy-project]').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject, button)));
   $$("[data-project-id]").forEach((button) => button.addEventListener("click", () => openProject(button.dataset.projectId, button)));
   $$('[data-open-project-form]').forEach((button) => button.addEventListener('click', () => { setView("projects"); $("#project-form").classList.remove("hidden"); }));
   renderMetrics();
@@ -1182,21 +1273,59 @@ async function createProject(event) {
 }
 
 
-async function requestDeploy(projectId) {
+async function requestDeploy(projectId, button = null) {
   if (!projectId) return;
 
-  const project = state.projects.find((item) => item.id === projectId);
-  if (project && !isProjectDeployReady(project)) {
-    showSystemAlert("DEPLOYMENT_PROJECT_NOT_READY", "warning");
-    return;
-  }
+  setDeployButtonBusy(button, true, "Checking...");
 
   try {
-    await fetchJson(`/projects/${encodeURIComponent(projectId)}/deploy`, { method: "POST", body: JSON.stringify({}) });
-    showSystemAlert("Deployment queued. Worker events will appear in deployment history.", "success");
+    const readiness =
+      await loadProjectDeployReadiness(projectId);
+
+    if (!readiness?.deploy_ready) {
+      const blockerMessage =
+        deployReadinessMessage(readiness);
+
+      try {
+        const context =
+          await loadProjectOpenContext(projectId);
+        context.readiness = readiness;
+        renderProjectOpenContext(context);
+      } catch (_) {
+        // Readiness remains authoritative even if optional detail reads fail.
+      }
+
+      showSystemAlert(
+        `Deployment blocked. ${blockerMessage}`,
+        "warning"
+      );
+      return;
+    }
+
+    setDeployButtonBusy(
+      button,
+      true,
+      "Queueing..."
+    );
+
+    await fetchJson(
+      `/projects/${encodeURIComponent(projectId)}/deploy`,
+      {
+        method: "POST",
+        body: JSON.stringify({}),
+      }
+    );
+
+    showSystemAlert(
+      "Deployment queued. Worker events will appear in deployment history.",
+      "success"
+    );
+
     await loadDeployments();
   } catch (error) {
     showSystemAlert(error, "warning");
+  } finally {
+    setDeployButtonBusy(button, false);
   }
 }
 
