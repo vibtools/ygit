@@ -1,6 +1,6 @@
 # YGIT Project Open UI Specification
 
-Version: 1.0
+Version: 1.1
 Status: Approved for Implementation
 Owner: Dashboard
 
@@ -33,6 +33,16 @@ The panel displays available backend values for:
 The Project record is loaded first.
 
 Repository, Analysis, and readiness reads use independent settled results. A secondary read may fail without removing or mutating the Project list.
+
+Analysis warnings and errors may be structured objects. The Dashboard formatter must:
+
+- prefer the human-readable `message`, `detail`, `reason`, `description`, `title`, or `name` field;
+- retain a safe `code` when it adds useful context;
+- preserve primitive string, number, and boolean values;
+- format nested arrays without exposing raw objects;
+- use `Unspecified analysis detail.` for an unknown object shape;
+- never render `[object Object]`;
+- never dump arbitrary object properties or serialize the complete object.
 
 The UI must:
 

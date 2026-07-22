@@ -662,10 +662,74 @@ function projectDetailField(label, value) {
   </div>`;
 }
 
+function projectDetailItemText(value) {
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return String(value).trim();
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map(projectDetailItemText)
+      .filter(Boolean)
+      .join("; ");
+  }
+
+  if (typeof value === "object") {
+    const scalarText = (candidate) =>
+      (
+        typeof candidate === "string" ||
+        typeof candidate === "number" ||
+        typeof candidate === "boolean"
+      )
+        ? String(candidate).trim()
+        : "";
+
+    const code = scalarText(value.code);
+    const message = [
+      value.message,
+      value.detail,
+      value.reason,
+      value.description,
+      value.title,
+      value.name,
+    ]
+      .map(scalarText)
+      .find(Boolean) || "";
+
+    if (
+      message &&
+      code &&
+      !message.toLowerCase().includes(code.toLowerCase())
+    ) {
+      return `${message} (${code})`;
+    }
+
+    if (message) {
+      return message;
+    }
+
+    if (code) {
+      return code.replaceAll("_", " ");
+    }
+
+    return "Unspecified analysis detail.";
+  }
+
+  return String(value).trim();
+}
+
 function projectDetailList(title, values, emptyCopy) {
   const items = Array.isArray(values)
     ? values
-        .map((value) => String(value || "").trim())
+        .map(projectDetailItemText)
         .filter(Boolean)
     : [];
 

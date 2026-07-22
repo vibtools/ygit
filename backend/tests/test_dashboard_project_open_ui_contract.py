@@ -5,6 +5,9 @@ HTML = Path("frontend/dashboard/index.html")
 APP = Path("frontend/dashboard/assets/app.js")
 CSS = Path("frontend/dashboard/assets/styles.css")
 SPEC = Path("DASHBOARD_PROJECT_OPEN_UI_SPEC.md")
+ANALYSIS_SCHEMA = Path(
+    "backend/engines/repository_analysis_engine/schemas.py"
+)
 
 
 def app_source() -> str:
@@ -127,3 +130,101 @@ def test_open_ui_spec_locks_read_only_boundary() -> None:
     assert "This action is read-only." in source
     assert "change Deploy button behavior" in source
     assert "later independent patch" in source
+
+def test_analysis_items_use_safe_object_formatter() -> None:
+    source = app_source()
+    formatter = source.split(
+        "function projectDetailItemText(value) {",
+        1,
+    )[1].split(
+        "function projectDetailList(title, values, emptyCopy) {",
+        1,
+    )[0]
+    detail_list = source.split(
+        "function projectDetailList(title, values, emptyCopy) {",
+        1,
+    )[1].split(
+        "function projectReadinessMessage(reason) {",
+        1,
+    )[0]
+
+    assert ".map(projectDetailItemText)" in detail_list
+    assert '.map((value) => String(value || "").trim())' not in detail_list
+    assert 'typeof value === "object"' in formatter
+    assert "Unspecified analysis detail." in formatter
+
+
+def test_object_formatter_prefers_human_readable_fields_and_code() -> None:
+    source = app_source()
+    formatter = source.split(
+        "function projectDetailItemText(value) {",
+        1,
+    )[1].split(
+        "function projectDetailList(title, values, emptyCopy) {",
+        1,
+    )[0]
+
+    for marker in (
+        "value.message",
+        "value.detail",
+        "value.reason",
+        "value.description",
+        "value.title",
+        "value.name",
+        "value.code",
+        "message.toLowerCase().includes(code.toLowerCase())",
+        'code.replaceAll("_", " ")',
+    ):
+        assert marker in formatter
+
+
+def test_object_formatter_does_not_dump_unknown_objects() -> None:
+    source = app_source()
+    formatter = source.split(
+        "function projectDetailItemText(value) {",
+        1,
+    )[1].split(
+        "function projectDetailList(title, values, emptyCopy) {",
+        1,
+    )[0]
+
+    for forbidden in (
+        "JSON.stringify",
+        "Object.values",
+        "Object.entries",
+        "[object Object]",
+    ):
+        assert forbidden not in formatter
+
+
+def test_analysis_warning_schema_matches_formatter_contract() -> None:
+    source = ANALYSIS_SCHEMA.read_text(encoding="utf-8")
+    warning = source.split(
+        "class AnalysisWarning(BaseModel):",
+        1,
+    )[1].split(
+        "class AnalysisRecommendation(BaseModel):",
+        1,
+    )[0]
+    record = source.split(
+        "class AnalysisRecord(BaseModel):",
+        1,
+    )[1].split(
+        "class AnalysisDetail(AnalysisRecord):",
+        1,
+    )[0]
+
+    assert "code: str" in warning
+    assert "message: str" in warning
+    assert "warnings: list[dict[str, Any]] | None = None" in record
+    assert "errors: list[dict[str, Any]] | None = None" in record
+
+
+def test_open_spec_locks_structured_analysis_item_formatting() -> None:
+    source = SPEC.read_text(encoding="utf-8")
+
+    assert "Version: 1.1" in source
+    assert "structured objects" in source
+    assert "`Unspecified analysis detail.`" in source
+    assert "never render `[object Object]`" in source
+    assert "never dump arbitrary object properties" in source
