@@ -1,6 +1,6 @@
 # YGIT Current Engineering Audit Report
 
-Version: 1.3
+Version: 1.4
 Status: Verified Foundation / Pre-Live Integration
 Updated: 2026-07-21
 
@@ -18,6 +18,7 @@ This report covers the current YGIT MVP source through:
 - Worker Runtime, Job Dispatcher, and deploy/redeploy policy-handoff integration.
 - Deployment History result/failure persistence and retry-safe intent replay protection.
 - Production configuration and runtime live-readiness tooling plus controlled deployment runbook.
+- Shared runtime-image packaging for live-readiness artifacts used by API and worker containers.
 - AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
@@ -40,7 +41,8 @@ This report covers the current YGIT MVP source through:
 | Deployment History runtime tests | 8 passed |
 | Deployment History idempotency tests | 4 passed |
 | Live-readiness tooling tests | 8 passed |
-| Full test suite | 500 passed |
+| Runtime image packaging tests | 4 passed |
+| Full test suite | 504 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
@@ -54,6 +56,7 @@ This report covers the current YGIT MVP source through:
 | Retry-safe history intent replay | IMPLEMENTED |
 | Completed deployment duplicate suppression | IMPLEMENTED |
 | Live-readiness tooling | IMPLEMENTED |
+| Runtime readiness artifacts in image | PACKAGED, REDEPLOY PENDING |
 | Coolify redeploy | NOT EXECUTED |
 | Live provider execution | NOT EXECUTED |
 

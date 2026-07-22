@@ -121,6 +121,7 @@ Implemented:
 - Protection against job-payload-controlled provider enablement.
 - Deployment History persistence for pipeline intents, provider summaries, terminal failures, and retry-safe replay handling.
 - Secret-safe live-readiness validation for production configuration, PostgreSQL, Redis, deployed API routes, and explicit provider mode.
+- Runtime image packaging for the live-readiness script and controlled deployment runbook in both API and worker containers.
 
 The default runtime remains provider-disabled.
 
@@ -147,7 +148,8 @@ AG-001 regression: 15 passed
 Deployment History runtime tests: 8 passed
 Deployment History idempotency tests: 4 passed
 Live-readiness tooling tests: 8 passed
-Full suite: 500 passed
+Runtime image packaging tests: 4 passed
+Full suite: 504 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -171,7 +173,7 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Redeploy the Batch 3 commit to Coolify with provider mode `disabled`.
+1. Redeploy the Batch 3-R2 runtime-image packaging commit to Coolify with provider mode `disabled`.
 2. Run pre/post-redeploy PostgreSQL, Redis, API, authentication-shell, and configuration checks.
 3. Connect dedicated GitHub and Cloudflare test accounts, then enable `cloudflare` mode for one controlled deployment.
 4. Fix only defects demonstrated by live evidence.

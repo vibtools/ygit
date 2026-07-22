@@ -1,6 +1,6 @@
 # YGIT Controlled Live Deployment Runbook
 
-Version: 1.0
+Version: 1.1
 Status: Ready for Controlled Live Validation
 Owner: YGIT Operations
 
@@ -23,7 +23,16 @@ It does not declare production readiness before real PostgreSQL, Redis, GitHub, 
 
 ## Phase 1 — Pre-Redeploy Validation
 
-On the production application container or an equivalent environment containing the final secrets:
+Use the `ygit-api-*` container for the post-redeploy HTTP check and the `ygit-worker-*` container for the worker-side preflight. Both containers must contain `/app/scripts/live_readiness.py` because they share the same runtime image.
+
+Before running readiness checks:
+
+```bash
+test -f /app/scripts/live_readiness.py && echo LIVE_SCRIPT_PRESENT
+test -f /app/LIVE_DEPLOYMENT_RUNBOOK.md && echo LIVE_RUNBOOK_PRESENT
+```
+
+Then run on the production application container or an equivalent environment containing the final secrets:
 
 ```bash
 python scripts/live_readiness.py \
@@ -45,7 +54,7 @@ This checks required configuration presence, PostgreSQL `SELECT 1`, Redis `PING`
 Redeploy commit:
 
 ```text
-<record the Batch 3 commit SHA here>
+<record the Batch 3-R2 runtime-image packaging commit SHA here>
 ```
 
 Keep:

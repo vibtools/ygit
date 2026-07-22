@@ -39,7 +39,7 @@
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "500_passed_1_warning",
+    "full_test_suite": "504_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false,
     "live_readiness_tooling": {
@@ -50,7 +50,11 @@
       "public_route_probe": true,
       "provider_mode_check": true,
       "secret_values_rendered": false,
-      "live_provider_execution": false
+      "live_provider_execution": false,
+      "runtime_image_packaged": true,
+      "api_container_path": "/app/scripts/live_readiness.py",
+      "worker_container_path": "/app/scripts/live_readiness.py",
+      "coolify_redeploy_verified": false
     }
   },
   "domain": {

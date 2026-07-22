@@ -77,7 +77,9 @@
     "completed_duplicate_guard": true,
     "live_readiness_tooling": "implemented",
     "controlled_live_runbook": "ready",
-    "coolify_redeploy_verified": false
+    "coolify_redeploy_verified": false,
+    "live_readiness_runtime_image_packaged": true,
+    "live_readiness_runtime_path": "/app/scripts/live_readiness.py"
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

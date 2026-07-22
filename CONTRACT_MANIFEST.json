@@ -131,7 +131,7 @@
     "date": "2026-07-21",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
-    "latest_full_suite": "500_passed_1_warning",
+    "latest_full_suite": "504_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -163,7 +163,8 @@
     "worker_provider_execution_policy_foundation",
     "worker_provider_execution_policy_runtime_handoff",
     "deployment_history_runtime_persistence",
-    "controlled_live_readiness_tooling"
+    "controlled_live_readiness_tooling",
+    "runtime_image_live_readiness_packaging"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -346,6 +347,9 @@
     "provider_mode_expectation": true,
     "secret_redaction": true,
     "coolify_redeploy_verified": false,
-    "live_provider_verified": false
+    "live_provider_verified": false,
+    "runtime_image_packaged": true,
+    "api_worker_shared_image": true,
+    "runtime_script_path": "/app/scripts/live_readiness.py"
   }
 }

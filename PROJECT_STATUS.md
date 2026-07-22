@@ -107,7 +107,8 @@ AG-001 regression: 15 passed
 Deployment History runtime: 8 passed
 Deployment History idempotency: 4 passed
 Live-readiness tooling: 8 passed
-Full suite: 500 passed, 1 warning
+Runtime image packaging: 4 passed
+Full suite: 504 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -116,7 +117,7 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Coolify-redeploy the Batch 3 commit with provider mode `disabled`.
+1. Coolify-redeploy the Batch 3-R2 runtime-image packaging commit with provider mode `disabled`.
 2. Run the controlled pre/post-redeploy infrastructure and public-route checks.
 3. Connect dedicated GitHub and Cloudflare test accounts and execute one controlled real deployment.
 4. Resolve only defects demonstrated by live evidence.
@@ -139,6 +140,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-21 | 1.6 | Packaged live-readiness artifacts in the shared API/worker runtime image |
 | 2026-07-21 | 1.5 | Added controlled live-readiness tooling and production validation runbook |
 | 2026-07-21 | 1.4 | Added Deployment History result persistence and retry-safe intent idempotency |
 | 2026-07-21 | 1.3 | Added trusted provider-policy runtime handoff while preserving the default-disabled path |
