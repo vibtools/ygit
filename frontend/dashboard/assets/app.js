@@ -1058,6 +1058,178 @@ function renderDeployments() {
   renderMetrics();
 }
 
+function dashboardAccountScopeValue(
+  scopes,
+  prefix,
+  fallback = "Not reported"
+) {
+  const matched = scopes.find((scope) =>
+    String(scope).startsWith(prefix)
+  );
+
+  if (!matched) return fallback;
+
+  const value = String(matched)
+    .slice(prefix.length)
+    .replaceAll("_", " ")
+    .trim();
+
+  if (!value) return fallback;
+
+  return value.replace(/\b\w/g, (character) =>
+    character.toUpperCase()
+  );
+}
+
+function dashboardAccountPermissionSummary(
+  scopes,
+  provider
+) {
+  const excludedPrefixes =
+    provider === "github"
+      ? ["github_app:", "repositories:"]
+      : [];
+
+  const visible = scopes.filter(
+    (scope) =>
+      !excludedPrefixes.some((prefix) =>
+        String(scope).startsWith(prefix)
+      )
+  );
+
+  if (!visible.length) {
+    return "Not reported";
+  }
+
+  const first = visible.slice(0, 2);
+  const remaining = visible.length - first.length;
+  const summary = first.join(", ");
+
+  return remaining > 0
+    ? `${summary} +${remaining}`
+    : summary;
+}
+
+function dashboardAccountFact(label, value) {
+  return `<div class="dashboard-account-fact">
+    <span>${escapeHtml(label)}</span>
+    <strong title="${escapeHtml(value)}">${escapeHtml(value)}</strong>
+  </div>`;
+}
+
+function dashboardAccountCard(provider) {
+  const account = state.accounts.find(
+    (item) => item.provider === provider
+  );
+  const connected =
+    account?.connected ||
+    account?.status === "connected";
+  const status = String(
+    account?.status ||
+    (connected ? "connected" : "disconnected")
+  ).toLowerCase();
+  const statusLabel = status
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (character) =>
+      character.toUpperCase()
+    );
+  const accountName =
+    account?.account_name ||
+    account?.provider_account_name ||
+    "Not connected";
+  const scopes = Array.isArray(account?.scopes)
+    ? account.scopes.map((scope) => String(scope))
+    : [];
+  const lastSync = connected
+    ? formatRelativeTime(account?.last_checked_at)
+    : "—";
+  const permissionSummary =
+    dashboardAccountPermissionSummary(
+      scopes,
+      provider
+    );
+  const statusTone = connected
+    ? "success"
+    : status === "error"
+      ? "danger"
+      : status === "reconnect_required"
+        ? "warning"
+        : "neutral";
+
+  const facts =
+    provider === "github"
+      ? [
+          dashboardAccountFact(
+            "Username",
+            accountName
+          ),
+          dashboardAccountFact(
+            "Repository Access",
+            dashboardAccountScopeValue(
+              scopes,
+              "repositories:"
+            )
+          ),
+          dashboardAccountFact(
+            "Scopes",
+            permissionSummary
+          ),
+          dashboardAccountFact(
+            "Last Sync",
+            lastSync
+          ),
+        ]
+      : [
+          dashboardAccountFact(
+            "Account",
+            accountName
+          ),
+          dashboardAccountFact(
+            "Token Status",
+            connected
+              ? "Active"
+              : statusLabel
+          ),
+          dashboardAccountFact(
+            "Permissions",
+            permissionSummary
+          ),
+          dashboardAccountFact(
+            "Last Sync",
+            lastSync
+          ),
+        ];
+
+  const label =
+    provider === "github"
+      ? "GitHub"
+      : "Cloudflare";
+
+  return `<article class="dashboard-provider-card dashboard-provider-card-${provider}">
+    <header class="dashboard-provider-card-header">
+      <div class="dashboard-provider-title">
+        ${providerAvatar(provider)}
+        <strong>${label}</strong>
+      </div>
+      <span class="dashboard-provider-status ${statusTone}">
+        <i aria-hidden="true"></i>
+        ${escapeHtml(statusLabel)}
+      </span>
+    </header>
+    <div class="dashboard-account-facts">
+      ${facts.join("")}
+    </div>
+    <footer class="dashboard-provider-card-footer">
+      <button
+        class="secondary-button compact-button"
+        type="button"
+        data-dashboard-account-manage="${provider}"
+      >Manage</button>
+    </footer>
+  </article>`;
+}
+
+
 function accountCard(provider) {
   const account = state.accounts.find((item) => item.provider === provider);
   const connected = account?.connected || account?.status === "connected";
@@ -1174,9 +1346,27 @@ function renderGitHubRepositories() {
 }
 
 function renderAccounts() {
-  const html = ["github", "cloudflare"].map(accountCard).join("");
-  $("#connected-account-grid").innerHTML = html;
-  $("#dashboard-account-grid").innerHTML = html;
+  const fullHtml = ["github", "cloudflare"]
+    .map(accountCard)
+    .join("");
+  const dashboardHtml = ["github", "cloudflare"]
+    .map(dashboardAccountCard)
+    .join("");
+
+  $("#connected-account-grid").innerHTML = fullHtml;
+
+  const dashboardTarget = $("#dashboard-account-grid");
+  if (dashboardTarget) {
+    dashboardTarget.innerHTML = dashboardHtml;
+  }
+
+  $$("[data-dashboard-account-manage]")
+    .forEach((button) =>
+      button.addEventListener("click", () =>
+        setView("connected-accounts")
+      )
+    );
+
   renderGitHubRepositories();
   renderMetrics();
 }

@@ -67,7 +67,7 @@
 
       <section class="view" data-view-panel="dashboard">
         <div class="dashboard-grid">
-          <div class="hero-card">
+          <div class="hero-card dashboard-hero-card">
             <div>
               <p class="eyebrow">Core Flow</p>
               <h2>Deploy Git repositories to Cloudflare Pages without exposing DevOps complexity.</h2>
@@ -83,6 +83,9 @@
               <button class="primary-button" data-view-trigger="projects" type="button">Create Project</button>
               <button class="secondary-button" data-view-trigger="connected-accounts" type="button">Connect Accounts</button>
             </div>
+            <section class="dashboard-account-strip" aria-label="Connected provider summary">
+              <div class="dashboard-account-compact-grid" id="dashboard-account-grid" aria-live="polite"></div>
+            </section>
           </div>
           <aside class="timeline" aria-label="Deployment timeline">
             <p class="eyebrow">Deployment Timeline</p>
@@ -141,10 +144,6 @@
           <article class="panel">
             <div class="panel-header"><div><p class="eyebrow">Projects</p><h2>Active workspace</h2></div><button class="primary-button" data-view-trigger="projects" type="button">Open Projects</button></div>
             <div class="list" id="dashboard-project-list" aria-live="polite"></div>
-          </article>
-          <article class="panel">
-            <div class="panel-header"><div><p class="eyebrow">Connected Accounts</p><h2>Provider readiness</h2></div><button class="secondary-button" data-view-trigger="connected-accounts" type="button">Manage</button></div>
-            <div class="account-grid" id="dashboard-account-grid" aria-live="polite"></div>
           </article>
         </div>
       </section>

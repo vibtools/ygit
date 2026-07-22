@@ -834,3 +834,178 @@ h3 {
   line-height: 1.5;
 }
 /* YGIT_PROJECT_OPEN_UI_STEP_2_END */
+
+/* YGIT_DASHBOARD_COMPACT_PROVIDER_CARDS_START */
+.dashboard-hero-card {
+  position: relative;
+}
+
+.dashboard-account-strip {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  left: 0;
+  height: 200px;
+}
+
+.dashboard-account-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+  height: 100%;
+}
+
+.dashboard-provider-card {
+  min-width: 0;
+  height: 200px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 10px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(17, 22, 31, .94);
+  box-shadow: none;
+}
+
+.dashboard-provider-card-header,
+.dashboard-provider-title,
+.dashboard-provider-status,
+.dashboard-provider-card-footer {
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-provider-card-header {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.dashboard-provider-title {
+  min-width: 0;
+  gap: 10px;
+}
+
+.dashboard-provider-title .provider-avatar {
+  width: 32px;
+  height: 32px;
+  flex-basis: 32px;
+  border-radius: 10px;
+}
+
+.dashboard-provider-title .provider-avatar svg {
+  width: 18px;
+  height: 18px;
+}
+
+.dashboard-provider-title strong {
+  font-size: 15px;
+}
+
+.dashboard-provider-status {
+  flex: 0 0 auto;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dashboard-provider-status i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--muted-2);
+}
+
+.dashboard-provider-status.success {
+  color: var(--success);
+}
+
+.dashboard-provider-status.success i {
+  background: var(--success);
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, .10);
+}
+
+.dashboard-provider-status.warning {
+  color: var(--warning);
+}
+
+.dashboard-provider-status.warning i {
+  background: var(--warning);
+}
+
+.dashboard-provider-status.danger {
+  color: var(--error);
+}
+
+.dashboard-provider-status.danger i {
+  background: var(--error);
+}
+
+.dashboard-account-facts {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 16px;
+}
+
+.dashboard-account-fact {
+  min-width: 0;
+}
+
+.dashboard-account-fact span,
+.dashboard-account-fact strong {
+  display: block;
+}
+
+.dashboard-account-fact span {
+  margin-bottom: 3px;
+  color: var(--muted-2);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+}
+
+.dashboard-account-fact strong {
+  overflow: hidden;
+  color: var(--text-soft);
+  font-size: 12px;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dashboard-provider-card-footer {
+  justify-content: flex-end;
+}
+
+.dashboard-provider-card-footer .secondary-button {
+  min-height: 32px;
+}
+
+@media (max-width: 1180px) {
+  .dashboard-account-strip {
+    position: static;
+    height: auto;
+    margin-top: 2px;
+  }
+
+  .dashboard-provider-card {
+    height: auto;
+    min-height: 190px;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-account-compact-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-provider-card {
+    min-height: 190px;
+  }
+}
+/* YGIT_DASHBOARD_COMPACT_PROVIDER_CARDS_END */
