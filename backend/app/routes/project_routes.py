@@ -73,6 +73,26 @@ async def delete_project(
     return success_response(result.model_dump(mode="json"))
 
 
+@router.get("/{project_id}/readiness")
+async def get_project_readiness(
+    project_id: str,
+    user: CurrentUser = Depends(require_user),
+    db: AsyncSession = Depends(get_db_session),
+):
+    result = await deploy_service.validate_deploy_ready(
+        db,
+        user_id=user.id,
+        project_id=project_id,
+    )
+    return success_response(
+        {
+            "readiness": result.model_dump(
+                mode="json"
+            )
+        }
+    )
+
+
 @router.post("/{project_id}/deploy", status_code=status.HTTP_202_ACCEPTED)
 async def deploy_project(
     project_id: str,

@@ -59,6 +59,7 @@ REQUIRED_ROUTES = {
     "/api/v1/connected-accounts/{provider}/connect",
     "/api/v1/domains/check",
     "/api/v1/projects/{project_id}/domain",
+    "/api/v1/projects/{project_id}/readiness",
     "/api/v1/projects/{project_id}/deploy",
     "/api/v1/deployments/{deployment_id}",
     "/api/v1/deployments/{deployment_id}/redeploy",
