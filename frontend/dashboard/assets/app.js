@@ -589,6 +589,271 @@ function renderMetrics() {
 }
 
 
+function projectOpenErrorMessage(error) {
+  const raw = String(error?.message || error || "");
+  const mappings = {
+    PROJECT_NOT_FOUND: "The Project could not be found or is no longer available.",
+    REPOSITORY_NOT_FOUND: "Repository metadata is not available for this Project.",
+    ANALYSIS_NOT_FOUND: "Repository Analysis details are not available for this Project.",
+    AUTH_REQUIRED: "Your session has expired. Sign in again.",
+  };
+
+  const matched = Object.entries(mappings).find(([code]) =>
+    raw.includes(code)
+  );
+
+  if (matched) return matched[1];
+
+  if (
+    error instanceof TypeError ||
+    raw.includes("Failed to fetch") ||
+    raw.includes("NetworkError")
+  ) {
+    return "YGIT could not be reached. Check the connection and try again.";
+  }
+
+  return "A Project detail could not be loaded. Existing Project data was preserved.";
+}
+
+function projectDetailField(label, value) {
+  const displayValue =
+    value === null ||
+    value === undefined ||
+    String(value).trim() === ""
+      ? "Not available"
+      : String(value);
+
+  return `<div class="project-detail-field">
+    <span>${escapeHtml(label)}</span>
+    <strong>${escapeHtml(displayValue)}</strong>
+  </div>`;
+}
+
+function projectDetailList(title, values, emptyCopy) {
+  const items = Array.isArray(values)
+    ? values
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+    : [];
+
+  const body = items.length
+    ? `<ul class="project-detail-list">${items
+        .map((item) => `<li>${escapeHtml(item)}</li>`)
+        .join("")}</ul>`
+    : `<p class="muted">${escapeHtml(emptyCopy)}</p>`;
+
+  return `<section class="project-detail-section">
+    <h4>${escapeHtml(title)}</h4>
+    ${body}
+  </section>`;
+}
+
+function projectReadinessMessage(reason) {
+  const messages = {
+    repository_required: "Attach a repository before deployment.",
+    analysis_required: "Repository Analysis must complete before deployment.",
+    analysis_not_deploy_ready: "Repository Analysis found deployment blockers.",
+    github_not_connected: "Connect the GitHub App installation.",
+    cloudflare_not_connected: "Connect the Cloudflare account.",
+  };
+
+  return (
+    messages[reason] ||
+    String(reason || "Unknown readiness blocker").replaceAll("_", " ")
+  );
+}
+
+function settledProjectValue(result, key) {
+  if (result.status !== "fulfilled") return null;
+  return result.value?.[key] || result.value || null;
+}
+
+async function loadProjectOpenContext(projectId) {
+  const projectPayload = await fetchJson(
+    `/projects/${encodeURIComponent(projectId)}`
+  );
+  const project = projectPayload?.project || projectPayload;
+
+  const secondaryReads = [
+    fetchJson(
+      `/projects/${encodeURIComponent(projectId)}/readiness`
+    ),
+    project?.repository_id
+      ? fetchJson(
+          `/repositories/${encodeURIComponent(project.repository_id)}`
+        )
+      : Promise.resolve(null),
+    project?.analysis_id
+      ? fetchJson(
+          `/repository-analysis/${encodeURIComponent(project.analysis_id)}`
+        )
+      : Promise.resolve(null),
+  ];
+
+  const [readinessResult, repositoryResult, analysisResult] =
+    await Promise.allSettled(secondaryReads);
+
+  const failures = [
+    ["Readiness", readinessResult],
+    ["Repository", repositoryResult],
+    ["Analysis", analysisResult],
+  ]
+    .filter(([, result]) => result.status === "rejected")
+    .map(
+      ([label, result]) =>
+        `${label}: ${projectOpenErrorMessage(result.reason)}`
+    );
+
+  return {
+    project,
+    readiness: settledProjectValue(readinessResult, "readiness"),
+    repository: settledProjectValue(repositoryResult, "repository"),
+    analysis: settledProjectValue(analysisResult, "analysis"),
+    failures,
+  };
+}
+
+function renderProjectOpenContext(context) {
+  const panel = $("#project-detail-panel");
+  const title = $("#project-detail-title");
+  const status = $("#project-detail-status");
+  const content = $("#project-detail-content");
+
+  if (!panel || !title || !status || !content) return;
+
+  const project = context.project || {};
+  const repository = context.repository || {};
+  const analysis = context.analysis || {};
+  const readiness = context.readiness || {};
+  const blockingReasons = Array.isArray(readiness.blocking_reasons)
+    ? readiness.blocking_reasons.map(projectReadinessMessage)
+    : [];
+
+  title.textContent =
+    project.name ||
+    project.slug ||
+    project.id ||
+    "Project";
+
+  if (context.failures.length) {
+    status.textContent =
+      "Project details are partially available. Existing Project data was preserved.";
+    status.dataset.tone = "warning";
+  } else if (readiness.deploy_ready === true) {
+    status.textContent =
+      "Project details loaded. Deploy Engine reports this Project as ready.";
+    status.dataset.tone = "success";
+  } else {
+    status.textContent =
+      "Project details loaded. Deployment prerequisites are shown below.";
+    status.dataset.tone = "warning";
+  }
+
+  const analysisWarnings = Array.isArray(analysis.warnings)
+    ? analysis.warnings
+    : [];
+  const analysisErrors = Array.isArray(analysis.errors)
+    ? analysis.errors
+    : [];
+
+  content.innerHTML = `
+    <div class="project-detail-grid">
+      ${projectDetailField("Project ID", project.id)}
+      ${projectDetailField("Project status", project.status)}
+      ${projectDetailField("Slug", project.slug)}
+      ${projectDetailField(
+        "Repository URL",
+        repository.repository_url || project.repository_id
+      )}
+      ${projectDetailField("Default branch", repository.default_branch)}
+      ${projectDetailField("Visibility", repository.visibility)}
+      ${projectDetailField(
+        "Latest commit",
+        repository.latest_commit_sha
+      )}
+      ${projectDetailField("Framework", analysis.framework)}
+      ${projectDetailField("Package manager", analysis.package_manager)}
+      ${projectDetailField("Build command", analysis.build_command)}
+      ${projectDetailField("Output directory", analysis.output_directory)}
+      ${projectDetailField("Analysis score", analysis.score)}
+      ${projectDetailField(
+        "Deploy ready",
+        readiness.deploy_ready === true ? "Yes" : "No"
+      )}
+    </div>
+    ${projectDetailList(
+      "Deployment readiness",
+      blockingReasons,
+      readiness.deploy_ready === true
+        ? "No deployment blockers reported."
+        : "Readiness details are not available."
+    )}
+    ${projectDetailList(
+      "Analysis warnings",
+      analysisWarnings,
+      "No Analysis warnings reported."
+    )}
+    ${projectDetailList(
+      "Analysis errors",
+      analysisErrors,
+      "No Analysis errors reported."
+    )}
+    ${projectDetailList(
+      "Partial read notices",
+      context.failures,
+      "All requested Project details loaded."
+    )}
+  `;
+
+  panel.classList.remove("hidden");
+  panel.scrollIntoView({
+    behavior: "smooth",
+    block: "nearest",
+  });
+}
+
+async function openProject(projectId, button = null) {
+  if (!projectId) return;
+
+  const panel = $("#project-detail-panel");
+  const status = $("#project-detail-status");
+  const originalLabel = button?.textContent || "Open";
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Opening...";
+    button.setAttribute("aria-busy", "true");
+  }
+
+  panel?.classList.remove("hidden");
+
+  if (status) {
+    status.textContent =
+      "Loading Project, Repository, Analysis, and readiness...";
+    status.dataset.tone = "neutral";
+  }
+
+  try {
+    const context = await loadProjectOpenContext(projectId);
+    renderProjectOpenContext(context);
+  } catch (error) {
+    const message = projectOpenErrorMessage(error);
+    showSystemAlert(message, "warning");
+
+    if (status) {
+      status.textContent = message;
+      status.dataset.tone = "danger";
+    }
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+      button.removeAttribute("aria-busy");
+    }
+  }
+}
+
+
 function projectCard(project) {
   const status = project.status || "draft";
   const statusView = projectStatusView(status);
@@ -622,6 +887,7 @@ function renderProjects() {
   $("#project-list").innerHTML = html;
   $("#dashboard-project-list").innerHTML = state.projects.length ? state.projects.slice(0, 4).map(projectCard).join("") : emptyProjectState();
   $$('[data-deploy-project]:not([disabled])').forEach((button) => button.addEventListener('click', () => requestDeploy(button.dataset.deployProject)));
+  $$("[data-project-id]").forEach((button) => button.addEventListener("click", () => openProject(button.dataset.projectId, button)));
   $$('[data-open-project-form]').forEach((button) => button.addEventListener('click', () => { setView("projects"); $("#project-form").classList.remove("hidden"); }));
   renderMetrics();
 }
@@ -941,6 +1207,7 @@ function bindUi() {
   $("#open-project-form").addEventListener("click", () => $("#project-form").classList.remove("hidden"));
   $("#cancel-project-form").addEventListener("click", () => $("#project-form").classList.add("hidden"));
   $("#project-form").addEventListener("submit", createProject);
+  $("#close-project-detail")?.addEventListener("click", () => $("#project-detail-panel")?.classList.add("hidden"));
   $("#refresh-deployments").addEventListener("click", loadDeployments);
   document.addEventListener("click", (event) => {
     const trigger = event.target.closest("[data-deployment-empty-view]");
