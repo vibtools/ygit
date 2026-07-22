@@ -1,6 +1,6 @@
 # YGIT Current Engineering Audit Report
 
-Version: 1.4
+Version: 1.5
 Status: Verified Foundation / Pre-Live Integration
 Updated: 2026-07-21
 
@@ -19,6 +19,7 @@ This report covers the current YGIT MVP source through:
 - Deployment History result/failure persistence and retry-safe intent replay protection.
 - Production configuration and runtime live-readiness tooling plus controlled deployment runbook.
 - Shared runtime-image packaging for live-readiness artifacts used by API and worker containers.
+- GitHub App architecture lock and fail-closed rejection of legacy GitHub OAuth environment variables.
 - AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
@@ -40,9 +41,9 @@ This report covers the current YGIT MVP source through:
 | AG-001 regression | 15 passed |
 | Deployment History runtime tests | 8 passed |
 | Deployment History idempotency tests | 4 passed |
-| Live-readiness tooling tests | 8 passed |
+| Live-readiness tooling tests | 14 passed |
 | Runtime image packaging tests | 4 passed |
-| Full test suite | 504 passed |
+| Full test suite | 510 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
@@ -56,6 +57,8 @@ This report covers the current YGIT MVP source through:
 | Retry-safe history intent replay | IMPLEMENTED |
 | Completed deployment duplicate suppression | IMPLEMENTED |
 | Live-readiness tooling | IMPLEMENTED |
+| GitHub integration contract | GITHUB APP ONLY |
+| GitHub OAuth client credentials | FORBIDDEN |
 | Runtime readiness artifacts in image | PACKAGED, REDEPLOY PENDING |
 | Coolify redeploy | NOT EXECUTED |
 | Live provider execution | NOT EXECUTED |

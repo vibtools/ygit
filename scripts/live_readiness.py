@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import os
+import re
 import ssl
 import urllib.error
 import urllib.request
@@ -13,20 +14,36 @@ from typing import Mapping
 from urllib.parse import urlparse
 
 
-REQUIRED_ENVIRONMENT = (
+CORE_REQUIRED_ENVIRONMENT = (
     "DATABASE_URL",
     "REDIS_URL",
     "SESSION_SECRET",
-    "GITHUB_OAUTH_CLIENT_ID",
-    "GITHUB_OAUTH_CLIENT_SECRET",
     "CLOUDFLARE_OAUTH_CLIENT_ID",
     "CLOUDFLARE_OAUTH_CLIENT_SECRET",
     "WORKER_PROVIDER_EXECUTION_MODE",
 )
 
+GITHUB_APP_REQUIRED_ENVIRONMENT = (
+    "GITHUB_APP_SLUG",
+    "GITHUB_APP_ID",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_APP_WEBHOOK_SECRET",
+)
+
+REQUIRED_ENVIRONMENT = (
+    CORE_REQUIRED_ENVIRONMENT
+    + GITHUB_APP_REQUIRED_ENVIRONMENT
+)
+
+FORBIDDEN_GITHUB_OAUTH_ENVIRONMENT = (
+    "GITHUB_OAUTH_CLIENT_ID",
+    "GITHUB_OAUTH_CLIENT_SECRET",
+)
+
 SECRET_ENVIRONMENT = {
     "SESSION_SECRET",
-    "GITHUB_OAUTH_CLIENT_SECRET",
+    "GITHUB_APP_PRIVATE_KEY",
+    "GITHUB_APP_WEBHOOK_SECRET",
     "CLOUDFLARE_OAUTH_CLIENT_SECRET",
 }
 
@@ -125,6 +142,60 @@ def validate_environment(
                 details="configured",
             )
         )
+
+    for name in FORBIDDEN_GITHUB_OAUTH_ENVIRONMENT:
+        configured = _present(environment.get(name))
+        checks.append(
+            CheckResult(
+                name=f"forbidden:{name}",
+                status=("FAIL" if configured else "PASS"),
+                details=(
+                    "legacy GitHub OAuth variable must not be configured; YGIT uses GitHub App integration"
+                    if configured
+                    else "not configured; GitHub App architecture preserved"
+                ),
+            )
+        )
+
+    github_app_slug = str(environment.get("GITHUB_APP_SLUG", "")).strip()
+    slug_valid = bool(
+        re.fullmatch(r"[a-z0-9](?:[a-z0-9-]*[a-z0-9])?", github_app_slug)
+    )
+    checks.append(
+        CheckResult(
+            name="github_app:slug",
+            status=("PASS" if slug_valid else "FAIL"),
+            details=("valid GitHub App slug" if slug_valid else "GitHub App slug is invalid"),
+        )
+    )
+
+    github_app_id = str(environment.get("GITHUB_APP_ID", "")).strip()
+    app_id_valid = github_app_id.isdigit() and int(github_app_id) > 0
+    checks.append(
+        CheckResult(
+            name="github_app:id",
+            status=("PASS" if app_id_valid else "FAIL"),
+            details=(
+                "valid GitHub App identifier"
+                if app_id_valid
+                else "GitHub App identifier is invalid"
+            ),
+        )
+    )
+
+    private_key = str(environment.get("GITHUB_APP_PRIVATE_KEY", ""))
+    private_key_valid = len(private_key.strip()) >= 64
+    checks.append(
+        CheckResult(
+            name="github_app:private_key",
+            status=("PASS" if private_key_valid else "FAIL"),
+            details=(
+                "GitHub App private key is configured"
+                if private_key_valid
+                else "GitHub App private key is invalid"
+            ),
+        )
+    )
 
     configured_mode = str(
         environment.get(

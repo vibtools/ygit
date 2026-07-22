@@ -1,6 +1,6 @@
 # YGIT Controlled Live Deployment Runbook
 
-Version: 1.1
+Version: 1.2
 Status: Ready for Controlled Live Validation
 Owner: YGIT Operations
 
@@ -12,8 +12,10 @@ It does not declare production readiness before real PostgreSQL, Redis, GitHub, 
 
 ## Safety Rules
 
-- Use dedicated test GitHub and Cloudflare accounts.
+- Use a dedicated GitHub App installation and a dedicated Cloudflare test account.
 - Use a disposable public test repository.
+- GitHub repository access must use `GITHUB_APP_SLUG`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET`.
+- Do not configure `GITHUB_OAUTH_CLIENT_ID` or `GITHUB_OAUTH_CLIENT_SECRET`.
 - Never print OAuth secrets, session secrets, tokens, or database credentials.
 - Keep `WORKER_PROVIDER_EXECUTION_MODE=disabled` during the first redeploy and infrastructure checks.
 - Enable `cloudflare` only after the disabled-mode checks pass.
@@ -90,7 +92,7 @@ Required evidence:
 Through the live UI:
 
 1. Sign in through the configured identity provider.
-2. Connect the dedicated GitHub test account.
+2. Install/connect the dedicated GitHub App test installation.
 3. Import a disposable supported repository.
 4. Connect the dedicated Cloudflare test account.
 5. Confirm that connection metadata is visible without exposing credentials.

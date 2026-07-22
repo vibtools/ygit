@@ -75,7 +75,9 @@
     "app_gate_default_behavior": "must_remain_unchanged",
     "app_engine_present": false,
     "provider_execution_policy_source": "server_settings_only",
-    "provider_execution_policy_payload_control": "forbidden"
+    "provider_execution_policy_payload_control": "forbidden",
+    "github_repository_integration": "github_app_only",
+    "github_oauth_client_credentials": "forbidden"
   },
   "company": "Vib Tools",
   "connected_accounts_module_version": "0.1.0",
@@ -131,7 +133,7 @@
     "date": "2026-07-21",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
-    "latest_full_suite": "504_passed_1_warning",
+    "latest_full_suite": "510_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -164,7 +166,8 @@
     "worker_provider_execution_policy_runtime_handoff",
     "deployment_history_runtime_persistence",
     "controlled_live_readiness_tooling",
-    "runtime_image_live_readiness_packaging"
+    "runtime_image_live_readiness_packaging",
+    "github_app_architecture_lock"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -350,6 +353,26 @@
     "live_provider_verified": false,
     "runtime_image_packaged": true,
     "api_worker_shared_image": true,
-    "runtime_script_path": "/app/scripts/live_readiness.py"
+    "runtime_script_path": "/app/scripts/live_readiness.py",
+    "github_app_validation": true,
+    "legacy_github_oauth_rejected": true
+  },
+  "github_integration": {
+    "contract": "github_app_only",
+    "architecture_document": "GITHUB_APP_INTEGRATION.md",
+    "required_environment": [
+      "GITHUB_APP_SLUG",
+      "GITHUB_APP_ID",
+      "GITHUB_APP_PRIVATE_KEY",
+      "GITHUB_APP_WEBHOOK_SECRET"
+    ],
+    "forbidden_environment": [
+      "GITHUB_OAUTH_CLIENT_ID",
+      "GITHUB_OAUTH_CLIENT_SECRET"
+    ],
+    "user_authentication": "vib_id_keycloak_oidc",
+    "repository_access": "github_app_installation",
+    "cloudflare_authentication": "oauth_separate_contract",
+    "live_api_verified": false
   }
 }

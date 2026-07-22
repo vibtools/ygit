@@ -79,7 +79,10 @@
     "controlled_live_runbook": "ready",
     "coolify_redeploy_verified": false,
     "live_readiness_runtime_image_packaged": true,
-    "live_readiness_runtime_path": "/app/scripts/live_readiness.py"
+    "live_readiness_runtime_path": "/app/scripts/live_readiness.py",
+    "github_integration_contract": "github_app_only",
+    "github_oauth_client_credentials": "forbidden",
+    "github_app_live_verified": false
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

@@ -54,6 +54,16 @@ Infrastructure
 
 The Dashboard and Admin Panel are clients/surfaces. Business logic remains inside engines and pipelines.
 
+## GitHub Integration Architecture Lock
+
+```text
+User authentication: Vib ID / Keycloak OIDC
+GitHub repository integration: GitHub App
+Cloudflare account connection: Cloudflare OAuth
+```
+
+GitHub OAuth client credentials are not part of YGIT. The authoritative contract is [GITHUB_APP_INTEGRATION.md](GITHUB_APP_INTEGRATION.md).
+
 ## Technology
 
 ```text
@@ -61,7 +71,7 @@ Backend: Python, FastAPI
 Authentication: Keycloak / OIDC
 Database: PostgreSQL
 Queue/runtime coordination: Redis + Worker Runtime
-Source control: GitHub
+Source control integration: GitHub App
 Deployment provider: Cloudflare Pages
 Object storage target: Cloudflare R2
 ```
@@ -147,9 +157,9 @@ Deploy/redeploy architecture tests: 2 passed
 AG-001 regression: 15 passed
 Deployment History runtime tests: 8 passed
 Deployment History idempotency tests: 4 passed
-Live-readiness tooling tests: 8 passed
+Live-readiness tooling tests: 14 passed
 Runtime image packaging tests: 4 passed
-Full suite: 504 passed
+Full suite: 510 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED

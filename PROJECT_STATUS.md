@@ -94,6 +94,8 @@ A concrete provider pipeline can be assembled only through the Worker Runtime-ow
 
 Provider results and failures are now routed through the Deployment History Engine public boundary. Deterministic intent keys prevent duplicate history logs during sequential job retries, and an existing completed history record blocks duplicate provider execution. Live PostgreSQL, Redis, GitHub, and Cloudflare evidence is still required.
 
+GitHub integration is architecture-locked to a GitHub App. Vib ID / Keycloak remains the YGIT user-authentication system, and Cloudflare remains a separate OAuth-connected provider. `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET` are forbidden legacy variables.
+
 ## Latest Verification Evidence
 
 ```text
@@ -106,9 +108,9 @@ Deploy/redeploy architecture: 2 passed
 AG-001 regression: 15 passed
 Deployment History runtime: 8 passed
 Deployment History idempotency: 4 passed
-Live-readiness tooling: 8 passed
+Live-readiness tooling: 14 passed
 Runtime image packaging: 4 passed
-Full suite: 504 passed, 1 warning
+Full suite: 510 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -140,6 +142,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-21 | 1.7 | Locked GitHub integration to the GitHub App contract and corrected live-readiness validation |
 | 2026-07-21 | 1.6 | Packaged live-readiness artifacts in the shared API/worker runtime image |
 | 2026-07-21 | 1.5 | Added controlled live-readiness tooling and production validation runbook |
 | 2026-07-21 | 1.4 | Added Deployment History result persistence and retry-safe intent idempotency |

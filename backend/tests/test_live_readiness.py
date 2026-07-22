@@ -43,11 +43,20 @@ def valid_environment(
         "SESSION_SECRET": (
             "session-secret-value-123456"
         ),
-        "GITHUB_OAUTH_CLIENT_ID": (
-            "github-client"
+        "GITHUB_APP_SLUG": (
+            "ygit"
         ),
-        "GITHUB_OAUTH_CLIENT_SECRET": (
-            "github-secret-value-123456"
+        "GITHUB_APP_ID": (
+            "123456"
+        ),
+        "GITHUB_APP_PRIVATE_KEY": (
+            "private-key-material-"
+            "abcdefghijklmnopqrstuvwxyz-"
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ-"
+            "0123456789"
+        ),
+        "GITHUB_APP_WEBHOOK_SECRET": (
+            "github-webhook-secret-123456"
         ),
         "CLOUDFLARE_OAUTH_CLIENT_ID": (
             "cloudflare-client"
@@ -120,13 +129,83 @@ def test_secret_values_are_not_rendered(
 
     for name in (
         "SESSION_SECRET",
-        "GITHUB_OAUTH_CLIENT_SECRET",
+        "GITHUB_APP_PRIVATE_KEY",
+        "GITHUB_APP_WEBHOOK_SECRET",
         "CLOUDFLARE_OAUTH_CLIENT_SECRET",
     ):
         assert (
             environment[name]
             not in rendered
         )
+
+
+def test_required_environment_uses_github_app_contract(
+) -> None:
+    assert set(MODULE.GITHUB_APP_REQUIRED_ENVIRONMENT) == {
+        "GITHUB_APP_SLUG",
+        "GITHUB_APP_ID",
+        "GITHUB_APP_PRIVATE_KEY",
+        "GITHUB_APP_WEBHOOK_SECRET",
+    }
+    assert "GITHUB_OAUTH_CLIENT_ID" not in MODULE.REQUIRED_ENVIRONMENT
+    assert "GITHUB_OAUTH_CLIENT_SECRET" not in MODULE.REQUIRED_ENVIRONMENT
+
+
+def test_missing_github_app_private_key_fails(
+) -> None:
+    environment = valid_environment()
+    environment.pop("GITHUB_APP_PRIVATE_KEY")
+    checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
+    assert any(
+        check.name == "env:GITHUB_APP_PRIVATE_KEY" and check.status == "FAIL"
+        for check in checks
+    )
+
+
+def test_legacy_github_oauth_variables_fail_closed(
+) -> None:
+    environment = valid_environment()
+    environment["GITHUB_OAUTH_CLIENT_ID"] = "legacy-client"
+    environment["GITHUB_OAUTH_CLIENT_SECRET"] = "legacy-secret-value-123456"
+    checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
+    forbidden = [
+        check for check in checks if check.name.startswith("forbidden:GITHUB_OAUTH_")
+    ]
+    assert len(forbidden) == 2
+    assert all(check.status == "FAIL" for check in forbidden)
+
+
+def test_invalid_github_app_id_fails(
+) -> None:
+    environment = valid_environment()
+    environment["GITHUB_APP_ID"] = "not-numeric"
+    checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
+    assert any(
+        check.name == "github_app:id" and check.status == "FAIL"
+        for check in checks
+    )
+
+
+def test_invalid_github_app_slug_fails(
+) -> None:
+    environment = valid_environment()
+    environment["GITHUB_APP_SLUG"] = "Invalid GitHub App"
+    checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
+    assert any(
+        check.name == "github_app:slug" and check.status == "FAIL"
+        for check in checks
+    )
+
+
+def test_short_github_app_private_key_fails(
+) -> None:
+    environment = valid_environment()
+    environment["GITHUB_APP_PRIVATE_KEY"] = "short"
+    checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
+    assert any(
+        check.name == "github_app:private_key" and check.status == "FAIL"
+        for check in checks
+    )
 
 
 def test_database_url_normalization(
