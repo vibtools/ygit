@@ -2,7 +2,7 @@
 
 Version: 0.1.0
 Status: Active Engineering Snapshot
-Updated: 2026-07-21
+Updated: 2026-07-22
 Product: YGIT
 Company: Vib Tools
 
@@ -51,8 +51,8 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 | Auth Engine | Implemented | Controlled production identity/session validation |
 | Connected Accounts Module | Implemented | Live account/credential lifecycle validation under production configuration |
 | Project Engine | Implemented | No critical foundation gap identified |
-| Repository Engine | Implemented | Controlled live GitHub validation |
-| Repository Analysis Engine | Implemented for MVP contracts | Broader framework coverage is future work |
+| Repository Engine | Metadata persistence implemented; live tree acquisition incomplete | GitHub App installation-token metadata/tree fetch, commit pinning, and private repository validation |
+| Repository Analysis Engine | Quick-analysis contract implemented; current live input is incomplete | Actual repository tree acquisition, deep-analysis execution, Project reattachment after recalculation, and broader framework validation |
 | Deploy Engine | Implemented; AG-001 provider gate foundation added but not runtime-wired | Provider result reconciliation and reviewed future gate integration |
 | Deploy Pipeline | Concrete Cloudflare orchestration and trusted policy-to-binding handoff implemented; default runtime disabled | Controlled live provider validation and operational hardening |
 | Deployment History Engine | Pipeline intent, provider-result, terminal-failure, and retry-safe replay persistence integrated | Controlled PostgreSQL validation and operational monitoring |
@@ -110,7 +110,11 @@ Deployment History runtime: 8 passed
 Deployment History idempotency: 4 passed
 Live-readiness tooling: 18 passed
 Runtime image packaging: 4 passed
-Full suite: 514 passed, 1 warning
+GitHub App permission capture: 7 passed
+Dashboard compact provider cards: 10 passed
+Project Open UI: 9 passed
+Project Deploy UI: 9 passed
+Full suite: 554 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -119,11 +123,13 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Coolify-redeploy the conditional GitHub App webhook-readiness correction with provider mode `disabled` and `GITHUB_APP_WEBHOOK_ENABLED=false`.
-2. Run the controlled pre/post-redeploy infrastructure and public-route checks.
-3. Connect dedicated GitHub and Cloudflare test accounts and execute one controlled real deployment.
-4. Resolve only defects demonstrated by live evidence.
-5. Review AG-001 runtime integration only as part of the future YGIT App Engine work.
+1. Redeploy the current main branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
+2. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
+3. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
+4. Implement the approved deep-analysis execution and Project reattachment boundaries.
+5. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
+6. Resolve only defects demonstrated by live evidence.
+7. Review AG-001 runtime integration only as part of future YGIT App Engine work.
 
 ## Documentation Authority
 
@@ -135,6 +141,7 @@ Current-state documents:
 - `CONTRACT_MANIFEST.json`
 - `CHANGELOG.md`
 - `AUDIT_REPORT.md`
+- `REPOSITORY_ANALYSIS_CURRENT_STATE_AUDIT.md`
 
 Historical release artifacts retain their original versioned purpose. Where a historical artifact conflicts with this current snapshot, this document and the current source code take precedence for development status.
 
@@ -142,6 +149,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-22 | 1.9 | Documented the current Repository Analysis input, readiness, deep-queue, recalculation, and Project attachment gaps |
 | 2026-07-22 | 1.8 | Made GitHub App webhook readiness conditional and locked the current webhook capability off |
 | 2026-07-21 | 1.7 | Locked GitHub integration to the GitHub App contract and corrected live-readiness validation |
 | 2026-07-21 | 1.6 | Packaged live-readiness artifacts in the shared API/worker runtime image |
