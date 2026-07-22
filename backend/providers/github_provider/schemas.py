@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class GitHubRepository(BaseModel):
@@ -31,6 +31,7 @@ class GitHubAppInstallation(BaseModel):
     account_type: str | None = None
     target_type: str | None = None
     repository_selection: str | None = None
+    permissions: dict[str, str] = Field(default_factory=dict)
 
 
 class GitHubInstallationAccessToken(BaseModel):

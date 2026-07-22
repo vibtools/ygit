@@ -229,4 +229,14 @@ class GitHubProviderClient:
             account_type=account.get("type"),
             target_type=payload.get("target_type"),
             repository_selection=payload.get("repository_selection"),
+            permissions={
+                str(name): str(access)
+                for name, access in (
+                    payload.get("permissions") or {}
+                ).items()
+                if (
+                    name is not None
+                    and access is not None
+                )
+            },
         )

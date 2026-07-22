@@ -305,9 +305,17 @@ class ConnectedAccountsInternalService:
         # token_secret_ref stores a safe installation reference, not a GitHub token.
         # Installation access tokens are generated server-side only when needed.
         token_ref = f"github_app_installation:{installation.installation_id}"
+        permission_scopes = [
+            f"{name}:{access}"
+            for name, access in sorted(
+                installation.permissions.items()
+            )
+            if access in {"read", "write"}
+        ]
         scopes = [
             "github_app:installation",
             f"repositories:{installation.repository_selection or 'unknown'}",
+            *permission_scopes,
         ]
 
         record = await self.repository.upsert_connected(
