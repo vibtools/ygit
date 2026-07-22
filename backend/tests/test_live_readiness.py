@@ -55,8 +55,8 @@ def valid_environment(
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ-"
             "0123456789"
         ),
-        "GITHUB_APP_WEBHOOK_SECRET": (
-            "github-webhook-secret-123456"
+        "GITHUB_APP_WEBHOOK_ENABLED": (
+            "false"
         ),
         "CLOUDFLARE_OAUTH_CLIENT_ID": (
             "cloudflare-client"
@@ -130,7 +130,6 @@ def test_secret_values_are_not_rendered(
     for name in (
         "SESSION_SECRET",
         "GITHUB_APP_PRIVATE_KEY",
-        "GITHUB_APP_WEBHOOK_SECRET",
         "CLOUDFLARE_OAUTH_CLIENT_SECRET",
     ):
         assert (
@@ -145,8 +144,11 @@ def test_required_environment_uses_github_app_contract(
         "GITHUB_APP_SLUG",
         "GITHUB_APP_ID",
         "GITHUB_APP_PRIVATE_KEY",
-        "GITHUB_APP_WEBHOOK_SECRET",
     }
+    assert (
+        "GITHUB_APP_WEBHOOK_SECRET"
+        not in MODULE.REQUIRED_ENVIRONMENT
+    )
     assert "GITHUB_OAUTH_CLIENT_ID" not in MODULE.REQUIRED_ENVIRONMENT
     assert "GITHUB_OAUTH_CLIENT_SECRET" not in MODULE.REQUIRED_ENVIRONMENT
 
@@ -204,6 +206,101 @@ def test_short_github_app_private_key_fails(
     checks = MODULE.validate_environment(environment, expected_provider_mode="disabled")
     assert any(
         check.name == "github_app:private_key" and check.status == "FAIL"
+        for check in checks
+    )
+
+
+def test_webhook_disabled_allows_missing_secret(
+) -> None:
+    environment = valid_environment()
+    environment.pop(
+        "GITHUB_APP_WEBHOOK_SECRET",
+        None,
+    )
+
+    checks = MODULE.validate_environment(
+        environment,
+        expected_provider_mode="disabled",
+    )
+
+    assert all(
+        check.status == "PASS"
+        for check in checks
+    )
+    assert any(
+        check.name == "github_app:webhook"
+        and check.status == "PASS"
+        for check in checks
+    )
+
+
+def test_webhook_enabled_requires_secret(
+) -> None:
+    environment = valid_environment()
+    environment[
+        "GITHUB_APP_WEBHOOK_ENABLED"
+    ] = "true"
+
+    checks = MODULE.validate_environment(
+        environment,
+        expected_provider_mode="disabled",
+    )
+
+    assert any(
+        check.name
+        == "env:GITHUB_APP_WEBHOOK_SECRET"
+        and check.status == "FAIL"
+        for check in checks
+    )
+
+
+def test_webhook_enabled_with_secret_passes_without_rendering_secret(
+) -> None:
+    environment = valid_environment()
+    environment[
+        "GITHUB_APP_WEBHOOK_ENABLED"
+    ] = "true"
+    environment[
+        "GITHUB_APP_WEBHOOK_SECRET"
+    ] = "github-webhook-secret-123456"
+
+    checks = MODULE.validate_environment(
+        environment,
+        expected_provider_mode="disabled",
+    )
+    rendered = " ".join(
+        check.details
+        for check in checks
+    )
+
+    assert all(
+        check.status == "PASS"
+        for check in checks
+    )
+    assert (
+        environment[
+            "GITHUB_APP_WEBHOOK_SECRET"
+        ]
+        not in rendered
+    )
+
+
+def test_invalid_webhook_enabled_value_fails(
+) -> None:
+    environment = valid_environment()
+    environment[
+        "GITHUB_APP_WEBHOOK_ENABLED"
+    ] = "sometimes"
+
+    checks = MODULE.validate_environment(
+        environment,
+        expected_provider_mode="disabled",
+    )
+
+    assert any(
+        check.name
+        == "github_app:webhook_enabled"
+        and check.status == "FAIL"
         for check in checks
     )
 

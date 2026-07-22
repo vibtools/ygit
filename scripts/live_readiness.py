@@ -27,7 +27,13 @@ GITHUB_APP_REQUIRED_ENVIRONMENT = (
     "GITHUB_APP_SLUG",
     "GITHUB_APP_ID",
     "GITHUB_APP_PRIVATE_KEY",
-    "GITHUB_APP_WEBHOOK_SECRET",
+)
+
+GITHUB_APP_WEBHOOK_ENABLED_ENVIRONMENT = (
+    "GITHUB_APP_WEBHOOK_ENABLED"
+)
+GITHUB_APP_WEBHOOK_SECRET_ENVIRONMENT = (
+    "GITHUB_APP_WEBHOOK_SECRET"
 )
 
 REQUIRED_ENVIRONMENT = (
@@ -85,6 +91,22 @@ def _present(value: str | None) -> bool:
     return bool(
         str(value or "").strip()
     )
+
+
+def _parse_optional_bool(
+    value: str | None,
+    *,
+    default: bool = False,
+) -> tuple[bool, bool]:
+    normalized = str(value or "").strip().lower()
+
+    if normalized in {"1", "true", "yes", "on"}:
+        return True, True
+
+    if normalized in {"0", "false", "no", "off", ""}:
+        return False, True
+
+    return default, False
 
 
 def _safe_url_label(value: str) -> str:
@@ -196,6 +218,79 @@ def validate_environment(
             ),
         )
     )
+
+    (
+        webhook_enabled,
+        webhook_flag_valid,
+    ) = _parse_optional_bool(
+        environment.get(
+            GITHUB_APP_WEBHOOK_ENABLED_ENVIRONMENT
+        ),
+        default=False,
+    )
+
+    checks.append(
+        CheckResult(
+            name="github_app:webhook_enabled",
+            status=(
+                "PASS"
+                if webhook_flag_valid
+                else "FAIL"
+            ),
+            details=(
+                (
+                    "GitHub App webhook capability enabled"
+                    if webhook_enabled
+                    else "GitHub App webhook capability disabled"
+                )
+                if webhook_flag_valid
+                else "GitHub App webhook capability flag is invalid"
+            ),
+        )
+    )
+
+    webhook_secret = str(
+        environment.get(
+            GITHUB_APP_WEBHOOK_SECRET_ENVIRONMENT,
+            "",
+        )
+    )
+
+    if webhook_flag_valid and webhook_enabled:
+        webhook_secret_valid = (
+            len(webhook_secret.strip()) >= 16
+        )
+        checks.append(
+            CheckResult(
+                name=(
+                    "env:"
+                    + GITHUB_APP_WEBHOOK_SECRET_ENVIRONMENT
+                ),
+                status=(
+                    "PASS"
+                    if webhook_secret_valid
+                    else "FAIL"
+                ),
+                details=(
+                    "GitHub App webhook secret is configured"
+                    if webhook_secret_valid
+                    else (
+                        "GitHub App webhook secret is required "
+                        "when webhook capability is enabled"
+                    )
+                ),
+            )
+        )
+    elif webhook_flag_valid:
+        checks.append(
+            CheckResult(
+                name="github_app:webhook",
+                status="PASS",
+                details=(
+                    "disabled; webhook secret is not required"
+                ),
+            )
+        )
 
     configured_mode = str(
         environment.get(

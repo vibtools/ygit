@@ -82,7 +82,10 @@
     "live_readiness_runtime_path": "/app/scripts/live_readiness.py",
     "github_integration_contract": "github_app_only",
     "github_oauth_client_credentials": "forbidden",
-    "github_app_live_verified": false
+    "github_app_live_verified": false,
+    "github_app_webhook": "disabled_not_implemented",
+    "github_app_webhook_secret": "required_only_when_enabled",
+    "github_app_webhook_live_verified": false
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

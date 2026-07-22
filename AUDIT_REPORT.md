@@ -1,6 +1,6 @@
 # YGIT Current Engineering Audit Report
 
-Version: 1.5
+Version: 1.6
 Status: Verified Foundation / Pre-Live Integration
 Updated: 2026-07-21
 
@@ -20,6 +20,7 @@ This report covers the current YGIT MVP source through:
 - Production configuration and runtime live-readiness tooling plus controlled deployment runbook.
 - Shared runtime-image packaging for live-readiness artifacts used by API and worker containers.
 - GitHub App architecture lock and fail-closed rejection of legacy GitHub OAuth environment variables.
+- Default-disabled GitHub App webhook capability with conditional secret readiness validation.
 - AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
@@ -41,9 +42,9 @@ This report covers the current YGIT MVP source through:
 | AG-001 regression | 15 passed |
 | Deployment History runtime tests | 8 passed |
 | Deployment History idempotency tests | 4 passed |
-| Live-readiness tooling tests | 14 passed |
+| Live-readiness tooling tests | 18 passed |
 | Runtime image packaging tests | 4 passed |
-| Full test suite | 510 passed |
+| Full test suite | 514 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
@@ -59,6 +60,8 @@ This report covers the current YGIT MVP source through:
 | Live-readiness tooling | IMPLEMENTED |
 | GitHub integration contract | GITHUB APP ONLY |
 | GitHub OAuth client credentials | FORBIDDEN |
+| GitHub App webhook capability | DEFAULT DISABLED |
+| GitHub App webhook secret | CONDITIONAL WHEN ENABLED |
 | Runtime readiness artifacts in image | PACKAGED, REDEPLOY PENDING |
 | Coolify redeploy | NOT EXECUTED |
 | Live provider execution | NOT EXECUTED |

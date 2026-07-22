@@ -39,7 +39,7 @@
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "510_passed_1_warning",
+    "full_test_suite": "514_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false,
     "live_readiness_tooling": {
@@ -56,7 +56,8 @@
       "worker_container_path": "/app/scripts/live_readiness.py",
       "coolify_redeploy_verified": false,
       "github_app_validation": true,
-      "legacy_github_oauth_rejected": true
+      "legacy_github_oauth_rejected": true,
+      "github_app_webhook_conditional_validation": true
     },
     "github_integration_contract": {
       "mode": "github_app_only",
@@ -64,7 +65,16 @@
       "repository_authorization": "github_app_installation",
       "cloudflare_connection": "cloudflare_oauth",
       "github_oauth_client_credentials": "forbidden",
-      "live_verified": false
+      "live_verified": false,
+      "webhook": {
+        "status": "disabled_not_implemented",
+        "enabled_default": false,
+        "enabled_environment": "GITHUB_APP_WEBHOOK_ENABLED",
+        "secret_environment": "GITHUB_APP_WEBHOOK_SECRET",
+        "secret_required_when_enabled": true,
+        "receiver_endpoint": null,
+        "live_verified": false
+      }
     }
   },
   "domain": {

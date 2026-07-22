@@ -30,6 +30,7 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Shared API/worker runtime-image packaging for `scripts/live_readiness.py` and `LIVE_DEPLOYMENT_RUNBOOK.md`.
 - Architecture-locked GitHub App integration contract separating Keycloak user authentication, GitHub App repository access, and Cloudflare OAuth.
 - Fail-closed detection of forbidden `GITHUB_OAUTH_CLIENT_ID` and `GITHUB_OAUTH_CLIENT_SECRET` variables.
+- Explicit default-disabled GitHub App webhook capability with conditional secret validation.
 - Current project-status documentation.
 
 ### Changed
@@ -52,9 +53,9 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - AG-001 regression: 15 passed.
 - Deployment History runtime suite: 8 passed.
 - Deployment History idempotency suite: 4 passed.
-- Live-readiness tooling suite: 14 passed.
+- Live-readiness tooling suite: 18 passed.
 - Runtime image packaging suite: 4 passed.
-- Full suite: 510 passed.
+- Full suite: 514 passed.
 - Smoke test with database skipped: PASS.
 - Release gate with database skipped: PASS.
 

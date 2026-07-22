@@ -133,7 +133,7 @@
     "date": "2026-07-21",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
-    "latest_full_suite": "510_passed_1_warning",
+    "latest_full_suite": "514_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -355,7 +355,8 @@
     "api_worker_shared_image": true,
     "runtime_script_path": "/app/scripts/live_readiness.py",
     "github_app_validation": true,
-    "legacy_github_oauth_rejected": true
+    "legacy_github_oauth_rejected": true,
+    "github_app_webhook_conditional_validation": true
   },
   "github_integration": {
     "contract": "github_app_only",
@@ -363,8 +364,7 @@
     "required_environment": [
       "GITHUB_APP_SLUG",
       "GITHUB_APP_ID",
-      "GITHUB_APP_PRIVATE_KEY",
-      "GITHUB_APP_WEBHOOK_SECRET"
+      "GITHUB_APP_PRIVATE_KEY"
     ],
     "forbidden_environment": [
       "GITHUB_OAUTH_CLIENT_ID",
@@ -373,6 +373,18 @@
     "user_authentication": "vib_id_keycloak_oidc",
     "repository_access": "github_app_installation",
     "cloudflare_authentication": "oauth_separate_contract",
-    "live_api_verified": false
+    "live_api_verified": false,
+    "optional_environment": [
+      "GITHUB_APP_WEBHOOK_ENABLED",
+      "GITHUB_APP_WEBHOOK_SECRET"
+    ],
+    "webhook": {
+      "status": "disabled_not_implemented",
+      "enabled_default": false,
+      "secret_required_when_enabled": true,
+      "receiver_endpoint": null,
+      "github_app_active_checkbox": false,
+      "live_verified": false
+    }
   }
 }

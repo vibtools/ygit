@@ -1,6 +1,6 @@
 # YGIT GitHub App Integration Architecture
 
-Version: 1.0
+Version: 1.1
 Status: Architecture Locked
 Owner: Repository Integration
 
@@ -30,14 +30,22 @@ These are separate contracts and must not be merged.
 
 ## GitHub App Contract
 
-The production GitHub integration uses:
+The production GitHub App installation contract requires:
 
 ```text
 GITHUB_APP_SLUG
 GITHUB_APP_ID
 GITHUB_APP_PRIVATE_KEY
-GITHUB_APP_WEBHOOK_SECRET
 ```
+
+Webhook capability is a separate, default-disabled contract:
+
+```text
+GITHUB_APP_WEBHOOK_ENABLED=false
+GITHUB_APP_WEBHOOK_SECRET=
+```
+
+`GITHUB_APP_WEBHOOK_SECRET` is required only when `GITHUB_APP_WEBHOOK_ENABLED=true`.
 
 The application configuration also owns:
 
@@ -85,6 +93,22 @@ GitHub App installation authorizes repository integration only.
 Cloudflare remains a separate OAuth-connected provider.
 
 GitHub App credentials must never be reused as Cloudflare credentials, and Cloudflare OAuth credentials must never be used for GitHub integration.
+
+## Webhook Capability State
+
+The current YGIT MVP does not expose an approved GitHub webhook receiver endpoint and does not process GitHub webhook deliveries.
+
+Therefore:
+
+```text
+GitHub App webhook Active: off
+GITHUB_APP_WEBHOOK_ENABLED: false
+GITHUB_APP_WEBHOOK_SECRET: optional and normally unset
+```
+
+The Setup URL used after GitHub App installation is not a webhook receiver.
+
+Webhook capability may be enabled only after an approved receiver implements raw-body signature verification, constant-time comparison, delivery-id deduplication, event allowlisting, bounded processing, tests, and operations documentation.
 
 ## Secret Handling
 

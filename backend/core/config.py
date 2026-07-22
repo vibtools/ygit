@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     github_app_slug: str = ""
     github_app_id: str = ""
     github_app_private_key: SecretStr = Field(default=SecretStr(""))
+    github_app_webhook_enabled: bool = False
     github_app_webhook_secret: SecretStr = Field(default=SecretStr(""))
     github_app_install_url: AnyHttpUrl = "https://github.com/apps/ygit/installations/new"
     github_api_base_url: AnyHttpUrl = "https://api.github.com"

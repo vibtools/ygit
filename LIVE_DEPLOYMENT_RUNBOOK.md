@@ -1,6 +1,6 @@
 # YGIT Controlled Live Deployment Runbook
 
-Version: 1.2
+Version: 1.3
 Status: Ready for Controlled Live Validation
 Owner: YGIT Operations
 
@@ -14,7 +14,9 @@ It does not declare production readiness before real PostgreSQL, Redis, GitHub, 
 
 - Use a dedicated GitHub App installation and a dedicated Cloudflare test account.
 - Use a disposable public test repository.
-- GitHub repository access must use `GITHUB_APP_SLUG`, `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_APP_WEBHOOK_SECRET`.
+- GitHub repository access must use `GITHUB_APP_SLUG`, `GITHUB_APP_ID`, and `GITHUB_APP_PRIVATE_KEY`.
+- Keep `GITHUB_APP_WEBHOOK_ENABLED=false` while the webhook receiver capability is not implemented; `GITHUB_APP_WEBHOOK_SECRET` is not required in this state.
+- Keep the GitHub App webhook `Active` checkbox off and leave its Webhook URL and Secret blank during the current MVP validation.
 - Do not configure `GITHUB_OAUTH_CLIENT_ID` or `GITHUB_OAUTH_CLIENT_SECRET`.
 - Never print OAuth secrets, session secrets, tokens, or database credentials.
 - Keep `WORKER_PROVIDER_EXECUTION_MODE=disabled` during the first redeploy and infrastructure checks.
