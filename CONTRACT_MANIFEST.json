@@ -101,12 +101,12 @@
     "cloudflare_operation_plan": "implemented",
     "cloudflare_gateway": "implemented",
     "provider_pipeline_factory": "implemented",
-    "worker_runtime_binding": "foundation_ready",
+    "worker_runtime_binding": "trusted_policy_handoff_ready_default_disabled",
     "worker_handlers_wired": true,
     "history_persistence_wired": false,
     "live_provider_execution_verified": false,
     "version": "0.1.0",
-    "worker_handler_binding_mode": "db_aware_default_disabled"
+    "worker_handler_binding_mode": "trusted_policy_handoff_default_disabled"
   },
   "deployment_history_engine": {
     "api_contract": "1.0",
@@ -125,9 +125,9 @@
   },
   "development_snapshot": {
     "date": "2026-07-21",
-    "status": "pre_live_provider_integration",
-    "mvp_completion_estimate": "92-94%",
-    "latest_full_suite": "465_passed_1_warning",
+    "status": "pre_live_runtime_handoff_ready",
+    "mvp_completion_estimate": "approximately_95_percent",
+    "latest_full_suite": "480_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -144,7 +144,7 @@
     "platform_engine",
     "notification_engine"
   ],
-  "implementation": "FastAPI modular monolith with MVP engines, worker runtime, dashboard/admin surfaces, provider primitives, concrete Cloudflare orchestration, runtime provider pipeline binding, default-disabled handler binding, and AG-001 gate foundation",
+  "implementation": "FastAPI modular monolith with MVP engines, worker runtime, dashboard/admin surfaces, provider primitives, concrete Cloudflare orchestration, trusted provider-policy runtime handoff, default-disabled execution, and AG-001 gate foundation",
   "implementation_version": "0.1.0-pre-live-provider-integration",
   "implemented_components": [
     "worker_runtime_integration",
@@ -156,7 +156,8 @@
     "worker_provider_pipeline_binding_foundation",
     "worker_default_disabled_handler_binding",
     "ag_001_deploy_provider_gate_foundation",
-    "worker_provider_execution_policy_foundation"
+    "worker_provider_execution_policy_foundation",
+    "worker_provider_execution_policy_runtime_handoff"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -275,17 +276,20 @@
     "provider_pipeline_binding": "foundation_ready",
     "deploy_handlers_provider_wired": true,
     "live_redis_worker_verified": false,
-    "handler_binding_mode": "db_aware_default_disabled",
+    "handler_binding_mode": "trusted_policy_handoff_default_disabled",
     "provider_execution_policy": {
-      "status": "foundation_ready_not_runtime_wired",
+      "status": "runtime_handoff_ready_default_disabled",
       "default_mode": "disabled",
       "supported_modes": [
         "disabled",
         "cloudflare"
       ],
       "unknown_mode": "fail_closed",
-      "handler_wiring": false,
-      "live_execution_verified": false
+      "handler_wiring": true,
+      "live_execution_verified": false,
+      "worker_runtime_owner": true,
+      "dispatcher_handoff": true,
+      "payload_control": false
     }
   },
   "frontend": {

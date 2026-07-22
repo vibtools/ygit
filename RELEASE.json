@@ -66,9 +66,12 @@
     "handler_binding_mode": "db_aware_default_disabled",
     "ag_001_deploy_provider_gate": "foundation_ready_not_runtime_wired",
     "app_engine_created": false,
-    "provider_execution_policy": "foundation_ready_not_runtime_wired",
+    "provider_execution_policy": "runtime_handoff_ready_default_disabled",
     "provider_execution_policy_default": "disabled",
-    "provider_execution_policy_payload_control": false
+    "provider_execution_policy_payload_control": false,
+    "provider_execution_policy_worker_runtime_owner": true,
+    "provider_execution_policy_dispatcher_handoff": true,
+    "provider_execution_policy_handler_wiring": true
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

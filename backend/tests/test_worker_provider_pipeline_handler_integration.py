@@ -89,7 +89,13 @@ async def test_deploy_handler_uses_db_owned_binding_result(
     async def bind(
         received_db,
         received_context,
+        *,
+        provider_execution_enabled,
     ):
+        assert (
+            provider_execution_enabled
+            is False
+        )
         binding_calls.append(
             (
                 received_db,
@@ -152,7 +158,13 @@ async def test_redeploy_handler_uses_db_owned_binding_result(
     async def bind(
         received_db,
         received_context,
+        *,
+        provider_execution_enabled,
     ):
+        assert (
+            provider_execution_enabled
+            is False
+        )
         binding_calls.append(
             (
                 received_db,

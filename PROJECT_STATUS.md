@@ -20,8 +20,8 @@ It automates deployment of supported Git repositories to infrastructure owned by
 
 | Area | Estimate | Meaning |
 |---|---:|---|
-| Core MVP implementation | 92–94% | Core engines, providers, dashboard, admin surface, queue/runtime foundations, and deployment orchestration are substantially implemented |
-| First controlled live deployment path | 90–92% | Remaining work is concentrated in trusted enablement, result persistence, and controlled live validation |
+| Core MVP implementation | Approximately 95% | Core engines, providers, dashboard, admin surface, queue/runtime foundations, deployment orchestration, and trusted policy handoff are substantially implemented |
+| First controlled live deployment path | Approximately 93–94% | Remaining work is concentrated in result persistence, production runtime readiness, and controlled live validation |
 | Production readiness | Not complete | Live reliability, operational hardening, and end-to-end production evidence remain |
 
 These values are engineering planning estimates and are not automated test results.
@@ -54,9 +54,9 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 | Repository Engine | Implemented | Controlled live GitHub validation |
 | Repository Analysis Engine | Implemented for MVP contracts | Broader framework coverage is future work |
 | Deploy Engine | Implemented; AG-001 provider gate foundation added but not runtime-wired | Provider result reconciliation and reviewed future gate integration |
-| Deploy Pipeline | Concrete Cloudflare orchestration implemented; default runtime disabled | Trusted policy-to-binding runtime integration |
+| Deploy Pipeline | Concrete Cloudflare orchestration and trusted policy-to-binding handoff implemented; default runtime disabled | Controlled live provider validation and operational hardening |
 | Deployment History Engine | Implemented storage and APIs | Persist completed/failed provider execution results |
-| Worker Runtime | DB dispatch, checkout, build, retry, credential boundary, provider binding, default-disabled deploy/redeploy handler binding, and trusted server-owned execution policy foundation implemented | Policy-to-handler integration and live Redis worker execution |
+| Worker Runtime | DB dispatch, checkout, build, retry, credential boundary, provider binding, trusted server-owned policy resolution, dispatcher handoff, and default-disabled deploy/redeploy integration implemented | Live Redis worker execution and operational hardening |
 | Domain Engine | MVP generated-domain flow implemented | Custom-domain and Cloudflare DNS automation |
 | Audit Engine | Implemented | Production retention/operations validation |
 | Platform Engine | Implemented | Production settings and feature-flag operations validation |
@@ -79,7 +79,8 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 - Concrete provider gateway orchestration and typed completion result.
 - Runtime-only provider pipeline binding foundation.
 - DB-aware deploy/redeploy handler binding that omits provider enablement.
-- Trusted server-owned provider execution policy foundation with default `disabled`, explicit `cloudflare`, and fail-closed unknown modes.
+- Trusted server-owned provider execution policy with default `disabled`, explicit `cloudflare`, and fail-closed unknown or inconsistent modes.
+- Worker Runtime policy ownership, dispatcher handoff, and deploy/redeploy binding integration.
 - Untrusted job-payload provider-enablement protection.
 - AG-001 Deploy Provider Gate foundation with Cloudflare default and fail-closed future resolver contract.
 
@@ -87,18 +88,21 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 
 The default runtime remains provider-disabled.
 
-A concrete provider pipeline can be assembled only through an explicit runtime-owned enablement input. The trusted server-owned policy foundation resolves `disabled` or `cloudflare`, but it is not connected to handlers in the current patch. Job payload fields do not control the policy or enable provider execution. Deploy and redeploy handlers call the neutral binding without an enablement flag, so the binding preserves the default disabled pipeline. AG-001 remains standalone and is not used by runtime execution.
+A concrete provider pipeline can be assembled only through the Worker Runtime-owned policy decision. Worker Runtime resolves the server setting, Job Dispatcher transports the immutable policy, and deploy/redeploy handlers validate it before handing a boolean to the neutral binding. The default mode is `disabled`; job payload fields cannot control the policy or enable execution. AG-001 remains standalone and is not used by runtime execution.
 
 No current verification log proves that a live Cloudflare Pages deployment, live GitHub API integration, live Redis worker loop, or live PostgreSQL-backed deployment completed.
 
 ## Latest Verification Evidence
 
 ```text
-Provider execution policy: 12 passed
+Provider execution policy unit tests: 18 passed
+Provider policy runtime integration: 9 passed
+Deploy/redeploy handler binding regression: 5 passed
+Dispatcher DB regression: 5 passed
 Worker Runtime architecture: 4 passed
-Deploy/redeploy handler regression: 5 passed
+Deploy/redeploy architecture: 2 passed
 AG-001 regression: 15 passed
-Full suite: 465 passed, 1 warning
+Full suite: 480 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -107,15 +111,12 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Commit the trusted server-owned execution policy foundation and aligned documentation.
-2. Inject the trusted policy decision into handler binding while keeping the default mode `disabled`.
-3. Prove job payloads cannot influence policy or execution enablement.
-4. Review and approve a separate AG-001 runtime integration contract before using the gate.
-5. Persist provider completion/failure results through Deployment History Engine.
-6. Execute controlled PostgreSQL and Redis worker validation.
-7. Execute controlled GitHub and Cloudflare Pages integration validation.
-8. Add retry, timeout, idempotency, duplicate-deployment, and recovery hardening.
-9. Complete production observability and operational runbooks.
+1. Commit the trusted policy runtime handoff and aligned documentation.
+2. Persist provider completion/failure results through Deployment History Engine.
+3. Add minimum retry, timeout, idempotency, duplicate-deployment, and recovery protection required for live validation.
+4. Prepare production PostgreSQL, Redis worker, GitHub, Cloudflare, secrets, and observability configuration.
+5. Execute the controlled live deployment flow and resolve defects found from real execution evidence.
+6. Review AG-001 runtime integration only as part of the future YGIT App Engine work.
 
 ## Documentation Authority
 
@@ -134,6 +135,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-21 | 1.3 | Added trusted provider-policy runtime handoff while preserving the default-disabled path |
 | 2026-07-21 | 1.2 | Added trusted server-owned provider execution policy foundation |
 | 2026-07-21 | 1.1 | Added default-disabled handler binding and AG-001 Deploy Provider Gate foundation |
 | 2026-07-21 | 1.0 | Added authoritative project snapshot through the worker provider pipeline binding foundation |

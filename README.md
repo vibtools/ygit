@@ -24,13 +24,13 @@ Website Live
 
 Status: **Pre-live provider integration**
 
-The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration, the runtime-only provider pipeline binding foundation, and DB-aware deploy/redeploy handler binding are present. The handlers deliberately omit provider enablement, so production execution remains on the default disabled/skeleton path.
+The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration, provider pipeline binding, DB-aware handlers, and trusted server-owned provider-policy handoff are present. The default server policy remains `disabled`, so provider execution stays off until an operator explicitly selects the supported `cloudflare` mode.
 
 Engineering estimate:
 
 ```text
-MVP implementation: approximately 92–94%
-First controlled live deployment path: approximately 90–92%
+MVP implementation: approximately 95%
+First controlled live deployment path: approximately 93–94%
 Production readiness: not yet reached
 ```
 
@@ -78,7 +78,7 @@ Object storage target: Cloudflare R2
 | Deploy Engine | Implemented for validation, queued deployment lifecycle, redeploy, cancel, and reads |
 | Deploy Pipeline | Contracts, build stage, Cloudflare operation plan, concrete Cloudflare Pages gateway, completion result branch, and isolated provider pipeline factory implemented |
 | Deployment History Engine | Storage/API contracts implemented; final live provider-result persistence integration remains |
-| Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, provider pipeline binding, and default-disabled deploy/redeploy handler binding implemented |
+| Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, provider pipeline binding, trusted server-owned policy resolution, dispatcher handoff, and default-disabled deploy/redeploy integration implemented |
 | Domain Engine | Generated YGIT URL and slug lifecycle implemented; custom domain and Cloudflare DNS automation remain outside current MVP execution path |
 | Audit Engine | Implemented |
 | Platform Engine | Implemented |
@@ -116,14 +116,15 @@ Implemented:
 - Concrete Cloudflare Pages orchestration.
 - Provider-error sanitization.
 - Runtime-only isolated provider pipeline assembly.
-- Trusted server-owned provider execution policy foundation with a default `disabled` mode and an explicit `cloudflare` policy mode.
+- Trusted server-owned provider execution policy with default `disabled` and explicit `cloudflare` modes.
+- Worker Runtime policy resolution, dispatcher transport, and deploy/redeploy binding handoff.
 - Protection against job-payload-controlled provider enablement.
 
 The default runtime remains provider-disabled.
 
 Still disabled or incomplete:
 
-- Runtime wiring from the trusted server-owned policy into deploy/redeploy handler binding.
+- Default production configuration remains provider-disabled until controlled live validation.
 - AG-001 runtime integration and future YGIT App resolver integration.
 - Final provider-result/history persistence.
 - Live Cloudflare API execution from the production worker.
@@ -134,11 +135,14 @@ Still disabled or incomplete:
 Latest verified local run for the current foundation:
 
 ```text
-Provider execution policy tests: 12 passed
+Provider execution policy unit tests: 18 passed
+Provider policy runtime integration tests: 9 passed
+Handler binding regression: 5 passed
+Dispatcher DB regression: 5 passed
 Worker Runtime architecture tests: 4 passed
-Handler regression: 5 passed
+Deploy/redeploy architecture tests: 2 passed
 AG-001 regression: 15 passed
-Full suite: 465 passed
+Full suite: 480 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -162,12 +166,11 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Commit the trusted server-owned provider execution policy foundation and aligned documentation.
-2. Wire the trusted policy decision into deploy/redeploy binding while keeping the default mode `disabled`.
-3. Integrate AG-001 only when a reviewed runtime provider-selection contract is approved.
-4. Persist provider results through Deployment History Engine.
-5. Run controlled PostgreSQL, Redis worker, GitHub, and Cloudflare Pages integration tests.
-6. Harden retry, timeout, idempotency, and failure recovery.
+1. Commit the trusted policy runtime handoff and aligned documentation.
+2. Persist provider completion/failure results through Deployment History Engine and add minimum retry/idempotency protection.
+3. Prepare production PostgreSQL, Redis worker, GitHub, and Cloudflare configuration for controlled live validation.
+4. Run the controlled live deployment flow and fix defects found from real execution evidence.
+5. Integrate AG-001 only when a reviewed future App Engine contract is approved.
 
 ## Documentation Scope
 

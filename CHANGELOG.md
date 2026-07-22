@@ -22,6 +22,7 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Protection preventing untrusted job payloads from enabling provider execution.
 - AG-001 Deploy Provider Gate standalone foundation with Cloudflare default and fail-closed future resolver support.
 - Trusted server-owned provider execution policy foundation with default `disabled`, explicit `cloudflare`, and fail-closed unknown modes.
+- Worker Runtime policy resolution, Job Dispatcher trusted handoff, and deploy/redeploy binding integration.
 - Current project-status documentation.
 
 ### Changed
@@ -29,24 +30,28 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Deploy Pipeline is no longer only a contract skeleton at the implementation level; concrete Cloudflare orchestration exists behind an explicit gateway.
 - Deploy/redeploy handlers now use worker-owned database context and the neutral provider binding, while omitting the enablement flag so execution remains provider-disabled.
 - AG-001 is a standalone gate contract only; it is not wired into runtime and no YGIT App Engine was created.
-- The worker policy foundation is separate from AG-001 and is not yet connected to deploy/redeploy handlers.
+- The worker policy is now transported from Worker Runtime through Job Dispatcher to deploy/redeploy handlers while preserving the default-disabled mode.
+- The worker policy remains separate from AG-001; AG-001 is still unused by runtime execution.
 - Documentation now distinguishes historical release artifacts from the current engineering snapshot.
 
 ### Verified
 
-- Provider execution policy suite: 12 passed.
+- Provider execution policy unit suite: 18 passed.
+- Provider policy runtime integration suite: 9 passed.
+- Deploy/redeploy handler binding regression: 5 passed.
+- Dispatcher database regression: 5 passed.
 - Worker Runtime architecture suite: 4 passed.
-- Deploy/redeploy handler regression: 5 passed.
+- Deploy/redeploy architecture suite: 2 passed.
 - AG-001 regression: 15 passed.
-- Full suite: 465 passed.
+- Full suite: 480 passed.
 - Smoke test with database skipped: PASS.
 - Release gate with database skipped: PASS.
 
 ### Not Yet Enabled
 
-- Trusted policy-to-handler runtime wiring.
-- AG-001 runtime wiring or future YGIT App resolver integration.
 - Provider result persistence into Deployment History Engine.
+- Minimum production retry/idempotency and recovery hardening.
+- AG-001 runtime wiring or future YGIT App resolver integration.
 - Live PostgreSQL, Redis worker, GitHub API, and Cloudflare Pages execution.
 
 All notable YGIT MVP implementation releases are tracked here.

@@ -35,11 +35,11 @@
   },
   "development_snapshot": {
     "date": "2026-07-21",
-    "status": "pre_live_provider_integration",
-    "mvp_completion_estimate": "92-94%",
-    "controlled_live_path_estimate": "90-92%",
+    "status": "pre_live_runtime_handoff_ready",
+    "mvp_completion_estimate": "approximately_95_percent",
+    "controlled_live_path_estimate": "approximately_93_94_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "465_passed_1_warning",
+    "full_test_suite": "480_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false
   },
@@ -100,10 +100,10 @@
       "history_consumer": "deployment_history_engine.0.1.0",
       "history_contract": "frozen",
       "provider_execution": "implemented_but_default_disabled",
-      "status": "concrete_cloudflare_gateway_with_db_aware_default_disabled_handlers",
+      "status": "trusted_policy_handoff_default_disabled",
       "cloudflare_operation_plan": true,
       "cloudflare_gateway_orchestration": true,
-      "runtime_pipeline_binding": "handler_path_ready_default_disabled",
+      "runtime_pipeline_binding": "trusted_policy_handoff_ready_default_disabled",
       "worker_handlers_wired": true,
       "history_persistence_wired": false,
       "live_provider_verified": false,
@@ -177,9 +177,9 @@
     "provider_pipeline_binding": "foundation_ready",
     "deploy_handlers_provider_wired": true,
     "live_redis_worker_verified": false,
-    "handler_binding_mode": "db_aware_default_disabled",
+    "handler_binding_mode": "trusted_policy_handoff_default_disabled",
     "provider_execution_policy": {
-      "status": "foundation_ready_not_runtime_wired",
+      "status": "runtime_handoff_ready_default_disabled",
       "source": "server_settings",
       "default_mode": "disabled",
       "supported_modes": [
@@ -187,7 +187,10 @@
         "cloudflare"
       ],
       "payload_control": false,
-      "live_execution": false
+      "live_execution": false,
+      "worker_runtime_owner": true,
+      "dispatcher_handoff": true,
+      "handler_wiring": true
     }
   },
   "live_runtime_smoke_test_plan": {

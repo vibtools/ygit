@@ -7,7 +7,12 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.core.config import get_settings
 from backend.core.exceptions import YGITError
+from backend.workers.provider_execution_policy import (
+    WorkerProviderExecutionPolicy,
+    resolve_worker_provider_execution_policy,
+)
 from backend.workers.repository import JobRepository
 from backend.workers.runner.dispatcher import JobDispatcher
 from backend.workers.runner.retry import RetryPolicy
@@ -47,11 +52,39 @@ class WorkerRuntime:
         repository: JobRepository | None = None,
         dispatcher: JobDispatcher | None = None,
         retry_policy: RetryPolicy | None = None,
+        provider_execution_policy: (
+            WorkerProviderExecutionPolicy | None
+        ) = None,
     ) -> None:
         self.worker_id = worker_id
         self.queue_name = queue_name
         self.repository = repository or JobRepository()
-        self.dispatcher = dispatcher or JobDispatcher()
+
+        if (
+            dispatcher is not None
+            and provider_execution_policy is not None
+        ):
+            raise ValueError(
+                "dispatcher and provider_execution_policy "
+                "cannot be combined."
+            )
+
+        if dispatcher is not None:
+            self.dispatcher = dispatcher
+        else:
+            policy = provider_execution_policy
+
+            if policy is None:
+                policy = (
+                    resolve_worker_provider_execution_policy(
+                        get_settings()
+                    )
+                )
+
+            self.dispatcher = JobDispatcher(
+                provider_execution_policy=policy
+            )
+
         self.retry_policy = retry_policy or RetryPolicy(max_attempts=3)
 
     def heartbeat(self) -> WorkerHeartbeat:

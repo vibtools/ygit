@@ -13,6 +13,7 @@ from backend.workers.provider_execution_policy import (
     DEFAULT_PROVIDER_EXECUTION_MODE,
     WorkerProviderExecutionPolicy,
     WorkerProviderExecutionPolicyError,
+    provider_execution_enabled_by_policy,
     resolve_worker_provider_execution_policy,
 )
 
@@ -186,7 +187,86 @@ def test_policy_module_preserves_worker_boundaries(
         assert forbidden not in source
 
 
-def test_handlers_do_not_use_policy_foundation_yet(
+
+def test_none_policy_keeps_provider_execution_disabled(
+) -> None:
+    assert (
+        provider_execution_enabled_by_policy(
+            None
+        )
+        is False
+    )
+
+
+def test_disabled_policy_keeps_provider_execution_disabled(
+) -> None:
+    policy = WorkerProviderExecutionPolicy(
+        mode="disabled",
+        enabled=False,
+        provider=None,
+        source="server_settings",
+    )
+
+    assert (
+        provider_execution_enabled_by_policy(
+            policy
+        )
+        is False
+    )
+
+
+def test_cloudflare_policy_enables_existing_provider_binding(
+) -> None:
+    policy = WorkerProviderExecutionPolicy(
+        mode="cloudflare",
+        enabled=True,
+        provider="cloudflare",
+        source="server_settings",
+    )
+
+    assert (
+        provider_execution_enabled_by_policy(
+            policy
+        )
+        is True
+    )
+
+
+@pytest.mark.parametrize(
+    "policy",
+    [
+        WorkerProviderExecutionPolicy(
+            mode="disabled",
+            enabled=True,
+            provider=None,
+            source="server_settings",
+        ),
+        WorkerProviderExecutionPolicy(
+            mode="cloudflare",
+            enabled=False,
+            provider="cloudflare",
+            source="server_settings",
+        ),
+        WorkerProviderExecutionPolicy(
+            mode="cloudflare",
+            enabled=True,
+            provider=None,
+            source="server_settings",
+        ),
+    ],
+)
+def test_inconsistent_policy_object_fails_closed(
+    policy,
+) -> None:
+    with pytest.raises(
+        WorkerProviderExecutionPolicyError
+    ):
+        provider_execution_enabled_by_policy(
+            policy
+        )
+
+
+def test_handlers_accept_policy_without_resolving_settings(
 ) -> None:
     for path in (
         Path(
@@ -203,9 +283,19 @@ def test_handlers_do_not_use_policy_foundation_yet(
         )
 
         assert (
+            "WorkerProviderExecutionPolicy"
+            in source
+        )
+        assert (
+            "provider_execution_enabled_by_policy"
+            in source
+        )
+        assert (
             "resolve_worker_provider_execution_policy"
             not in source
         )
+        assert "get_settings(" not in source
+        assert "os.getenv(" not in source
         assert (
             "provider_execution_enabled=True"
             not in source
@@ -226,11 +316,11 @@ def test_policy_document_records_default_disabled_boundary(
         in document
     )
     assert (
-        "Deploy/redeploy handler wiring: not added"
+        "Dispatcher policy handoff: implemented"
         in document
     )
     assert (
-        "They are separate contracts"
+        "They remain separate contracts"
         in document
     )
     assert (

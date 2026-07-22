@@ -1,14 +1,14 @@
 # Worker Provider Execution Policy
 
-Version: 0.1.0
-Status: Foundation / Not Runtime Wired
+Version: 0.2.0
+Status: Runtime Handoff / Default Disabled
 Owner: Worker Runtime
 
 ## Purpose
 
-This policy defines the trusted server-owned decision that may allow provider execution in a future runtime integration patch.
+This policy defines the trusted server-owned decision that controls whether Worker Runtime may enable provider execution.
 
-The policy is not connected to deploy or redeploy handlers in this foundation.
+The decision is resolved by Worker Runtime, passed through Job Dispatcher as trusted runtime context, and consumed by deploy/redeploy handlers only as a validated policy object.
 
 ## Configuration
 
@@ -16,20 +16,20 @@ The policy is not connected to deploy or redeploy handlers in this foundation.
 WORKER_PROVIDER_EXECUTION_MODE=disabled
 ```
 
-Supported foundation modes:
+Supported modes:
 
 | Mode | Policy result |
 |---|---|
-| `disabled` | Provider execution disabled |
-| `cloudflare` | Cloudflare provider execution permitted by policy |
+| `disabled` | Provider execution remains disabled |
+| `cloudflare` | Cloudflare provider binding may be enabled |
 
 The default is `disabled`.
 
-An unsupported value fails closed.
+An unsupported value or an inconsistent policy object fails closed.
 
 ## Trust Boundary
 
-The policy may be resolved only from the server-owned `Settings` boundary.
+The policy is resolved only from the server-owned `Settings` boundary.
 
 It does not accept:
 
@@ -40,25 +40,48 @@ It does not accept:
 - AG-001 resolver output;
 - direct environment reads inside the policy module.
 
-## Runtime Status
+Worker Runtime owns policy resolution. Job Dispatcher transports the immutable decision. Handlers do not call `get_settings()` and do not resolve policy from payload data.
+
+## Runtime Handoff
+
+```text
+Server Settings
+        ↓
+Worker Runtime resolves policy
+        ↓
+Job Dispatcher passes policy keyword
+        ↓
+Deploy/Redeploy handler validates policy
+        ↓
+Neutral provider binding receives enabled=False/True
+```
+
+Default configuration produces `enabled=False`.
+
+The explicit `cloudflare` mode permits the existing Cloudflare binding path. Setting this mode in a deployed environment may allow credential acquisition and provider execution when the deployment context is complete.
+
+## Verification Status
 
 ```text
 Settings field: implemented
 Policy resolver: implemented
+Policy invariant validation: implemented
+Worker Runtime policy resolution: implemented
+Dispatcher policy handoff: implemented
+Deploy/redeploy handler handoff: implemented
 Default mode: disabled
-Deploy/redeploy handler wiring: not added
-Provider pipeline enablement: not added
-Credential acquisition: not executed
-Cloudflare API execution: not executed
+Job payload control: blocked
+Live credential acquisition in verification: not executed
+Live Cloudflare API execution in verification: not executed
 ```
 
 ## Relationship to AG-001
 
 AG-001 resolves a future deployment-provider selection decision.
 
-This policy controls whether the Worker Runtime is permitted to execute a provider at all.
+This policy controls whether Worker Runtime is permitted to execute a provider at all.
 
-They are separate contracts and are not integrated in this patch.
+They remain separate contracts. AG-001 is not consumed by this policy handoff and remains unused by runtime execution.
 
 ## Architecture Boundaries
 
@@ -72,4 +95,4 @@ The policy module:
 - does not mutate deployment state;
 - does not persist history;
 - does not create a YGIT App Engine;
-- does not change current Cloudflare behavior.
+- does not change the default Cloudflare-disabled behavior.

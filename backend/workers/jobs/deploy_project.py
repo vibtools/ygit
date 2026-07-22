@@ -23,6 +23,10 @@ from backend.workers.jobs.deployment_runtime import (
     payload_with_workspace_if_checkout_ready,
     repository_contains_checkout,
 )
+from backend.workers.provider_execution_policy import (
+    WorkerProviderExecutionPolicy,
+    provider_execution_enabled_by_policy,
+)
 from backend.workers.workspace import prepare_repository_workspace
 
 JOB_TYPE = "deploy_project"
@@ -109,6 +113,9 @@ async def run(
     payload: dict[str, object],
     *,
     db: AsyncSession | None = None,
+    provider_execution_policy: (
+        WorkerProviderExecutionPolicy | None
+    ) = None,
 ) -> None:
     """Run deployment through Deploy Pipeline.
 
@@ -145,9 +152,17 @@ async def run(
     active_context = pipeline_context
 
     if db is not None:
+        policy_execution_enabled = (
+            provider_execution_enabled_by_policy(
+                provider_execution_policy
+            )
+        )
         binding = await build_provider_pipeline_binding(
             db,
             pipeline_context,
+            provider_execution_enabled=(
+                policy_execution_enabled
+            ),
         )
         active_pipeline = binding.pipeline
         active_context = binding.context

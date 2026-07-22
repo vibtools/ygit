@@ -86,3 +86,35 @@ def resolve_worker_provider_execution_policy(
     raise WorkerProviderExecutionPolicyError(
         mode=mode
     )
+
+
+def provider_execution_enabled_by_policy(
+    policy: WorkerProviderExecutionPolicy | None,
+) -> bool:
+    """Validate a trusted policy object and return its enablement decision."""
+
+    if policy is None:
+        return False
+
+    if policy.source != "server_settings":
+        raise WorkerProviderExecutionPolicyError(
+            mode=str(policy.mode)
+        )
+
+    if (
+        policy.mode == "disabled"
+        and policy.enabled is False
+        and policy.provider is None
+    ):
+        return False
+
+    if (
+        policy.mode == "cloudflare"
+        and policy.enabled is True
+        and policy.provider == "cloudflare"
+    ):
+        return True
+
+    raise WorkerProviderExecutionPolicyError(
+        mode=str(policy.mode)
+    )
