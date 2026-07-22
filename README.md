@@ -116,13 +116,14 @@ Implemented:
 - Concrete Cloudflare Pages orchestration.
 - Provider-error sanitization.
 - Runtime-only isolated provider pipeline assembly.
+- Trusted server-owned provider execution policy foundation with a default `disabled` mode and an explicit `cloudflare` policy mode.
 - Protection against job-payload-controlled provider enablement.
 
 The default runtime remains provider-disabled.
 
 Still disabled or incomplete:
 
-- Trusted server-side provider enablement.
+- Runtime wiring from the trusted server-owned policy into deploy/redeploy handler binding.
 - AG-001 runtime integration and future YGIT App resolver integration.
 - Final provider-result/history persistence.
 - Live Cloudflare API execution from the production worker.
@@ -133,9 +134,11 @@ Still disabled or incomplete:
 Latest verified local run for the current foundation:
 
 ```text
-Step 48A targeted tests: 129 passed
-AG-001 gate tests: 15 passed
-Full suite: 453 passed
+Provider execution policy tests: 12 passed
+Worker Runtime architecture tests: 4 passed
+Handler regression: 5 passed
+AG-001 regression: 15 passed
+Full suite: 465 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -159,8 +162,8 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Commit the verified DB-aware default-disabled handler binding, AG-001 gate foundation, and aligned documentation.
-2. Add trusted server-side provider execution configuration while keeping the default disabled.
+1. Commit the trusted server-owned provider execution policy foundation and aligned documentation.
+2. Wire the trusted policy decision into deploy/redeploy binding while keeping the default mode `disabled`.
 3. Integrate AG-001 only when a reviewed runtime provider-selection contract is approved.
 4. Persist provider results through Deployment History Engine.
 5. Run controlled PostgreSQL, Redis worker, GitHub, and Cloudflare Pages integration tests.

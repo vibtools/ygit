@@ -73,7 +73,9 @@
     "default_provider_execution": "disabled",
     "job_payload_provider_enablement": "forbidden",
     "app_gate_default_behavior": "must_remain_unchanged",
-    "app_engine_present": false
+    "app_engine_present": false,
+    "provider_execution_policy_source": "server_settings_only",
+    "provider_execution_policy_payload_control": "forbidden"
   },
   "company": "Vib Tools",
   "connected_accounts_module_version": "0.1.0",
@@ -125,7 +127,7 @@
     "date": "2026-07-21",
     "status": "pre_live_provider_integration",
     "mvp_completion_estimate": "92-94%",
-    "latest_full_suite": "453_passed_1_warning",
+    "latest_full_suite": "465_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -153,7 +155,8 @@
     "cloudflare_provider_gateway_orchestration",
     "worker_provider_pipeline_binding_foundation",
     "worker_default_disabled_handler_binding",
-    "ag_001_deploy_provider_gate_foundation"
+    "ag_001_deploy_provider_gate_foundation",
+    "worker_provider_execution_policy_foundation"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -272,7 +275,18 @@
     "provider_pipeline_binding": "foundation_ready",
     "deploy_handlers_provider_wired": true,
     "live_redis_worker_verified": false,
-    "handler_binding_mode": "db_aware_default_disabled"
+    "handler_binding_mode": "db_aware_default_disabled",
+    "provider_execution_policy": {
+      "status": "foundation_ready_not_runtime_wired",
+      "default_mode": "disabled",
+      "supported_modes": [
+        "disabled",
+        "cloudflare"
+      ],
+      "unknown_mode": "fail_closed",
+      "handler_wiring": false,
+      "live_execution_verified": false
+    }
   },
   "frontend": {
     "dashboard": "implemented",

@@ -65,7 +65,10 @@
     "live_provider_execution_verified": false,
     "handler_binding_mode": "db_aware_default_disabled",
     "ag_001_deploy_provider_gate": "foundation_ready_not_runtime_wired",
-    "app_engine_created": false
+    "app_engine_created": false,
+    "provider_execution_policy": "foundation_ready_not_runtime_wired",
+    "provider_execution_policy_default": "disabled",
+    "provider_execution_policy_payload_control": false
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

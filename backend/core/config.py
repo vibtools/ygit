@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     queue_name: str = "default"
     worker_poll_interval_seconds: int = 5
     worker_max_attempts: int = 3
+    worker_provider_execution_mode: Literal[
+        "disabled",
+        "cloudflare",
+    ] = "disabled"
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 
     @field_validator("api_prefix")

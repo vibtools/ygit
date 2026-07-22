@@ -21,6 +21,7 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - DB-aware deploy/redeploy handler binding that preserves default-disabled execution.
 - Protection preventing untrusted job payloads from enabling provider execution.
 - AG-001 Deploy Provider Gate standalone foundation with Cloudflare default and fail-closed future resolver support.
+- Trusted server-owned provider execution policy foundation with default `disabled`, explicit `cloudflare`, and fail-closed unknown modes.
 - Current project-status documentation.
 
 ### Changed
@@ -28,19 +29,22 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Deploy Pipeline is no longer only a contract skeleton at the implementation level; concrete Cloudflare orchestration exists behind an explicit gateway.
 - Deploy/redeploy handlers now use worker-owned database context and the neutral provider binding, while omitting the enablement flag so execution remains provider-disabled.
 - AG-001 is a standalone gate contract only; it is not wired into runtime and no YGIT App Engine was created.
+- The worker policy foundation is separate from AG-001 and is not yet connected to deploy/redeploy handlers.
 - Documentation now distinguishes historical release artifacts from the current engineering snapshot.
 
 ### Verified
 
-- Step 48A targeted suite: 129 passed.
-- AG-001 gate suite: 15 passed.
-- Full suite: 453 passed.
+- Provider execution policy suite: 12 passed.
+- Worker Runtime architecture suite: 4 passed.
+- Deploy/redeploy handler regression: 5 passed.
+- AG-001 regression: 15 passed.
+- Full suite: 465 passed.
 - Smoke test with database skipped: PASS.
 - Release gate with database skipped: PASS.
 
 ### Not Yet Enabled
 
-- Trusted production provider feature/configuration enablement.
+- Trusted policy-to-handler runtime wiring.
 - AG-001 runtime wiring or future YGIT App resolver integration.
 - Provider result persistence into Deployment History Engine.
 - Live PostgreSQL, Redis worker, GitHub API, and Cloudflare Pages execution.
