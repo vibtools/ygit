@@ -13,6 +13,8 @@ This report covers the current YGIT MVP source through:
 - Worker database-aware dispatch.
 - Cloudflare credential acquisition boundary.
 - Runtime-only provider pipeline binding foundation.
+- DB-aware default-disabled deploy/redeploy handler binding.
+- AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
 ## Verified Results
@@ -24,14 +26,17 @@ This report covers the current YGIT MVP source through:
 | Credential acquisition boundary tests | PASS |
 | Cloudflare provider gateway tests | PASS |
 | Deploy Pipeline architecture tests | PASS |
-| Targeted test suite | 124 passed |
-| Full test suite | 433 passed |
+| Step 48A targeted test suite | 129 passed |
+| AG-001 gate tests | 15 passed |
+| Full test suite | 453 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
 | Untrusted payload provider enablement blocked | PASS |
 | Raw credential extraction in worker binding | NOT PRESENT |
-| Deploy/redeploy provider binding | NOT WIRED |
+| Deploy/redeploy provider binding | WIRED, DEFAULT DISABLED |
+| AG-001 runtime integration | NOT WIRED |
+| YGIT App Engine | NOT CREATED |
 | Live provider execution | NOT EXECUTED |
 
 One non-blocking `StarletteDeprecationWarning` remains in the existing test-client dependency path.
@@ -42,6 +47,8 @@ One non-blocking `StarletteDeprecationWarning` remains in the existing test-clie
 - Deploy Engine does not import provider implementations.
 - Worker job handlers do not import provider implementations.
 - Worker runtime provider assembly uses public boundaries.
+- Deploy/redeploy handlers receive worker-owned database context and call the neutral binding without enabling provider execution.
+- AG-001 is a pure Deploy Engine decision contract and does not import providers, pipelines, workers, settings, or database infrastructure.
 - Provider credentials remain secret-wrapped during gateway construction.
 - The global/default Deploy Pipeline remains the contract-skeleton path.
 - Provider-enabled context is created only inside the trusted runtime binding function.
@@ -80,8 +87,8 @@ No production-readiness claim is made for these areas.
 
 Primary remaining risks are integration risks rather than missing core provider primitives:
 
-- Trusted handler wiring.
-- Configuration ownership and safe rollout.
+- Trusted server-owned enablement configuration and safe rollout.
+- Reviewed future AG-001 runtime integration without changing the current Cloudflare default.
 - Transaction boundaries between worker state and deployment history.
 - Provider timeout and retry behavior.
 - Idempotency and duplicate deployment prevention.

@@ -61,8 +61,11 @@
     "concrete_cloudflare_gateway": true,
     "worker_provider_pipeline_binding": "foundation_ready",
     "default_provider_execution": "disabled",
-    "worker_handlers_provider_wired": false,
-    "live_provider_execution_verified": false
+    "worker_handlers_provider_wired": true,
+    "live_provider_execution_verified": false,
+    "handler_binding_mode": "db_aware_default_disabled",
+    "ag_001_deploy_provider_gate": "foundation_ready_not_runtime_wired",
+    "app_engine_created": false
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

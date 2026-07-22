@@ -39,7 +39,7 @@
     "mvp_completion_estimate": "92-94%",
     "controlled_live_path_estimate": "90-92%",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "433_passed_1_warning",
+    "full_test_suite": "453_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false
   },
@@ -100,11 +100,11 @@
       "history_consumer": "deployment_history_engine.0.1.0",
       "history_contract": "frozen",
       "provider_execution": "implemented_but_default_disabled",
-      "status": "concrete_cloudflare_gateway_with_runtime_binding_foundation",
+      "status": "concrete_cloudflare_gateway_with_db_aware_default_disabled_handlers",
       "cloudflare_operation_plan": true,
       "cloudflare_gateway_orchestration": true,
-      "runtime_pipeline_binding": "foundation_ready",
-      "worker_handlers_wired": false,
+      "runtime_pipeline_binding": "handler_path_ready_default_disabled",
+      "worker_handlers_wired": true,
       "history_persistence_wired": false,
       "live_provider_verified": false,
       "version": "0.1.0"
@@ -175,8 +175,9 @@
     "checkout_and_build_handoff": true,
     "credential_acquisition_boundary": true,
     "provider_pipeline_binding": "foundation_ready",
-    "deploy_handlers_provider_wired": false,
-    "live_redis_worker_verified": false
+    "deploy_handlers_provider_wired": true,
+    "live_redis_worker_verified": false,
+    "handler_binding_mode": "db_aware_default_disabled"
   },
   "live_runtime_smoke_test_plan": {
     "version": "0.1.0",
@@ -191,5 +192,16 @@
     "matrix": "LIVE_RUNTIME_SMOKE_TEST_MATRIX.json",
     "live_execution_required": true,
     "sandbox_live_execution": false
+  },
+  "extension_gates": {
+    "ag_001_deploy_provider_gate": {
+      "engine": "deploy_engine",
+      "status": "foundation_ready_not_runtime_wired",
+      "phase": "before_deploy_completion",
+      "default_provider": "cloudflare",
+      "build_target_resolution": true,
+      "app_engine_created": false,
+      "live_execution": false
+    }
   }
 }

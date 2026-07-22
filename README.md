@@ -24,7 +24,7 @@ Website Live
 
 Status: **Pre-live provider integration**
 
-The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration and the runtime-only provider pipeline binding foundation are present, but production worker handlers still use the default disabled/skeleton path.
+The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration, the runtime-only provider pipeline binding foundation, and DB-aware deploy/redeploy handler binding are present. The handlers deliberately omit provider enablement, so production execution remains on the default disabled/skeleton path.
 
 Engineering estimate:
 
@@ -78,7 +78,7 @@ Object storage target: Cloudflare R2
 | Deploy Engine | Implemented for validation, queued deployment lifecycle, redeploy, cancel, and reads |
 | Deploy Pipeline | Contracts, build stage, Cloudflare operation plan, concrete Cloudflare Pages gateway, completion result branch, and isolated provider pipeline factory implemented |
 | Deployment History Engine | Storage/API contracts implemented; final live provider-result persistence integration remains |
-| Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, and provider pipeline binding foundation implemented |
+| Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, provider pipeline binding, and default-disabled deploy/redeploy handler binding implemented |
 | Domain Engine | Generated YGIT URL and slug lifecycle implemented; custom domain and Cloudflare DNS automation remain outside current MVP execution path |
 | Audit Engine | Implemented |
 | Platform Engine | Implemented |
@@ -87,6 +87,24 @@ Object storage target: Cloudflare R2
 | Admin Panel | Implemented as a protected operations console |
 | GitHub Provider | Repository metadata and account integration foundations implemented |
 | Cloudflare Provider | OAuth/account foundations and Cloudflare Pages project, artifact, asset upload, hash registration, and deployment primitives implemented |
+
+## App Gate Foundations
+
+AG-001 Deploy Provider Gate is implemented as a standalone Deploy Engine extension contract.
+
+```text
+build_target missing
+        ↓
+cloudflare
+
+build_target present
+        ↓
+injected future resolver
+        ↓
+selected provider
+```
+
+AG-001 is not runtime-wired. It does not call providers, access the database, mutate deployment state, or create a YGIT App Engine. Current Cloudflare behavior remains unchanged.
 
 ## Provider Execution Safety State
 
@@ -102,10 +120,10 @@ Implemented:
 
 The default runtime remains provider-disabled.
 
-Still disabled or unwired:
+Still disabled or incomplete:
 
-- Deploy/redeploy handler provider binding.
 - Trusted server-side provider enablement.
+- AG-001 runtime integration and future YGIT App resolver integration.
 - Final provider-result/history persistence.
 - Live Cloudflare API execution from the production worker.
 - Controlled end-to-end PostgreSQL, Redis worker, and Cloudflare Pages validation.
@@ -115,8 +133,9 @@ Still disabled or unwired:
 Latest verified local run for the current foundation:
 
 ```text
-Targeted tests: 124 passed
-Full suite: 433 passed
+Step 48A targeted tests: 129 passed
+AG-001 gate tests: 15 passed
+Full suite: 453 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -140,9 +159,9 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Commit the worker provider-pipeline binding foundation.
-2. Add DB-aware guarded integration to deploy/redeploy handlers.
-3. Add trusted server-side provider execution configuration.
+1. Commit the verified DB-aware default-disabled handler binding, AG-001 gate foundation, and aligned documentation.
+2. Add trusted server-side provider execution configuration while keeping the default disabled.
+3. Integrate AG-001 only when a reviewed runtime provider-selection contract is approved.
 4. Persist provider results through Deployment History Engine.
 5. Run controlled PostgreSQL, Redis worker, GitHub, and Cloudflare Pages integration tests.
 6. Harden retry, timeout, idempotency, and failure recovery.

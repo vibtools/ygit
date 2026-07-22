@@ -21,7 +21,7 @@ It automates deployment of supported Git repositories to infrastructure owned by
 | Area | Estimate | Meaning |
 |---|---:|---|
 | Core MVP implementation | 92–94% | Core engines, providers, dashboard, admin surface, queue/runtime foundations, and deployment orchestration are substantially implemented |
-| First controlled live deployment path | 90–92% | Remaining work is concentrated in guarded handler wiring, result persistence, and controlled live validation |
+| First controlled live deployment path | 90–92% | Remaining work is concentrated in trusted enablement, result persistence, and controlled live validation |
 | Production readiness | Not complete | Live reliability, operational hardening, and end-to-end production evidence remain |
 
 These values are engineering planning estimates and are not automated test results.
@@ -53,10 +53,10 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 | Project Engine | Implemented | No critical foundation gap identified |
 | Repository Engine | Implemented | Controlled live GitHub validation |
 | Repository Analysis Engine | Implemented for MVP contracts | Broader framework coverage is future work |
-| Deploy Engine | Implemented | Provider result reconciliation after live execution |
-| Deploy Pipeline | Concrete Cloudflare orchestration implemented; default runtime disabled | Trusted handler wiring and runtime enablement |
+| Deploy Engine | Implemented; AG-001 provider gate foundation added but not runtime-wired | Provider result reconciliation and reviewed future gate integration |
+| Deploy Pipeline | Concrete Cloudflare orchestration implemented; default runtime disabled | Trusted runtime enablement |
 | Deployment History Engine | Implemented storage and APIs | Persist completed/failed provider execution results |
-| Worker Runtime | DB dispatch, checkout, build, retry, credential boundary, and provider binding foundation implemented | Guarded deploy/redeploy integration and live Redis worker execution |
+| Worker Runtime | DB dispatch, checkout, build, retry, credential boundary, provider binding, and default-disabled deploy/redeploy handler binding implemented | Trusted enablement and live Redis worker execution |
 | Domain Engine | MVP generated-domain flow implemented | Custom-domain and Cloudflare DNS automation |
 | Audit Engine | Implemented | Production retention/operations validation |
 | Platform Engine | Implemented | Production settings and feature-flag operations validation |
@@ -78,25 +78,27 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 - Cloudflare Pages deployment creation.
 - Concrete provider gateway orchestration and typed completion result.
 - Runtime-only provider pipeline binding foundation.
+- DB-aware deploy/redeploy handler binding that omits provider enablement.
 - Untrusted job-payload provider-enablement protection.
+- AG-001 Deploy Provider Gate foundation with Cloudflare default and fail-closed future resolver contract.
 
 ## Current Safety Boundary
 
 The default runtime remains provider-disabled.
 
-A concrete provider pipeline can be assembled only through an explicit runtime-owned enablement input. Job payload fields do not enable provider execution. Deploy and redeploy handlers are not yet wired to the binding foundation.
+A concrete provider pipeline can be assembled only through an explicit runtime-owned enablement input. Job payload fields do not enable provider execution. Deploy and redeploy handlers now call the neutral binding with worker-owned database context, but they do not pass an enablement flag; the binding therefore preserves the default disabled pipeline. AG-001 remains standalone and is not used by runtime execution.
 
 No current verification log proves that a live Cloudflare Pages deployment, live GitHub API integration, live Redis worker loop, or live PostgreSQL-backed deployment completed.
 
 ## Latest Verification Evidence
 
 ```text
-Worker architecture regression: 1 passed
-Credential boundary regression: 6 passed
-Provider gateway regression: 6 passed
-Architecture regression: 4 passed
-Targeted suite: 124 passed, 1 warning
-Full suite: 433 passed, 1 warning
+Deploy/redeploy handler integration: 5 passed
+Provider binding contract: 6 passed
+AG-001 gate contract: 15 passed
+Deploy Engine architecture: 2 passed
+Step 48A targeted suite: 129 passed, 1 warning
+Full suite: 453 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -105,10 +107,10 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Commit the verified provider pipeline binding.
-2. Make deploy/redeploy handlers DB-aware.
-3. Inject provider binding behind trusted server-owned configuration.
-4. Keep the default provider-disabled mode.
+1. Commit the verified DB-aware handler binding, AG-001 foundation, and aligned documentation.
+2. Inject provider enablement behind trusted server-owned configuration.
+3. Keep the default provider-disabled mode.
+4. Review and approve a separate AG-001 runtime integration contract before using the gate.
 5. Persist provider completion/failure results through Deployment History Engine.
 6. Execute controlled PostgreSQL and Redis worker validation.
 7. Execute controlled GitHub and Cloudflare Pages integration validation.
@@ -132,4 +134,5 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-21 | 1.1 | Added default-disabled handler binding and AG-001 Deploy Provider Gate foundation |
 | 2026-07-21 | 1.0 | Added authoritative project snapshot through the worker provider pipeline binding foundation |

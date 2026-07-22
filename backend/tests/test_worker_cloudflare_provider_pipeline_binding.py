@@ -319,7 +319,7 @@ async def test_invalid_pipeline_factory_result_is_rejected_without_secret_leak(
     assert REFRESH_VALUE not in rendered
 
 
-def test_job_handlers_remain_unwired_to_provider_binding(
+def test_job_handlers_use_neutral_binding_without_enabling_provider(
 ) -> None:
     from pathlib import Path
 
@@ -338,5 +338,15 @@ def test_job_handlers_remain_unwired_to_provider_binding(
         )
         assert (
             "build_provider_pipeline_binding"
+            in source
+        )
+        assert (
+            "provider_execution_enabled=True"
             not in source
         )
+        assert (
+            '"provider_enabled"'
+            not in source
+        )
+        assert "backend.providers" not in source
+        assert "cloudflare_provider" not in source

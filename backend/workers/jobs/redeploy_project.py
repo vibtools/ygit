@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.pipelines.deploy_pipeline.public import deploy_pipeline
 from backend.workers.errors import WorkerBuildStageFailedError
 from backend.workers.git_checkout import run_git_checkout
 from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result
 from backend.workers.jobs.deployment_runtime import (
+    build_provider_pipeline_binding,
     build_stage_input,
     deployment_pipeline_context,
     execute_redeployment_with_context,
@@ -18,6 +21,8 @@ JOB_TYPE = "redeploy_project"
 
 async def run(
     payload: dict[str, object],
+    *,
+    db: AsyncSession | None = None,
 ) -> None:
     """Run redeployment through shared worker checkout/build preparation."""
 
@@ -79,15 +84,25 @@ async def run(
             normalized_source_deployment_id
         ),
     )
+    active_pipeline = deploy_pipeline
+    active_context = pipeline_context
+
+    if db is not None:
+        binding = await build_provider_pipeline_binding(
+            db,
+            pipeline_context,
+        )
+        active_pipeline = binding.pipeline
+        active_context = binding.context
 
     deployment_result = (
         await execute_redeployment_with_context(
-            deploy_pipeline,
+            active_pipeline,
             deployment_id,
             source_deployment_id=(
                 normalized_source_deployment_id
             ),
-            context=pipeline_context,
+            context=active_context,
         )
     )
 
