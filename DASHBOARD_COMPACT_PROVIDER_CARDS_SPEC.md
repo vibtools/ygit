@@ -1,6 +1,6 @@
 # YGIT Dashboard Compact Provider Cards Specification
 
-Version: 1.0
+Version: 1.1
 Status: Approved for Implementation
 Owner: Dashboard
 
@@ -78,9 +78,21 @@ They must not:
 - change GitHub or Cloudflare permissions;
 - change Project Open or Deploy behavior.
 
+## Live Rendering Correction
+
+The polished base `.hero-card` intentionally uses `overflow: hidden`. Because the compact provider strip is positioned below the Dashboard hero with absolute positioning, that generic rule clipped both provider cards during live rendering.
+
+The Dashboard-specific correction must:
+
+- preserve the generic `.hero-card` clipping rule;
+- set only `.dashboard-hero-card` to `overflow: visible`;
+- keep the compact provider strip above following surfaces with an explicit stacking level;
+- preserve the 200px compact-card contract;
+- reclaim the obsolete Provider Readiness column for the existing Active Workspace panel.
+
 ## Existing Sections
 
-The following remain byte-for-byte unchanged:
+The following content remains unchanged:
 
 - Dashboard metrics;
 - Deployment Timeline content;
@@ -90,3 +102,5 @@ The following remain byte-for-byte unchanged:
 - Project Deploy UI.
 
 The obsolete narrow Dashboard Provider Readiness panel is removed because its two-column full account cards caused the layout break.
+
+After that panel is removed, the existing Active Workspace panel spans the full available Dashboard width instead of leaving an empty 360px grid column.

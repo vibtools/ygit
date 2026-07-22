@@ -157,3 +157,39 @@ def test_spec_locks_non_interference_boundary() -> None:
     assert "Project Open UI" in source
     assert "Project Deploy UI" in source
     assert "No token value is displayed." in source
+
+def test_live_compact_provider_cards_are_not_clipped() -> None:
+    css = CSS.read_text(encoding="utf-8")
+    block = css.split(
+        "/* YGIT_DASHBOARD_COMPACT_PROVIDER_CARDS_START */",
+        1,
+    )[1].split(
+        "/* YGIT_DASHBOARD_COMPACT_PROVIDER_CARDS_END */",
+        1,
+    )[0]
+    compact = " ".join(block.split())
+
+    assert ".dashboard-hero-card" in block
+    assert "overflow: visible" in compact
+    assert ".dashboard-account-strip" in block
+    assert "z-index: 2" in compact
+    assert "height: 200px" in compact
+
+
+def test_vacated_workspace_column_is_reclaimed_and_documented() -> None:
+    html = HTML.read_text(encoding="utf-8")
+    css = CSS.read_text(encoding="utf-8")
+    spec = SPEC.read_text(encoding="utf-8")
+    compact_css = " ".join(css.split())
+
+    assert html.count(
+        'class="dashboard-grid dashboard-workspace-grid"'
+    ) == 1
+    assert ".dashboard-workspace-grid" in css
+    assert (
+        "grid-template-columns: minmax(0, 1fr)"
+        in compact_css
+    )
+    assert "Version: 1.1" in spec
+    assert "set only `.dashboard-hero-card` to `overflow: visible`" in spec
+    assert "spans the full available Dashboard width" in spec

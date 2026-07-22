@@ -838,14 +838,20 @@ h3 {
 /* YGIT_DASHBOARD_COMPACT_PROVIDER_CARDS_START */
 .dashboard-hero-card {
   position: relative;
+  overflow: visible;
 }
 
 .dashboard-account-strip {
   position: absolute;
+  z-index: 2;
   top: calc(100% + 12px);
   right: 0;
   left: 0;
   height: 200px;
+}
+
+.dashboard-workspace-grid {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .dashboard-account-compact-grid {
