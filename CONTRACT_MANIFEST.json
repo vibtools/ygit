@@ -129,9 +129,9 @@
   },
   "development_snapshot": {
     "date": "2026-07-21",
-    "status": "pre_live_runtime_handoff_ready",
-    "mvp_completion_estimate": "approximately_95_percent",
-    "latest_full_suite": "492_passed_1_warning",
+    "status": "ready_for_controlled_live_redeploy",
+    "mvp_completion_estimate": "approximately_97_percent",
+    "latest_full_suite": "500_passed_1_warning",
     "release_gate_skip_db": "pass"
   },
   "engine_contract": "1.0",
@@ -162,7 +162,8 @@
     "ag_001_deploy_provider_gate_foundation",
     "worker_provider_execution_policy_foundation",
     "worker_provider_execution_policy_runtime_handoff",
-    "deployment_history_runtime_persistence"
+    "deployment_history_runtime_persistence",
+    "controlled_live_readiness_tooling"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -335,5 +336,16 @@
       "current_flow_changed": false,
       "app_engine_created": false
     }
+  },
+  "live_readiness": {
+    "configuration_presence": true,
+    "postgresql_probe": true,
+    "redis_probe": true,
+    "public_route_probe": true,
+    "protected_shell_probe": true,
+    "provider_mode_expectation": true,
+    "secret_redaction": true,
+    "coolify_redeploy_verified": false,
+    "live_provider_verified": false
   }
 }

@@ -20,8 +20,8 @@ It automates deployment of supported Git repositories to infrastructure owned by
 
 | Area | Estimate | Meaning |
 |---|---:|---|
-| Core MVP implementation | Approximately 95% | Core engines, providers, dashboard, admin surface, queue/runtime foundations, deployment orchestration, and trusted policy handoff are substantially implemented |
-| First controlled live deployment path | Approximately 96% | Result persistence and retry-safe replay are implemented; production runtime configuration and controlled live validation remain |
+| Core MVP implementation | Approximately 97% | Core engines, providers, dashboard, admin surface, queue/runtime foundations, deployment orchestration, and trusted policy handoff are substantially implemented |
+| First controlled live deployment path | Approximately 98% | Pre-live code and validation tooling are complete; controlled production evidence remains |
 | Production readiness | Not complete | Live reliability, operational hardening, and end-to-end production evidence remain |
 
 These values are engineering planning estimates and are not automated test results.
@@ -83,6 +83,7 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 - Worker Runtime policy ownership, dispatcher handoff, and deploy/redeploy binding integration.
 - Untrusted job-payload provider-enablement protection.
 - Deployment History runtime persistence and deterministic retry-safe history-write idempotency.
+- Production configuration, PostgreSQL, Redis, public-route, and provider-mode live-readiness tooling.
 - AG-001 Deploy Provider Gate foundation with Cloudflare default and fail-closed future resolver contract.
 
 ## Current Safety Boundary
@@ -105,7 +106,8 @@ Deploy/redeploy architecture: 2 passed
 AG-001 regression: 15 passed
 Deployment History runtime: 8 passed
 Deployment History idempotency: 4 passed
-Full suite: 492 passed, 1 warning
+Live-readiness tooling: 8 passed
+Full suite: 500 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -114,10 +116,11 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Commit Deployment History persistence and retry-safe replay protection.
-2. Prepare production PostgreSQL, Redis worker, GitHub, Cloudflare, secrets, and observability configuration.
-3. Execute the controlled live deployment flow and resolve defects found from real execution evidence.
-4. Review AG-001 runtime integration only as part of the future YGIT App Engine work.
+1. Coolify-redeploy the Batch 3 commit with provider mode `disabled`.
+2. Run the controlled pre/post-redeploy infrastructure and public-route checks.
+3. Connect dedicated GitHub and Cloudflare test accounts and execute one controlled real deployment.
+4. Resolve only defects demonstrated by live evidence.
+5. Review AG-001 runtime integration only as part of the future YGIT App Engine work.
 
 ## Documentation Authority
 
@@ -136,6 +139,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-21 | 1.5 | Added controlled live-readiness tooling and production validation runbook |
 | 2026-07-21 | 1.4 | Added Deployment History result persistence and retry-safe intent idempotency |
 | 2026-07-21 | 1.3 | Added trusted provider-policy runtime handoff while preserving the default-disabled path |
 | 2026-07-21 | 1.2 | Added trusted server-owned provider execution policy foundation |

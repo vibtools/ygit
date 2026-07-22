@@ -1,6 +1,6 @@
 # YGIT Current Engineering Audit Report
 
-Version: 1.2
+Version: 1.3
 Status: Verified Foundation / Pre-Live Integration
 Updated: 2026-07-21
 
@@ -17,6 +17,7 @@ This report covers the current YGIT MVP source through:
 - Trusted server-owned provider execution policy foundation.
 - Worker Runtime, Job Dispatcher, and deploy/redeploy policy-handoff integration.
 - Deployment History result/failure persistence and retry-safe intent replay protection.
+- Production configuration and runtime live-readiness tooling plus controlled deployment runbook.
 - AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
@@ -38,7 +39,8 @@ This report covers the current YGIT MVP source through:
 | AG-001 regression | 15 passed |
 | Deployment History runtime tests | 8 passed |
 | Deployment History idempotency tests | 4 passed |
-| Full test suite | 492 passed |
+| Live-readiness tooling tests | 8 passed |
+| Full test suite | 500 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
@@ -51,6 +53,8 @@ This report covers the current YGIT MVP source through:
 | Deployment History runtime persistence | WIRED, NOT LIVE-VERIFIED |
 | Retry-safe history intent replay | IMPLEMENTED |
 | Completed deployment duplicate suppression | IMPLEMENTED |
+| Live-readiness tooling | IMPLEMENTED |
+| Coolify redeploy | NOT EXECUTED |
 | Live provider execution | NOT EXECUTED |
 
 One non-blocking `StarletteDeprecationWarning` remains in the existing test-client dependency path.

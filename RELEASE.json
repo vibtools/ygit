@@ -74,7 +74,10 @@
     "provider_execution_policy_handler_wiring": true,
     "deployment_history_runtime": "wired_not_live_verified",
     "deployment_history_intent_replay": "deterministic_idempotency",
-    "completed_duplicate_guard": true
+    "completed_duplicate_guard": true,
+    "live_readiness_tooling": "implemented",
+    "controlled_live_runbook": "ready",
+    "coolify_redeploy_verified": false
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",

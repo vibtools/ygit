@@ -25,6 +25,8 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Worker Runtime policy resolution, Job Dispatcher trusted handoff, and deploy/redeploy binding integration.
 - Deployment History persistence for pipeline intents, provider summaries, terminal failures, and completed-deployment duplicate suppression.
 - Deterministic history-write replay keys preventing duplicate logs during sequential retries.
+- Secret-safe production configuration, PostgreSQL, Redis, deployed-route, and provider-mode readiness validation.
+- Controlled Coolify redeploy and real deployment runbook.
 - Current project-status documentation.
 
 ### Changed
@@ -47,7 +49,8 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - AG-001 regression: 15 passed.
 - Deployment History runtime suite: 8 passed.
 - Deployment History idempotency suite: 4 passed.
-- Full suite: 492 passed.
+- Live-readiness tooling suite: 8 passed.
+- Full suite: 500 passed.
 - Smoke test with database skipped: PASS.
 - Release gate with database skipped: PASS.
 

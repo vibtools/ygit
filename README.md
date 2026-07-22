@@ -22,15 +22,15 @@ Website Live
 
 ## Current Development Status
 
-Status: **Pre-live provider integration**
+Status: **Ready for controlled live redeploy**
 
 The MVP architecture and core engines are substantially implemented. Concrete Cloudflare Pages orchestration, provider pipeline binding, DB-aware handlers, and trusted server-owned provider-policy handoff are present. The default server policy remains `disabled`, so provider execution stays off until an operator explicitly selects the supported `cloudflare` mode.
 
 Engineering estimate:
 
 ```text
-MVP implementation: approximately 95%
-First controlled live deployment path: approximately 93–94%
+MVP implementation: approximately 97%
+First controlled live deployment path: approximately 98%
 Production readiness: not yet reached
 ```
 
@@ -120,6 +120,7 @@ Implemented:
 - Worker Runtime policy resolution, dispatcher transport, and deploy/redeploy binding handoff.
 - Protection against job-payload-controlled provider enablement.
 - Deployment History persistence for pipeline intents, provider summaries, terminal failures, and retry-safe replay handling.
+- Secret-safe live-readiness validation for production configuration, PostgreSQL, Redis, deployed API routes, and explicit provider mode.
 
 The default runtime remains provider-disabled.
 
@@ -145,7 +146,8 @@ Deploy/redeploy architecture tests: 2 passed
 AG-001 regression: 15 passed
 Deployment History runtime tests: 8 passed
 Deployment History idempotency tests: 4 passed
-Full suite: 492 passed
+Live-readiness tooling tests: 8 passed
+Full suite: 500 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -169,10 +171,11 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Commit Deployment History persistence and retry-safe replay protection.
-2. Prepare production PostgreSQL, Redis worker, GitHub, Cloudflare, secrets, and observability configuration.
-3. Run the controlled live deployment flow and fix defects found from real execution evidence.
-4. Integrate AG-001 only when a reviewed future App Engine contract is approved.
+1. Redeploy the Batch 3 commit to Coolify with provider mode `disabled`.
+2. Run pre/post-redeploy PostgreSQL, Redis, API, authentication-shell, and configuration checks.
+3. Connect dedicated GitHub and Cloudflare test accounts, then enable `cloudflare` mode for one controlled deployment.
+4. Fix only defects demonstrated by live evidence.
+5. Integrate AG-001 only when a reviewed future App Engine contract is approved.
 
 ## Documentation Scope
 
