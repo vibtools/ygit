@@ -50,6 +50,17 @@ class DeploymentHistoryPublicService:
     ) -> HistoryWriteResult:
         return await self._internal.consume_history_write_intent(db, intent)
 
+    async def get_runtime_record(
+        self,
+        db: AsyncSession,
+        *,
+        deployment_id: str,
+    ) -> DeploymentHistoryRecord | None:
+        return await self._internal.get_runtime_record(
+            db,
+            deployment_id=deployment_id,
+        )
+
     async def mark_started(self, db: AsyncSession, *, deployment_id: str) -> DeploymentHistoryRecord:
         return await self._internal.mark_started(db, deployment_id=deployment_id)
 

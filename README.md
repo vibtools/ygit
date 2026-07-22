@@ -77,7 +77,7 @@ Object storage target: Cloudflare R2
 | Repository Analysis Engine | Implemented for MVP quick/deep analysis contracts |
 | Deploy Engine | Implemented for validation, queued deployment lifecycle, redeploy, cancel, and reads |
 | Deploy Pipeline | Contracts, build stage, Cloudflare operation plan, concrete Cloudflare Pages gateway, completion result branch, and isolated provider pipeline factory implemented |
-| Deployment History Engine | Storage/API contracts implemented; final live provider-result persistence integration remains |
+| Deployment History Engine | Pipeline completion/failure persistence, retry-safe intent consumption, logs, and provider-result storage integrated through the public engine boundary |
 | Worker Runtime | Durable jobs, leasing, retry, DB-aware dispatch, checkout/build handoff, credential boundary, provider pipeline binding, trusted server-owned policy resolution, dispatcher handoff, and default-disabled deploy/redeploy integration implemented |
 | Domain Engine | Generated YGIT URL and slug lifecycle implemented; custom domain and Cloudflare DNS automation remain outside current MVP execution path |
 | Audit Engine | Implemented |
@@ -119,6 +119,7 @@ Implemented:
 - Trusted server-owned provider execution policy with default `disabled` and explicit `cloudflare` modes.
 - Worker Runtime policy resolution, dispatcher transport, and deploy/redeploy binding handoff.
 - Protection against job-payload-controlled provider enablement.
+- Deployment History persistence for pipeline intents, provider summaries, terminal failures, and retry-safe replay handling.
 
 The default runtime remains provider-disabled.
 
@@ -126,7 +127,7 @@ Still disabled or incomplete:
 
 - Default production configuration remains provider-disabled until controlled live validation.
 - AG-001 runtime integration and future YGIT App resolver integration.
-- Final provider-result/history persistence.
+- Controlled live verification of provider-result/history persistence against PostgreSQL.
 - Live Cloudflare API execution from the production worker.
 - Controlled end-to-end PostgreSQL, Redis worker, and Cloudflare Pages validation.
 
@@ -142,7 +143,9 @@ Dispatcher DB regression: 5 passed
 Worker Runtime architecture tests: 4 passed
 Deploy/redeploy architecture tests: 2 passed
 AG-001 regression: 15 passed
-Full suite: 480 passed
+Deployment History runtime tests: 8 passed
+Deployment History idempotency tests: 4 passed
+Full suite: 492 passed
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -166,11 +169,10 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Commit the trusted policy runtime handoff and aligned documentation.
-2. Persist provider completion/failure results through Deployment History Engine and add minimum retry/idempotency protection.
-3. Prepare production PostgreSQL, Redis worker, GitHub, and Cloudflare configuration for controlled live validation.
-4. Run the controlled live deployment flow and fix defects found from real execution evidence.
-5. Integrate AG-001 only when a reviewed future App Engine contract is approved.
+1. Commit Deployment History persistence and retry-safe replay protection.
+2. Prepare production PostgreSQL, Redis worker, GitHub, Cloudflare, secrets, and observability configuration.
+3. Run the controlled live deployment flow and fix defects found from real execution evidence.
+4. Integrate AG-001 only when a reviewed future App Engine contract is approved.
 
 ## Documentation Scope
 

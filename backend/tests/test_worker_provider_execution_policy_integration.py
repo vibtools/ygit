@@ -33,6 +33,48 @@ CLOUDFLARE_POLICY = WorkerProviderExecutionPolicy(
 )
 
 
+@pytest.fixture(autouse=True)
+def stub_deployment_history_runtime(
+    monkeypatch,
+) -> None:
+    async def completed(
+        db,
+        deployment_id,
+    ) -> bool:
+        _ = db
+        _ = deployment_id
+        return False
+
+    async def no_op(*args, **kwargs) -> None:
+        _ = args
+        _ = kwargs
+
+    for module in (
+        deploy_project,
+        redeploy_project,
+    ):
+        monkeypatch.setattr(
+            module,
+            "deployment_history_completed",
+            completed,
+        )
+        monkeypatch.setattr(
+            module,
+            "mark_deployment_started",
+            no_op,
+        )
+        monkeypatch.setattr(
+            module,
+            "persist_pipeline_result_history",
+            no_op,
+        )
+        monkeypatch.setattr(
+            module,
+            "persist_deployment_failure_safely",
+            no_op,
+        )
+
+
 class FakeDB:
     pass
 

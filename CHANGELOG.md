@@ -23,6 +23,8 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - AG-001 Deploy Provider Gate standalone foundation with Cloudflare default and fail-closed future resolver support.
 - Trusted server-owned provider execution policy foundation with default `disabled`, explicit `cloudflare`, and fail-closed unknown modes.
 - Worker Runtime policy resolution, Job Dispatcher trusted handoff, and deploy/redeploy binding integration.
+- Deployment History persistence for pipeline intents, provider summaries, terminal failures, and completed-deployment duplicate suppression.
+- Deterministic history-write replay keys preventing duplicate logs during sequential retries.
 - Current project-status documentation.
 
 ### Changed
@@ -43,14 +45,16 @@ All notable YGIT MVP implementation releases and active engineering foundations 
 - Worker Runtime architecture suite: 4 passed.
 - Deploy/redeploy architecture suite: 2 passed.
 - AG-001 regression: 15 passed.
-- Full suite: 480 passed.
+- Deployment History runtime suite: 8 passed.
+- Deployment History idempotency suite: 4 passed.
+- Full suite: 492 passed.
 - Smoke test with database skipped: PASS.
 - Release gate with database skipped: PASS.
 
 ### Not Yet Enabled
 
-- Provider result persistence into Deployment History Engine.
-- Minimum production retry/idempotency and recovery hardening.
+- Controlled PostgreSQL verification of provider-result persistence.
+- Live retry, timeout, and recovery behavior under production infrastructure.
 - AG-001 runtime wiring or future YGIT App resolver integration.
 - Live PostgreSQL, Redis worker, GitHub API, and Cloudflare Pages execution.
 

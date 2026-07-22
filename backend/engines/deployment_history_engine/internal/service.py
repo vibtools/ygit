@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from math import ceil
 from typing import Any
 
@@ -23,6 +25,10 @@ from backend.engines.deployment_history_engine.schemas import (
 )
 from backend.pipelines.deploy_pipeline.contract import DeployPipelineStage
 from backend.pipelines.deploy_pipeline.schemas import HistoryWriteIntent
+
+
+HISTORY_WRITE_KEYS_METADATA = "history_write_keys"
+MAX_HISTORY_WRITE_KEYS = 64
 
 
 class DeploymentHistoryInternalService:
@@ -76,6 +82,20 @@ class DeploymentHistoryInternalService:
     ) -> HistoryWriteResult:
         context = await self._require_deployment_context(db, intent.deployment_id)
         existing = await self.repository.get_history_record(db, intent.deployment_id)
+        intent_key = self._history_write_key(intent)
+        processed_keys = self._history_write_keys(existing)
+
+        if (
+            existing is not None
+            and intent_key in processed_keys
+        ):
+            return HistoryWriteResult(
+                deployment_id=intent.deployment_id,
+                status=existing.status,
+                logs_written=0,
+                provider_summary_written=False,
+            )
+
         if existing is None:
             await self.repository.create_history_record(
                 db,
@@ -90,6 +110,12 @@ class DeploymentHistoryInternalService:
         metadata: dict[str, Any] = dict(intent.metadata or {})
         metadata["pipeline_stage"] = str(intent.stage.value if isinstance(intent.stage, DeployPipelineStage) else intent.stage)
         metadata["pipeline_event"] = str(intent.event_name)
+        metadata[HISTORY_WRITE_KEYS_METADATA] = (
+            [
+                *processed_keys,
+                intent_key,
+            ][-MAX_HISTORY_WRITE_KEYS:]
+        )
 
         await self.repository.update_history_status(
             db,
@@ -118,6 +144,21 @@ class DeploymentHistoryInternalService:
             status=intent.history_status,
             logs_written=len(intent.log_entries),
             provider_summary_written=provider_result is not None,
+        )
+
+    async def get_runtime_record(
+        self,
+        db: AsyncSession,
+        *,
+        deployment_id: str,
+    ) -> DeploymentHistoryRecord | None:
+        await self._require_deployment_context(
+            db,
+            deployment_id,
+        )
+        return await self.repository.get_history_record(
+            db,
+            deployment_id,
         )
 
     async def mark_started(self, db: AsyncSession, *, deployment_id: str) -> DeploymentHistoryRecord:
@@ -244,6 +285,51 @@ class DeploymentHistoryInternalService:
         if context is None:
             raise DeploymentHistoryNotFoundError()
         return context
+
+    @staticmethod
+    def _history_write_key(
+        intent: HistoryWriteIntent,
+    ) -> str:
+        payload = intent.model_dump(
+            mode="json",
+            exclude_none=False,
+        )
+        encoded = json.dumps(
+            payload,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("utf-8")
+        return hashlib.sha256(
+            encoded
+        ).hexdigest()
+
+    @staticmethod
+    def _history_write_keys(
+        record: DeploymentHistoryRecord | None,
+    ) -> list[str]:
+        if record is None:
+            return []
+
+        metadata = dict(
+            getattr(record, "metadata", {})
+            or {}
+        )
+        raw_keys = metadata.get(
+            HISTORY_WRITE_KEYS_METADATA,
+            [],
+        )
+
+        if not isinstance(raw_keys, list):
+            return []
+
+        keys = [
+            value
+            for value in raw_keys
+            if isinstance(value, str)
+            and value
+        ]
+        return keys[-MAX_HISTORY_WRITE_KEYS:]
 
     def _provider_result_from_intent(self, intent: HistoryWriteIntent) -> ProviderResultSummary | None:
         if intent.provider_summary is None:

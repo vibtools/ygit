@@ -8,6 +8,12 @@ from backend.pipelines.deploy_pipeline.public import DeployBuildStageInput, depl
 from backend.workers.errors import WorkerBuildStageFailedError
 from backend.workers.git_checkout import run_git_checkout
 from backend.workers.jobs.deployment_outcome import require_completed_pipeline_result
+from backend.workers.jobs.deployment_history_runtime import (
+    deployment_history_completed,
+    mark_deployment_started,
+    persist_deployment_failure_safely,
+    persist_pipeline_result_history,
+)
 from backend.workers.jobs.deployment_runtime import (
     build_provider_pipeline_binding,
     build_stage_input,
@@ -124,6 +130,15 @@ async def run(
     """
 
     deployment_id = str(payload["deployment_id"])
+
+    if (
+        db is not None
+        and await deployment_history_completed(
+            db,
+            deployment_id,
+        )
+    ):
+        return
     runtime_payload = _payload_with_workspace_if_checkout_ready(deployment_id, payload)
     build_input = _build_stage_input(deployment_id, runtime_payload)
     build_result = None
@@ -167,15 +182,36 @@ async def run(
         active_pipeline = binding.pipeline
         active_context = binding.context
 
-    deployment_result = (
-        await execute_deployment_with_context(
-            active_pipeline,
-            deployment_id,
-            context=active_context,
-        )
-    )
+    try:
+        if db is not None:
+            await mark_deployment_started(
+                db,
+                deployment_id,
+            )
 
-    require_completed_pipeline_result(
-        deployment_id=deployment_id,
-        result=deployment_result,
-    )
+        deployment_result = (
+            await execute_deployment_with_context(
+                active_pipeline,
+                deployment_id,
+                context=active_context,
+            )
+        )
+
+        if db is not None:
+            await persist_pipeline_result_history(
+                db,
+                deployment_result,
+            )
+
+        require_completed_pipeline_result(
+            deployment_id=deployment_id,
+            result=deployment_result,
+        )
+    except Exception as exc:
+        if db is not None:
+            await persist_deployment_failure_safely(
+                db,
+                deployment_id,
+                exc,
+            )
+        raise

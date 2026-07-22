@@ -1,6 +1,6 @@
 # YGIT Current Engineering Audit Report
 
-Version: 1.1
+Version: 1.2
 Status: Verified Foundation / Pre-Live Integration
 Updated: 2026-07-21
 
@@ -16,6 +16,7 @@ This report covers the current YGIT MVP source through:
 - DB-aware default-disabled deploy/redeploy handler binding.
 - Trusted server-owned provider execution policy foundation.
 - Worker Runtime, Job Dispatcher, and deploy/redeploy policy-handoff integration.
+- Deployment History result/failure persistence and retry-safe intent replay protection.
 - AG-001 Deploy Provider Gate standalone foundation.
 - Connected Accounts metadata and repository-reuse UI.
 
@@ -35,7 +36,9 @@ This report covers the current YGIT MVP source through:
 | Worker Runtime architecture tests | 4 passed |
 | Deploy/redeploy architecture tests | 2 passed |
 | AG-001 regression | 15 passed |
-| Full test suite | 480 passed |
+| Deployment History runtime tests | 8 passed |
+| Deployment History idempotency tests | 4 passed |
+| Full test suite | 492 passed |
 | Smoke test with database skipped | PASS |
 | Release gate with database skipped | PASS |
 | Basic secret scan | PASS |
@@ -45,6 +48,9 @@ This report covers the current YGIT MVP source through:
 | Trusted provider execution policy | RUNTIME WIRED, DEFAULT DISABLED |
 | AG-001 runtime integration | NOT WIRED |
 | YGIT App Engine | NOT CREATED |
+| Deployment History runtime persistence | WIRED, NOT LIVE-VERIFIED |
+| Retry-safe history intent replay | IMPLEMENTED |
+| Completed deployment duplicate suppression | IMPLEMENTED |
 | Live provider execution | NOT EXECUTED |
 
 One non-blocking `StarletteDeprecationWarning` remains in the existing test-client dependency path.
@@ -64,7 +70,9 @@ One non-blocking `StarletteDeprecationWarning` remains in the existing test-clie
 - The global/default Deploy Pipeline remains the contract-skeleton path.
 - Provider-enabled context is created only inside the trusted runtime binding function.
 - Job payload `execution_mode` does not activate provider execution.
-- Deployment History Engine remains the intended persistence owner.
+- Deployment History Engine remains the persistence owner and now consumes pipeline history intents through its public boundary.
+- Deterministic intent keys prevent duplicate log writes during sequential retries.
+- Completed history records short-circuit duplicate deploy/redeploy execution.
 
 ## Documentation Findings
 
@@ -99,7 +107,7 @@ No production-readiness claim is made for these areas.
 Primary remaining risks are integration risks rather than missing core provider primitives:
 
 - Controlled activation and validation of the explicit `cloudflare` policy in the live environment.
-- Provider-result persistence and transaction boundaries with Deployment History Engine.
+- Live PostgreSQL transaction behavior and provider-result persistence evidence.
 - Reviewed future AG-001 runtime integration without changing the current Cloudflare default.
 - Transaction boundaries between worker state and deployment history.
 - Provider timeout and retry behavior.

@@ -37,9 +37,9 @@
     "date": "2026-07-21",
     "status": "pre_live_runtime_handoff_ready",
     "mvp_completion_estimate": "approximately_95_percent",
-    "controlled_live_path_estimate": "approximately_93_94_percent",
+    "controlled_live_path_estimate": "approximately_96_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "480_passed_1_warning",
+    "full_test_suite": "492_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false
   },
@@ -105,9 +105,10 @@
       "cloudflare_gateway_orchestration": true,
       "runtime_pipeline_binding": "trusted_policy_handoff_ready_default_disabled",
       "worker_handlers_wired": true,
-      "history_persistence_wired": false,
+      "history_persistence_wired": true,
       "live_provider_verified": false,
-      "version": "0.1.0"
+      "version": "0.1.0",
+      "history_replay_idempotency": "deterministic_intent_key"
     }
   },
   "platform": {
@@ -191,6 +192,13 @@
       "worker_runtime_owner": true,
       "dispatcher_handoff": true,
       "handler_wiring": true
+    },
+    "deployment_history_runtime": {
+      "status": "wired_not_live_verified",
+      "completed_duplicate_guard": true,
+      "failure_persistence": true,
+      "intent_replay_idempotency": true,
+      "live_postgresql_verified": false
     }
   },
   "live_runtime_smoke_test_plan": {

@@ -71,7 +71,10 @@
     "provider_execution_policy_payload_control": false,
     "provider_execution_policy_worker_runtime_owner": true,
     "provider_execution_policy_dispatcher_handoff": true,
-    "provider_execution_policy_handler_wiring": true
+    "provider_execution_policy_handler_wiring": true,
+    "deployment_history_runtime": "wired_not_live_verified",
+    "deployment_history_intent_replay": "deterministic_idempotency",
+    "completed_duplicate_guard": true
   },
   "verification_commands": [
     "python -m compileall -q backend scripts",
