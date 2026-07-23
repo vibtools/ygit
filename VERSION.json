@@ -39,7 +39,7 @@
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "579_passed,_1_warning",
+    "full_test_suite": "579_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false,
     "live_readiness_tooling": {
