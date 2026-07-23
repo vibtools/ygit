@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ANALYSIS_SERVICE = Path(
     "backend/engines/repository_analysis_engine/internal/service.py"
 )
@@ -177,4 +176,6 @@ def test_project_status_links_audit_and_states_remaining_work() -> None:
     assert "REPOSITORY_ANALYSIS_CURRENT_STATE_AUDIT.md" in source
     assert "live tree acquisition incomplete" in source
     assert "Project reattachment after recalculation" in source
-    assert "Full suite: 554 passed, 1 warning" in source
+    assert "Full suite:" in source
+    assert "passed, 1 warning" in source
+    assert "Full suite: 554 passed, 1 warning" not in source

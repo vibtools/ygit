@@ -2,6 +2,35 @@
 
 All notable YGIT MVP implementation releases and active engineering foundations are tracked here.
 
+## Unreleased — Phase 0 Baseline Reconciliation and AG-002 — 2026-07-23
+
+### Added
+
+- Immutable running baseline lock at commit `b9019b79d1af3fe73d1a74769792ebb6958c4f4c`.
+- AG-002 Repository Provider Gate as a standalone Repository Engine decision contract.
+- AG-002 architecture documentation and regression coverage.
+- Explicit `.env.example` entries for the default-disabled GitHub webhook and worker provider-execution mode.
+
+### Changed
+
+- Reconciled `README.md`, `PROJECT_STATUS.md`, `VERSION.json`, `CONTRACT_MANIFEST.json`, and `AUDIT_REPORT.md` with the current authoritative engineering state.
+- Removed duplicate Worker Runtime identity/queue entries from `.env.example`.
+- Aligned the immediate critical path around real GitHub App repository acquisition, real analysis evidence, and one controlled Cloudflare deployment.
+
+### Verified
+
+- AG-002 regression: 9 passed.
+- Full suite: 579 passed, 1 warning.
+- Smoke test with database skipped: PASS.
+- Release gate with database skipped: PASS.
+
+### Runtime Boundary
+
+- GitHub remains the Repository Engine default.
+- AG-002 is not imported by the current Repository Engine service.
+- No provider adapter, API route, database model, migration, worker behavior, deployment behavior, or production configuration is changed.
+- No Coolify redeploy is required for this isolated foundation and documentation reconciliation patch.
+
 ## Unreleased — Provider Orchestration and Runtime Binding Foundations — 2026-07-21
 
 ### Added

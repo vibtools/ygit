@@ -83,8 +83,8 @@ Object storage target: Cloudflare R2
 | Auth Engine | Implemented with OIDC/session boundaries |
 | Connected Accounts Module | Implemented with GitHub/Cloudflare connection state, credential references, credential acquisition boundary, metadata UI, scopes, last-sync data, and disconnect/reconnect flows |
 | Project Engine | Implemented |
-| Repository Engine | Implemented |
-| Repository Analysis Engine | Implemented for MVP quick/deep analysis contracts |
+| Repository Engine | Metadata persistence implemented; AG-002 standalone provider gate foundation added but not runtime-wired; real installation-token tree acquisition remains incomplete |
+| Repository Analysis Engine | Quick-analysis contract implemented; real repository tree input, deep execution, and Project reattachment remain incomplete |
 | Deploy Engine | Implemented for validation, queued deployment lifecycle, redeploy, cancel, and reads |
 | Deploy Pipeline | Contracts, build stage, Cloudflare operation plan, concrete Cloudflare Pages gateway, completion result branch, and isolated provider pipeline factory implemented |
 | Deployment History Engine | Pipeline completion/failure persistence, retry-safe intent consumption, logs, and provider-result storage integrated through the public engine boundary |
@@ -100,7 +100,9 @@ Object storage target: Cloudflare R2
 
 ## App Gate Foundations
 
-AG-001 Deploy Provider Gate is implemented as a standalone Deploy Engine extension contract.
+### AG-001 — Deploy Provider Gate
+
+AG-001 remains a standalone Deploy Engine extension contract.
 
 ```text
 build_target missing
@@ -114,7 +116,25 @@ injected future resolver
 selected provider
 ```
 
-AG-001 is not runtime-wired. It does not call providers, access the database, mutate deployment state, or create a YGIT App Engine. Current Cloudflare behavior remains unchanged.
+AG-001 is not runtime-wired. Current Cloudflare deployment behavior remains unchanged.
+
+### AG-002 — Repository Provider Gate
+
+AG-002 is a standalone Repository Engine decision contract.
+
+```text
+repository provider missing
+        ↓
+github
+
+repository provider present
+        ↓
+selected provider
+```
+
+GitHub remains the current default. AG-002 does not call providers, access the database, change repository parsing or metadata acquisition, add routes or migrations, or wire future providers into runtime. GitLab, Bitbucket, Azure DevOps, and other providers remain future work requiring separate architecture approval.
+
+See [AG-002 Repository Provider Gate](docs/architecture/AG_002_REPOSITORY_PROVIDER_GATE.md).
 
 ## Provider Execution Safety State
 
@@ -139,6 +159,7 @@ Still disabled or incomplete:
 
 - Default production configuration remains provider-disabled until controlled live validation.
 - AG-001 runtime integration and future YGIT App resolver integration.
+- AG-002 runtime integration and future non-GitHub repository provider adapters.
 - Controlled live verification of provider-result/history persistence against PostgreSQL.
 - Live Cloudflare API execution from the production worker.
 - Controlled end-to-end PostgreSQL, Redis worker, and Cloudflare Pages validation.
@@ -148,6 +169,7 @@ Still disabled or incomplete:
 Latest verified local run for the current foundation:
 
 ```text
+Running baseline lock: PASS at b9019b79d1af3fe73d1a74769792ebb6958c4f4c
 Provider execution policy unit tests: 18 passed
 Provider policy runtime integration tests: 9 passed
 Handler binding regression: 5 passed
@@ -155,11 +177,12 @@ Dispatcher DB regression: 5 passed
 Worker Runtime architecture tests: 4 passed
 Deploy/redeploy architecture tests: 2 passed
 AG-001 regression: 15 passed
+AG-002 regression: 9 passed
 Deployment History runtime tests: 8 passed
 Deployment History idempotency tests: 4 passed
 Live-readiness tooling tests: 18 passed
 Runtime image packaging tests: 4 passed
-Full suite: 514 passed
+Full suite: 579 passed, 1 warning
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Live PostgreSQL: NOT EXECUTED
@@ -183,11 +206,13 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Redeploy the conditional GitHub App webhook-readiness correction commit to Coolify with provider mode `disabled` and `GITHUB_APP_WEBHOOK_ENABLED=false`.
-2. Run pre/post-redeploy PostgreSQL, Redis, API, authentication-shell, and configuration checks.
-3. Connect dedicated GitHub and Cloudflare test accounts, then enable `cloudflare` mode for one controlled deployment.
-4. Fix only defects demonstrated by live evidence.
-5. Integrate AG-001 only when a reviewed future App Engine contract is approved.
+1. Redeploy the current main branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
+2. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
+3. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
+4. Implement the approved deep-analysis execution and Project reattachment boundaries.
+5. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
+6. Resolve only defects demonstrated by live evidence.
+7. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
 
 ## Documentation Scope
 
@@ -199,6 +224,8 @@ The following files are current project references:
 - `CONTRACT_MANIFEST.json`
 - `CHANGELOG.md`
 - `AUDIT_REPORT.md`
+- `REPOSITORY_ANALYSIS_CURRENT_STATE_AUDIT.md`
+- `docs/architecture/AG_002_REPOSITORY_PROVIDER_GATE.md`
 
 The MVP release-gate and live-runtime-smoke-plan documents remain historical versioned artifacts. They should not be interpreted as the complete current implementation snapshot.
 

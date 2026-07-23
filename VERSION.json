@@ -34,12 +34,12 @@
     "migration_head": "0012_notification_engine"
   },
   "development_snapshot": {
-    "date": "2026-07-21",
+    "date": "2026-07-23",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "514_passed_1_warning",
+    "full_test_suite": "579_passed,_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false,
     "live_readiness_tooling": {
@@ -75,6 +75,13 @@
         "receiver_endpoint": null,
         "live_verified": false
       }
+    },
+    "baseline_lock": {
+      "status": "locked",
+      "commit": "b9019b79d1af3fe73d1a74769792ebb6958c4f4c",
+      "tag": "ygit-baseline-mvp-pre-completion-2026-07-23",
+      "branch": "baseline/mvp-pre-completion-2026-07-23",
+      "full_test_suite": "570_passed_1_warning"
     }
   },
   "domain": {
@@ -258,6 +265,26 @@
       "build_target_resolution": true,
       "app_engine_created": false,
       "live_execution": false
+    },
+    "ag_002_repository_provider_gate": {
+      "audit_name": "AG-002 Repository Provider Gate",
+      "engine": "repository_engine",
+      "status": "foundation_ready_not_runtime_wired",
+      "default_provider": "github",
+      "missing_provider_resolution": "github",
+      "explicit_provider_resolution": "selected_provider",
+      "current_repository_logic_changed": false,
+      "runtime_wired": false,
+      "provider_access": false,
+      "database_access": false,
+      "api_routes_added": false,
+      "migration_added": false,
+      "future_providers": [
+        "github",
+        "gitlab",
+        "bitbucket",
+        "azure_devops"
+      ]
     }
   }
 }

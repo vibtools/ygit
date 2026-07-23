@@ -2,7 +2,7 @@
 
 Version: 0.1.0
 Status: Active Engineering Snapshot
-Updated: 2026-07-22
+Updated: 2026-07-23
 Product: YGIT
 Company: Vib Tools
 
@@ -51,7 +51,7 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 | Auth Engine | Implemented | Controlled production identity/session validation |
 | Connected Accounts Module | Implemented | Live account/credential lifecycle validation under production configuration |
 | Project Engine | Implemented | No critical foundation gap identified |
-| Repository Engine | Metadata persistence implemented; live tree acquisition incomplete | GitHub App installation-token metadata/tree fetch, commit pinning, and private repository validation |
+| Repository Engine | Metadata persistence implemented; AG-002 standalone provider gate foundation added but not runtime-wired; live tree acquisition incomplete | GitHub App installation-token metadata/tree fetch, commit pinning, and private repository validation |
 | Repository Analysis Engine | Quick-analysis contract implemented; current live input is incomplete | Actual repository tree acquisition, deep-analysis execution, Project reattachment after recalculation, and broader framework validation |
 | Deploy Engine | Implemented; AG-001 provider gate foundation added but not runtime-wired | Provider result reconciliation and reviewed future gate integration |
 | Deploy Pipeline | Concrete Cloudflare orchestration and trusted policy-to-binding handoff implemented; default runtime disabled | Controlled live provider validation and operational hardening |
@@ -85,12 +85,16 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 - Deployment History runtime persistence and deterministic retry-safe history-write idempotency.
 - Production configuration, PostgreSQL, Redis, public-route, and provider-mode live-readiness tooling.
 - AG-001 Deploy Provider Gate foundation with Cloudflare default and fail-closed future resolver contract.
+- AG-002 Repository Provider Gate standalone foundation with GitHub default and unchanged current repository logic.
+- Running baseline locked at `b9019b79d1af3fe73d1a74769792ebb6958c4f4c` with immutable tag, baseline branch, source ZIP, Git bundle, and SHA-256 evidence.
 
 ## Current Safety Boundary
 
 The default runtime remains provider-disabled.
 
 A concrete provider pipeline can be assembled only through the Worker Runtime-owned policy decision. Worker Runtime resolves the server setting, Job Dispatcher transports the immutable policy, and deploy/redeploy handlers validate it before handing a boolean to the neutral binding. The default mode is `disabled`; job payload fields cannot control the policy or enable execution. AG-001 remains standalone and is not used by runtime execution.
+
+AG-002 is a standalone Repository Engine decision contract. A missing provider resolves to `github`; an explicit provider remains the selected provider. The gate is not imported by the current Repository Engine service and does not change URL parsing, GitHub metadata acquisition, persistence, analysis input, provider calls, API routes, database models, migrations, or runtime execution.
 
 Provider results and failures are now routed through the Deployment History Engine public boundary. Deterministic intent keys prevent duplicate history logs during sequential job retries, and an existing completed history record blocks duplicate provider execution. Live PostgreSQL, Redis, GitHub, and Cloudflare evidence is still required.
 
@@ -106,6 +110,7 @@ Dispatcher DB regression: 5 passed
 Worker Runtime architecture: 4 passed
 Deploy/redeploy architecture: 2 passed
 AG-001 regression: 15 passed
+AG-002 regression: 9 passed
 Deployment History runtime: 8 passed
 Deployment History idempotency: 4 passed
 Live-readiness tooling: 18 passed
@@ -114,7 +119,7 @@ GitHub App permission capture: 7 passed
 Dashboard compact provider cards: 10 passed
 Project Open UI: 9 passed
 Project Deploy UI: 9 passed
-Full suite: 554 passed, 1 warning
+Full suite: 579 passed, 1 warning
 Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 ```
@@ -129,7 +134,7 @@ Database checks were skipped. External providers were not executed.
 4. Implement the approved deep-analysis execution and Project reattachment boundaries.
 5. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
 6. Resolve only defects demonstrated by live evidence.
-7. Review AG-001 runtime integration only as part of future YGIT App Engine work.
+7. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
 
 ## Documentation Authority
 
@@ -149,6 +154,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-23 | 2.0 | Locked the running baseline, reconciled current status/configuration evidence, and added the standalone AG-002 Repository Provider Gate foundation without runtime wiring |
 | 2026-07-22 | 1.9 | Documented the current Repository Analysis input, readiness, deep-queue, recalculation, and Project attachment gaps |
 | 2026-07-22 | 1.8 | Made GitHub App webhook readiness conditional and locked the current webhook capability off |
 | 2026-07-21 | 1.7 | Locked GitHub integration to the GitHub App contract and corrected live-readiness validation |
