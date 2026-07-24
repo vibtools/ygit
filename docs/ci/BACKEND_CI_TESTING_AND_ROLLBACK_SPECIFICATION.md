@@ -1,7 +1,7 @@
 # YGIT Backend CI Testing and Rollback Specification
 
-**Version:** 0.1.5
-**Status:** PR Validation Complete / Post-Merge Pending
+**Version:** 0.1.6
+**Status:** PR and Main Validation Complete
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Testing and Rollback Specification
@@ -1420,6 +1420,7 @@ This document still does not authorize:
 | 2026-07-23 | 0.1.2 | Draft for Approval | Replaced the invalid full-backend MyPy success requirement with a deferral audit based on the locked-head 744-error diagnostic and a separate future enablement gate |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the pre-workflow head and added a resolver simulation matrix covering root-level scripts, NUL-delimited paths, rename/deletion behavior, spaces, and zero-`before` fallback |
 | 2026-07-23 | 0.1.4 | Draft for Approval | Replaced the recursively stale hard-coded pre-workflow SHA with a patch-manifest authority and added head-alignment and stale-document rejection tests |
+| 2026-07-24 | 0.1.6 | PR and Main Validation Complete | Recorded controlled merge `6e44866de9ec3a3a745777afc12276f903259709` and successful push-triggered validation run `30106115262` / job `89523839117`; branch protection remains separately pending |
 | 2026-07-24 | 0.1.5 | PR Validation Complete / Post-Merge Pending | Recorded successful local and pull-request validation evidence while retaining post-merge push CI and branch-protection readiness as pending |
 
 ---
@@ -1442,10 +1443,10 @@ smoke --skip-db
 release gate --skip-db
 
 Remote test:
-pull_request workflow on PR #1 — SUCCESS (run 30061513976 / job 89383928195)
+pull_request workflow on PR #1 — SUCCESS (run 30096212556 / job 89490793519)
 
 Post-merge test:
-push workflow on main — PENDING
+push workflow on main — SUCCESS (run 30106115262 / job 89523839117 on 6e44866de9ec3a3a745777afc12276f903259709)
 
 Production secrets:
 forbidden
@@ -1465,8 +1466,8 @@ revert commit
 Force push:
 forbidden without separate approval
 
-PR state during validation:
-OPEN and DRAFT
+PR final state:
+CLOSED and MERGED
 
 Automatic merge:
 forbidden

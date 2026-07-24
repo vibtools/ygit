@@ -65,7 +65,7 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 | Admin Panel | Implemented | Production operations validation |
 | GitHub Provider | Foundation implemented | Controlled live API execution |
 | Cloudflare Provider | OAuth/account and Pages deployment primitives implemented | Controlled live API execution and operational hardening |
-| Backend CI | Implemented; Draft PR pull-request validation succeeded with stable status `Backend CI / Validate` | Documentation/PR metadata closure, approved merge, post-merge push validation, and separately approved branch protection |
+| Backend CI | Implemented; pull-request and merged-main push validation succeeded with stable status `Backend CI / Validate` | Separately approved branch protection; PR #1 merged at `6e44866de9ec3a3a745777afc12276f903259709` |
 
 ## Recently Completed Foundations
 
@@ -88,7 +88,8 @@ Business logic remains outside the Dashboard. Providers are not imported directl
 - AG-001 Deploy Provider Gate foundation with Cloudflare default and fail-closed future resolver contract.
 - AG-002 Repository Provider Gate standalone foundation with GitHub default and unchanged current repository logic.
 - Running baseline locked at `b9019b79d1af3fe73d1a74769792ebb6958c4f4c` with immutable tag, baseline branch, source ZIP, Git bundle, and SHA-256 evidence.
-- Backend CI workflow implemented at `.github/workflows/backend-ci.yml`; pull-request run `30061513976` and `Validate` job `89383928195` completed successfully with read-only contents permission and provider execution disabled.
+- Backend CI workflow implemented at `.github/workflows/backend-ci.yml`; final-head pull-request run `30096212556` / job `89490793519` and merged-main push run `30106115262` / job `89523839117` completed successfully with read-only contents permission and provider execution disabled.
+- Phase 0 merged through PR #1 at `6e44866de9ec3a3a745777afc12276f903259709`; the feature branch remains preserved and no deployment or branch-protection change was performed.
 
 ## Current Safety Boundary
 
@@ -126,9 +127,13 @@ Smoke --skip-db: PASS
 Release gate --skip-db: PASS
 Backend CI workflow: IMPLEMENTED
 Backend CI / Validate: SUCCESS
-Backend CI pull-request run: 30061513976
-Backend CI job: 89383928195
-Backend CI post-merge push verification: PENDING
+Backend CI final-head pull-request run: 30096212556
+Backend CI final-head pull-request job: 89490793519
+Backend CI post-merge push run: 30106115262
+Backend CI post-merge push job: 89523839117
+Backend CI post-merge push verification: SUCCESS
+Phase 0 merge commit: 6e44866de9ec3a3a745777afc12276f903259709
+Phase 0 completion: COMPLETE
 Branch protection required-check enablement: NOT AUTHORIZED
 ```
 
@@ -136,17 +141,13 @@ Database checks were skipped. External providers were not executed.
 
 ## Remaining Critical Path
 
-1. Close Backend CI documentation/status evidence and verify the new Draft PR workflow result.
-2. Reconcile PR metadata and complete the final read-only audit.
-3. Obtain explicit Ready-for-review and merge approvals; no automatic transition or merge is allowed.
-4. After controlled merge, verify the `push`-triggered `Backend CI / Validate` result on `main` and record Phase 0 completion.
-5. Redeploy the current `main` branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
-6. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
-7. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
-8. Implement the approved deep-analysis execution and Project reattachment boundaries.
-9. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
-10. Resolve only defects demonstrated by live evidence.
-11. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
+1. Redeploy the verified current `main` branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
+2. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
+3. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
+4. Implement the approved deep-analysis execution and Project reattachment boundaries.
+5. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
+6. Resolve only defects demonstrated by live evidence.
+7. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
 
 ## Documentation Authority
 
@@ -159,6 +160,7 @@ Current-state documents:
 - `CHANGELOG.md`
 - `AUDIT_REPORT.md`
 - `REPOSITORY_ANALYSIS_CURRENT_STATE_AUDIT.md`
+- `docs/phase0/PHASE0_COMPLETION_RECORD.md`
 - `docs/ci/BACKEND_CI_SPECIFICATION.md`
 - `docs/ci/BACKEND_CI_IMPLEMENTATION_PLAN.md`
 - `docs/ci/BACKEND_CI_TESTING_AND_ROLLBACK_SPECIFICATION.md`
@@ -170,6 +172,7 @@ Historical release artifacts retain their original versioned purpose. Where a hi
 
 | Date | Revision | Summary |
 |---|---|---|
+| 2026-07-24 | 2.2 | Recorded PR #1 controlled merge, merge commit `6e44866de9ec3a3a745777afc12276f903259709`, successful merged-main Backend CI, and Phase 0 completion |
 | 2026-07-24 | 2.1 | Recorded Backend CI implementation, successful Draft PR validation, security boundaries, and remaining post-merge Phase 0 gates |
 | 2026-07-23 | 2.0 | Locked the running baseline, reconciled current status/configuration evidence, and added the standalone AG-002 Repository Provider Gate foundation without runtime wiring |
 | 2026-07-22 | 1.9 | Documented the current Repository Analysis input, readiness, deep-queue, recalculation, and Project attachment gaps |

@@ -186,9 +186,10 @@ Full suite: 579 passed, 1 warning
 Smoke test with database skipped: PASS
 Release gate with database skipped: PASS
 Backend CI workflow: IMPLEMENTED at .github/workflows/backend-ci.yml
-Backend CI / Validate (pull-request run 30061513976): SUCCESS
-Backend CI job 89383928195: completed / success
-Backend CI post-merge push verification: PENDING
+Backend CI final-head pull-request validation: SUCCESS — run 30096212556 / job 89490793519
+Backend CI post-merge main validation: SUCCESS — run 30106115262 / job 89523839117
+Phase 0 merge commit: 6e44866de9ec3a3a745777afc12276f903259709
+Phase 0 completion record: COMPLETE
 Branch-protection required-check enablement: NOT AUTHORIZED
 Live PostgreSQL: NOT EXECUTED
 Live Redis worker loop: NOT EXECUTED
@@ -201,7 +202,7 @@ The recurring `StarletteDeprecationWarning` is non-blocking and relates to the e
 
 ## Backend CI State
 
-The initial Backend CI workflow is implemented on Draft PR #1.
+Backend CI is implemented, PR-verified, merged through PR #1, and push-verified on the resulting `main` merge commit.
 
 ```text
 Workflow file: .github/workflows/backend-ci.yml
@@ -210,14 +211,17 @@ Job: Validate
 Stable status: Backend CI / Validate
 Pull-request validation: SUCCESS
 Workflow commit: 7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2
-Run ID: 30061513976
-Job ID: 89383928195
+Final-head PR run ID: 30096212556
+Final-head PR job ID: 89490793519
+Merge commit: 6e44866de9ec3a3a745777afc12276f903259709
+Post-merge push run ID: 30106115262
+Post-merge push job ID: 89523839117
 Permissions: contents read
 Python: 3.12
 MyPy required gate: DEFERRED
 Provider execution: DISABLED
 Production secrets: NOT USED
-Post-merge push validation: PENDING
+Post-merge push validation: SUCCESS
 Branch protection: NOT ENABLED
 ```
 
@@ -235,16 +239,13 @@ Live checks must use the controlled runtime runbook and dedicated test accounts.
 
 ## Immediate Critical Path
 
-1. Complete Backend CI documentation/status closure and verify `Backend CI / Validate` on the resulting Draft PR commit.
-2. Reconcile PR #1 title/body, rerun the final read-only audit, and obtain explicit Ready-for-review and merge approvals.
-3. After an approved merge, verify the `push`-triggered `Backend CI / Validate` result on `main` and record Phase 0 completion.
-4. Redeploy the current `main` branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
-5. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
-6. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
-7. Implement the approved deep-analysis execution and Project reattachment boundaries.
-8. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
-9. Resolve only defects demonstrated by live evidence.
-10. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
+1. Redeploy the verified current `main` branch and validate the Dashboard compact provider cards, Project Open flow, and backend-readiness-gated Deploy flow.
+2. Reduce the GitHub App to the approved minimum permissions, reconnect the controlled installation, and verify captured permission scopes.
+3. Implement GitHub App installation-token repository acquisition with a pinned commit SHA and normalized real file-tree snapshot.
+4. Implement the approved deep-analysis execution and Project reattachment boundaries.
+5. Confirm `deploy_ready=true` from real repository evidence and execute one controlled Cloudflare Pages deployment.
+6. Resolve only defects demonstrated by live evidence.
+7. Keep AG-001 and AG-002 runtime integration deferred until separate post-MVP architecture approval.
 
 ## Documentation Scope
 
@@ -258,6 +259,7 @@ The following files are current project references:
 - `AUDIT_REPORT.md`
 - `REPOSITORY_ANALYSIS_CURRENT_STATE_AUDIT.md`
 - `docs/architecture/AG_002_REPOSITORY_PROVIDER_GATE.md`
+- `docs/phase0/PHASE0_COMPLETION_RECORD.md`
 - `docs/ci/BACKEND_CI_SPECIFICATION.md`
 - `docs/ci/BACKEND_CI_IMPLEMENTATION_PLAN.md`
 - `docs/ci/BACKEND_CI_TESTING_AND_ROLLBACK_SPECIFICATION.md`
