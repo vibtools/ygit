@@ -133,11 +133,12 @@
     "live_postgresql_verified": false
   },
   "development_snapshot": {
-    "date": "2026-07-23",
+    "date": "2026-07-24",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
     "latest_full_suite": "579_passed_1_warning",
-    "release_gate_skip_db": "pass"
+    "release_gate_skip_db": "pass",
+    "backend_ci_status": "implemented_pr_verified_post_merge_pending"
   },
   "engine_contract": "1.0",
   "engine_contract_version": "1.0",
@@ -153,7 +154,7 @@
     "platform_engine",
     "notification_engine"
   ],
-  "implementation": "FastAPI modular monolith with MVP engines, worker runtime, dashboard/admin surfaces, provider primitives, concrete Cloudflare orchestration, trusted provider-policy runtime handoff, default-disabled execution, AG-001 gate foundation, and AG-002 repository provider gate foundation",
+  "implementation": "FastAPI modular monolith with MVP engines, worker runtime, dashboard/admin surfaces, provider primitives, concrete Cloudflare orchestration, trusted provider-policy runtime handoff, default-disabled execution, AG-001 gate foundation, and AG-002 repository provider gate foundation, and Backend CI verification",
   "implementation_version": "0.1.0-pre-live-provider-integration",
   "implemented_components": [
     "worker_runtime_integration",
@@ -171,7 +172,8 @@
     "controlled_live_readiness_tooling",
     "runtime_image_live_readiness_packaging",
     "github_app_architecture_lock",
-    "ag_002_repository_provider_gate_foundation"
+    "ag_002_repository_provider_gate_foundation",
+    "backend_ci_workflow"
   ],
   "implemented_engines": [
     "audit_engine",
@@ -249,7 +251,11 @@
     "smoke_script": "scripts/smoke_test.py",
     "version_registry": "VERSION.json",
     "live_runtime_smoke_test_plan": "LIVE_RUNTIME_SMOKE_TEST_PLAN_v0.1.0.md",
-    "live_runtime_smoke_script": "scripts/live_runtime_smoke_test.py"
+    "live_runtime_smoke_script": "scripts/live_runtime_smoke_test.py",
+    "backend_ci_workflow": ".github/workflows/backend-ci.yml",
+    "backend_ci_specification": "docs/ci/BACKEND_CI_SPECIFICATION.md",
+    "backend_ci_implementation_plan": "docs/ci/BACKEND_CI_IMPLEMENTATION_PLAN.md",
+    "backend_ci_testing_and_rollback": "docs/ci/BACKEND_CI_TESTING_AND_ROLLBACK_SPECIFICATION.md"
   },
   "release_gate": {
     "new_migration": null,
@@ -406,6 +412,43 @@
       "api_routes_added": false,
       "migration_added": false,
       "future_runtime_wiring_requires_separate_approval": true
+    }
+  },
+  "backend_ci": {
+    "contract_version": "0.1.0",
+    "status": "implemented_pr_verified_post_merge_pending",
+    "workflow_path": ".github/workflows/backend-ci.yml",
+    "workflow_name": "Backend CI",
+    "job_id": "validate",
+    "job_name": "Validate",
+    "required_status": "Backend CI / Validate",
+    "triggers": [
+      "pull_request_to_main",
+      "push_to_main"
+    ],
+    "permissions": {
+      "contents": "read"
+    },
+    "python": "3.12",
+    "dependency_source": "pyproject.toml",
+    "mypy_required_gate": "deferred",
+    "production_secrets": "forbidden",
+    "provider_execution": "disabled",
+    "deployment_action": "absent",
+    "pull_request_validation": {
+      "verified": true,
+      "implementation_commit": "7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2",
+      "run_id": 30061513976,
+      "job_id": 89383928195,
+      "conclusion": "success"
+    },
+    "post_merge_push_validation": {
+      "verified": false,
+      "status": "pending_approved_merge"
+    },
+    "branch_protection": {
+      "enabled": false,
+      "authorized": false
     }
   }
 }

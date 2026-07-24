@@ -2,6 +2,37 @@
 
 All notable YGIT MVP implementation releases and active engineering foundations are tracked here.
 
+## Unreleased — Phase 0 Backend CI Documentation and Status Closure — 2026-07-24
+
+### Added
+
+- Backend CI workflow status and evidence across the authoritative current-state documents.
+- Machine-readable Backend CI quality-gate and contract records.
+- Successful Draft PR workflow evidence for `Backend CI / Validate`.
+
+### Changed
+
+- Transitioned Backend CI specification, implementation, and testing documents from draft/pre-implementation language to implemented and PR-verified states.
+- Updated the Phase 0 critical path to require documentation closure, PR metadata reconciliation, explicit Ready/merge approval, and post-merge `main` validation before Phase 0 completion.
+
+### Verified
+
+- Workflow: `Backend CI`.
+- Job: `Validate`.
+- Stable status: `Backend CI / Validate`.
+- Workflow implementation commit: `7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2`.
+- Pull-request run `30061513976`: SUCCESS.
+- Job `89383928195`: SUCCESS.
+- Full suite: 579 passed.
+- Smoke test with database skipped: PASS.
+- Release gate with database skipped: PASS.
+
+### Boundaries
+
+- Provider execution remains disabled.
+- No production secret, database service, Redis service, provider API, deployment action, or Coolify action is used by Backend CI.
+- Post-merge push validation, branch protection, Ready transition, merge, deployment, and Phase 0 completion remain pending separate approval.
+
 ## Unreleased — Phase 0 Baseline Reconciliation and AG-002 — 2026-07-23
 
 ### Added

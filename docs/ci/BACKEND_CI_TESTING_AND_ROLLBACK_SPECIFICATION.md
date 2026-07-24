@@ -1,7 +1,7 @@
 # YGIT Backend CI Testing and Rollback Specification
 
-**Version:** 0.1.4
-**Status:** Draft for Approval
+**Version:** 0.1.5
+**Status:** PR Validation Complete / Post-Merge Pending
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Testing and Rollback Specification
@@ -12,7 +12,7 @@
 **Target Repository:** `vibtools/ygit`
 **Target Branch:** `phase0/baseline-reconciliation-ag002`
 **Target Pull Request:** `#1`
-**Date:** 2026-07-23
+**Date:** 2026-07-24
 
 ---
 
@@ -87,6 +87,22 @@ Full-backend MyPy: DEFERRED; locked-head diagnostic reports 744 errors in 81 fil
 Full pytest suite: 579 passed, 1 warning
 Smoke test --skip-db: PASS
 Release gate --skip-db: PASS
+```
+
+Verified remote pull-request evidence:
+
+```text
+Workflow: Backend CI
+Required status: Backend CI / Validate
+Implementation commit: 7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2
+Run ID: 30061513976
+Run status: completed
+Run conclusion: success
+Job ID: 89383928195
+Job name: Validate
+Job conclusion: success
+Post-merge push validation: PENDING
+Branch protection: NOT ENABLED
 ```
 
 The exact test count is evidence only.
@@ -1295,6 +1311,30 @@ Backend CI testing is complete only when:
 
 ---
 
+## 27.1 Pull-Request Validation Completion Record
+
+The initial pull-request validation contract is complete for workflow commit `7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2`.
+
+```text
+Static workflow validation: PASS
+Local project gates: PASS
+Pull-request trigger: PASS
+Workflow run: 30061513976
+Workflow conclusion: success
+Validate job: 89383928195
+Validate conclusion: success
+Stable check: Backend CI / Validate
+PR state preserved: OPEN / DRAFT / UNMERGED
+Unresolved review threads: none
+Provider execution: disabled
+Production secrets: none
+Deployment: none
+```
+
+Testing is not fully complete for branch-protection readiness because the post-merge `push` workflow on `main` has not yet executed.
+
+---
+
 ## 28. Phase 0 Completion Dependency
 
 Backend CI validation is a Phase 0 completion dependency.
@@ -1351,17 +1391,13 @@ Backend CI testing and rollback must not introduce any part of that feature.
 
 ---
 
-## 30. Approval Gate
+## 30. Current Approval Gate
 
-Approval of this document authorizes:
+The controlled implementation, local validation, Draft PR push, and remote pull-request validation authorized by this document are complete.
 
-- preparation of a controlled Backend CI implementation patch;
-- execution of local CI validation;
-- push to the existing Draft PR #1;
-- remote GitHub Actions inspection;
-- rollback preparation if required.
+The remaining authorized activity is limited to documentation/status closure, PR metadata reconciliation, final read-only audit, and preparation for separately approved Ready/merge decisions.
 
-Approval does not authorize:
+This document still does not authorize:
 
 - marking PR #1 ready for review;
 - merging PR #1;
@@ -1384,6 +1420,7 @@ Approval does not authorize:
 | 2026-07-23 | 0.1.2 | Draft for Approval | Replaced the invalid full-backend MyPy success requirement with a deferral audit based on the locked-head 744-error diagnostic and a separate future enablement gate |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the pre-workflow head and added a resolver simulation matrix covering root-level scripts, NUL-delimited paths, rename/deletion behavior, spaces, and zero-`before` fallback |
 | 2026-07-23 | 0.1.4 | Draft for Approval | Replaced the recursively stale hard-coded pre-workflow SHA with a patch-manifest authority and added head-alignment and stale-document rejection tests |
+| 2026-07-24 | 0.1.5 | PR Validation Complete / Post-Merge Pending | Recorded successful local and pull-request validation evidence while retaining post-merge push CI and branch-protection readiness as pending |
 
 ---
 
@@ -1405,10 +1442,10 @@ smoke --skip-db
 release gate --skip-db
 
 Remote test:
-pull_request workflow on PR #1
+pull_request workflow on PR #1 — SUCCESS (run 30061513976 / job 89383928195)
 
 Post-merge test:
-push workflow on main
+push workflow on main — PENDING
 
 Production secrets:
 forbidden

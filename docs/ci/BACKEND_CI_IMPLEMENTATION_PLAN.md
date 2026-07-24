@@ -1,7 +1,7 @@
 # YGIT Backend CI Implementation Plan
 
-**Version:** 0.1.4
-**Status:** Draft for Approval
+**Version:** 0.1.5
+**Status:** Implemented / Verified
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Implementation Plan
@@ -9,7 +9,7 @@
 **Target Repository:** `vibtools/ygit`
 **Target Branch:** `phase0/baseline-reconciliation-ag002`
 **Target Pull Request:** `#1`
-**Date:** 2026-07-23
+**Date:** 2026-07-24
 
 ---
 
@@ -19,14 +19,20 @@ This document defines the controlled implementation plan for the first YGIT Back
 
 The plan translates the approved Backend CI specification into an exact, reviewable, rollbackable implementation sequence.
 
-This document does not authorize implementation by itself.
+The controlled implementation defined by this plan has been completed and verified on Draft PR #1.
 
-Implementation may begin only after:
+Implementation evidence:
 
-1. `BACKEND_CI_SPECIFICATION.md` is approved;
-2. this implementation plan is approved;
-3. the exact patch scope is locked;
-4. the current feature branch and Pull Request #1 remain unchanged and auditable.
+```text
+Workflow file: .github/workflows/backend-ci.yml
+Workflow commit: 7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2
+Workflow run: 30061513976
+Validate job: 89383928195
+Required status: Backend CI / Validate
+Conclusion: success
+```
+
+This completion record does not authorize Ready transition, merge, branch protection, deployment, or the next MVP implementation area.
 
 ---
 
@@ -52,6 +58,25 @@ main
 
 Locked base:
 b9019b79d1af3fe73d1a74769792ebb6958c4f4c
+```
+
+Completed implementation evidence:
+
+```text
+Implementation commit:
+7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2
+
+Pull-request workflow run:
+30061513976
+
+Validate job:
+89383928195
+
+Conclusion:
+success
+
+PR state after validation:
+OPEN / DRAFT / UNMERGED
 ```
 
 ### 2.1 Runtime Python
@@ -1171,14 +1196,14 @@ That document will define:
 
 ---
 
-## 18. Approval Gate
+## 18. Completion and Remaining Approval Gate
 
-Approval of this plan authorizes preparation of the Backend CI workflow implementation patch only after the required documentation set is complete.
+The workflow implementation and Draft PR validation defined by this plan are complete.
 
-It does not authorize:
+The remaining authorized activity is limited to documentation/status closure, PR metadata reconciliation, and read-only audit.
 
-- repository file changes immediately;
-- pushing a workflow immediately;
+This completion record does not authorize:
+
 - marking PR #1 ready;
 - merging PR #1;
 - enabling branch protection;
@@ -1198,12 +1223,16 @@ It does not authorize:
 | 2026-07-23 | 0.1.2 | Draft for Approval | Removed full-backend MyPy from the initial workflow plan after deterministic baseline failure; added static deferral verification and a separate future enablement requirement |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the workflow starting head to the Patch 05 documentation commit and replaced wildcard Ruff pathspecs with NUL-delimited source-root diffing plus explicit `.py` filtering |
 | 2026-07-23 | 0.1.4 | Draft for Approval | Replaced the recursively stale hard-coded feature-head precondition with a manifest-driven equality contract across local HEAD, remote feature head, and PR head |
+| 2026-07-24 | 0.1.5 | Implemented / Verified | Recorded the completed workflow implementation, successful Draft PR run/job evidence, and remaining Ready/merge/post-merge gates |
 
 ---
 
 ## 20. Decision Summary
 
 ```text
+Implementation status:
+IMPLEMENTED / PR VERIFIED
+
 Implementation file:
 .github/workflows/backend-ci.yml
 
@@ -1215,6 +1244,12 @@ Validate
 
 Required check:
 Backend CI / Validate
+
+Pull-request evidence:
+run 30061513976 / job 89383928195 / success
+
+Post-merge evidence:
+PENDING
 
 Runner:
 ubuntu-latest

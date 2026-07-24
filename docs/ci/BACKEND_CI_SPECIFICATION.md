@@ -1,13 +1,13 @@
 # YGIT Backend CI Specification
 
-**Version:** 0.1.3
-**Status:** Draft for Approval
+**Version:** 0.1.4
+**Status:** Approved / Implemented
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Specification
 **Applies To:** YGIT Backend Repository
 **Target Branch:** `main`
-**Date:** 2026-07-23
+**Date:** 2026-07-24
 
 ---
 
@@ -49,11 +49,11 @@ Architecture boundaries: PASS
 Basic secret scan: PASS
 ```
 
-Draft Pull Request #1 currently contains the Phase 0 baseline reconciliation and AG-002 Repository Provider Gate foundation.
+Draft Pull Request #1 contains the Phase 0 baseline reconciliation, AG-002 Repository Provider Gate foundation, Backend CI documentation, and the implemented Backend CI workflow.
 
-The pull request is structurally valid and mergeable, but no GitHub Actions workflow currently produces a remote CI status for the branch.
+The workflow is implemented at `.github/workflows/backend-ci.yml`. Pull-request run `30061513976` completed successfully for workflow commit `7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2`; `Validate` job `89383928195` completed with conclusion `success`.
 
-This specification establishes the CI contract that must be approved before workflow implementation begins.
+This specification is the approved and implemented CI contract. Post-merge push validation and any branch-protection enforcement remain separate pending gates.
 
 ---
 
@@ -958,9 +958,11 @@ Backend CI does not implement any part of that repository-acquisition path.
 
 ---
 
-## 29. Approval Gate
+## 29. Approval and Current Gate
 
-Approval of this document authorizes preparation of the Backend CI implementation patch only.
+The Backend CI contract has been approved, implemented, and successfully validated on Draft PR #1.
+
+This recorded state authorizes documentation/status closure and continued read-only audit activity.
 
 It does not authorize:
 
@@ -972,7 +974,7 @@ It does not authorize:
 - deploying to Coolify;
 - starting repository acquisition implementation.
 
-Each subsequent action remains a separate controlled step.
+Post-merge `push` validation and branch-protection enforcement remain separate controlled steps.
 
 ---
 
@@ -984,17 +986,27 @@ Each subsequent action remains a separate controlled step.
 | 2026-07-23 | 0.1.1 | Draft for Approval | Corrected Ruff validation from an unverified repository-wide gate to a baseline-aware changed-Python-file contract with explicit legacy exceptions |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Deferred full-backend MyPy from the initial required CI job after the locked head produced 744 deterministic errors across 81 files; added a separate enablement gate |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the changed-file Ruff resolver contract to use source-root diffing, explicit `.py` filtering, NUL-delimited paths, root-level script coverage, and deterministic rename/deletion handling |
+| 2026-07-24 | 0.1.4 | Approved / Implemented | Recorded the implemented workflow, successful Draft PR run and job evidence, read-only security boundary, and pending post-merge/branch-protection gates |
 
 ---
 
 ## 31. Decision Summary
 
 ```text
+Implementation status:
+APPROVED / IMPLEMENTED / PR VERIFIED
+
 Workflow:
 Backend CI
 
 Required status:
 Backend CI / Validate
+
+Pull-request validation:
+SUCCESS — run 30061513976 / job 89383928195
+
+Post-merge push validation:
+PENDING
 
 Triggers:
 pull_request → main

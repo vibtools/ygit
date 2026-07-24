@@ -34,7 +34,7 @@
     "migration_head": "0012_notification_engine"
   },
   "development_snapshot": {
-    "date": "2026-07-23",
+    "date": "2026-07-24",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
@@ -82,6 +82,24 @@
       "tag": "ygit-baseline-mvp-pre-completion-2026-07-23",
       "branch": "baseline/mvp-pre-completion-2026-07-23",
       "full_test_suite": "570_passed_1_warning"
+    },
+    "backend_ci": {
+      "status": "implemented_pr_verified_post_merge_pending",
+      "workflow_path": ".github/workflows/backend-ci.yml",
+      "workflow_name": "Backend CI",
+      "job_id": "validate",
+      "job_name": "Validate",
+      "required_status": "Backend CI / Validate",
+      "implementation_commit": "7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2",
+      "pull_request_number": 1,
+      "pull_request_run_id": 30061513976,
+      "pull_request_job_id": 89383928195,
+      "pull_request_run_verified": true,
+      "post_merge_push_verified": false,
+      "branch_protection_enabled": false,
+      "provider_execution": false,
+      "production_secrets_required": false,
+      "deployment_execution": false
     }
   },
   "domain": {
@@ -201,6 +219,27 @@
       "status": "created",
       "script": "scripts/live_runtime_smoke_test.py",
       "report": "LIVE_RUNTIME_SMOKE_TEST_REPORT.json"
+    },
+    "backend_ci": {
+      "version": "0.1.0",
+      "status": "implemented_pr_verified_post_merge_pending",
+      "workflow": ".github/workflows/backend-ci.yml",
+      "workflow_name": "Backend CI",
+      "job_name": "Validate",
+      "required_status": "Backend CI / Validate",
+      "python": "3.12",
+      "permissions": {
+        "contents": "read"
+      },
+      "mypy_required_gate": "deferred",
+      "pull_request_run_id": 30061513976,
+      "pull_request_job_id": 89383928195,
+      "pull_request_conclusion": "success",
+      "post_merge_push_verified": false,
+      "branch_protection_enabled": false,
+      "provider_execution": false,
+      "deployment_execution": false,
+      "coolify_redeploy_required": false
     }
   },
   "release": "0.1.0-live-runtime-smoke-test-plan",
