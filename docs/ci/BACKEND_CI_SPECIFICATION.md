@@ -1,6 +1,6 @@
 # YGIT Backend CI Specification
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 **Status:** Draft for Approval
 **Product:** YGIT
 **Company:** Vib Tools
@@ -405,14 +405,40 @@ For pull requests, the workflow must identify changed Python files between the p
 
 For pushes to `main`, the workflow must identify changed Python files between the event's `before` SHA and the pushed SHA.
 
-Eligible paths are:
+Candidate source roots are:
+
+```text
+backend/
+scripts/
+```
+
+The resolver must first request changed paths from Git under those two roots and then retain only paths whose final suffix is `.py`.
+
+The initial workflow must not rely on wildcard pathspecs such as:
 
 ```text
 backend/**/*.py
 scripts/**/*.py
 ```
 
+because root-level Python files under `scripts/`, including `scripts/release_gate.py`, can be omitted by shell- or Git-pathspec interpretation differences.
+
+Changed paths must be transferred from Git using NUL delimiters. The resolver must preserve valid filenames containing spaces or other non-newline shell characters and must not split paths using ordinary whitespace.
+
 Deleted files must not be passed to Ruff.
+
+The resolver must correctly handle:
+
+- added Python files;
+- copied Python files;
+- modified Python files;
+- renamed Python files using their resulting path;
+- root-level Python files under `scripts/`;
+- nested Python files under `backend/`;
+- Python filenames containing spaces;
+- non-Python files under either source root;
+- deleted Python files;
+- an event with no eligible Python change.
 
 When no eligible Python file changed, the Ruff stage must report that no Python lint target exists and succeed without invoking Ruff.
 
@@ -957,6 +983,7 @@ Each subsequent action remains a separate controlled step.
 | 2026-07-23 | 0.1.0 | Draft for Approval | Initial Backend CI contract defining triggers, permissions, validation stages, security boundaries, stable required status, PR #1 integration, acceptance criteria, and rollback requirements |
 | 2026-07-23 | 0.1.1 | Draft for Approval | Corrected Ruff validation from an unverified repository-wide gate to a baseline-aware changed-Python-file contract with explicit legacy exceptions |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Deferred full-backend MyPy from the initial required CI job after the locked head produced 744 deterministic errors across 81 files; added a separate enablement gate |
+| 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the changed-file Ruff resolver contract to use source-root diffing, explicit `.py` filtering, NUL-delimited paths, root-level script coverage, and deterministic rename/deletion handling |
 
 ---
 

@@ -1,6 +1,6 @@
 # YGIT Backend CI Implementation Plan
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 **Status:** Draft for Approval
 **Product:** YGIT
 **Company:** Vib Tools
@@ -42,7 +42,7 @@ Feature branch:
 phase0/baseline-reconciliation-ag002
 
 Current approved head:
-d89e0d8101acf4ba05dccfd4083bdc8f6915897f
+9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
 
 Base branch:
 main
@@ -486,22 +486,29 @@ with:
   fetch-depth: 0
 ```
 
-Eligible files:
+Candidate source roots:
 
 ```text
-backend/**/*.py
-scripts/**/*.py
+backend/
+scripts/
 ```
+
+The workflow must obtain changed paths from Git under those roots and then retain only `.py` paths.
+
+It must not depend on wildcard pathspecs such as `scripts/**/*.py`, because root-level files such as `scripts/release_gate.py` can be missed.
 
 The Bash step must:
 
 1. determine the correct base SHA for the event;
-2. resolve added, copied, modified, or renamed eligible Python files;
-3. exclude deleted files;
-4. sort and deduplicate the result;
-5. separate the two controlled legacy-exception files;
-6. run Ruff on every remaining eligible file;
-7. succeed with an explicit message when no eligible file changed.
+2. request added, copied, modified, or renamed paths under `backend/` and `scripts/`;
+3. use NUL-delimited Git output;
+4. sort and deduplicate paths without converting them to whitespace-delimited text;
+5. retain only paths ending in `.py`;
+6. exclude deleted files;
+7. preserve filenames containing spaces;
+8. separate the two controlled legacy-exception files;
+9. run Ruff on every remaining eligible file;
+10. succeed with an explicit message when no eligible Python file changed.
 
 Default command:
 
@@ -692,17 +699,28 @@ jobs:
             base_sha="$(git rev-parse HEAD^)"
           fi
 
-          mapfile -t changed_files < <(
+          all_changed_files=()
+          mapfile -d '' -t all_changed_files < <(
             git diff \
               --name-only \
+              -z \
               --diff-filter=ACMR \
               "$base_sha" \
               "$GITHUB_SHA" \
               -- \
-              'backend/**/*.py' \
-              'scripts/**/*.py' |
-            sort -u
+              backend \
+              scripts |
+            sort -zu
           )
+
+          changed_files=()
+          for file in "${all_changed_files[@]}"; do
+            case "$file" in
+              *.py)
+                changed_files+=("$file")
+                ;;
+            esac
+          done
 
           general_files=()
           config_changed=false
@@ -767,7 +785,7 @@ Current branch:
 phase0/baseline-reconciliation-ag002
 
 Expected current head:
-d89e0d8101acf4ba05dccfd4083bdc8f6915897f
+9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
 
 Working tree:
 clean
@@ -776,7 +794,7 @@ Remote main:
 b9019b79d1af3fe73d1a74769792ebb6958c4f4c
 
 Remote feature branch:
-d89e0d8101acf4ba05dccfd4083bdc8f6915897f
+9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
 ```
 
 ### 9.2 Workflow Syntax
@@ -1165,6 +1183,7 @@ It does not authorize:
 | 2026-07-23 | 0.1.0 | Draft for Approval | Initial implementation plan locking Python 3.12, project dependency installation, workflow structure, local and remote validation, failure handling, rollback, security checks, and documentation bundling |
 | 2026-07-23 | 0.1.1 | Draft for Approval | Replaced repository-wide Ruff execution with a deterministic changed-Python-file resolver and retained approved file-specific legacy exceptions |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Removed full-backend MyPy from the initial workflow plan after deterministic baseline failure; added static deferral verification and a separate future enablement requirement |
+| 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the workflow starting head to the Patch 05 documentation commit and replaced wildcard Ruff pathspecs with NUL-delimited source-root diffing plus explicit `.py` filtering |
 
 ---
 

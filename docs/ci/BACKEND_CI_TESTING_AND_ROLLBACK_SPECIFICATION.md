@@ -1,6 +1,6 @@
 # YGIT Backend CI Testing and Rollback Specification
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 **Status:** Draft for Approval
 **Product:** YGIT
 **Company:** Vib Tools
@@ -125,7 +125,7 @@ phase0/baseline-reconciliation-ag002
 Expected pre-workflow head:
 
 ```text
-d89e0d8101acf4ba05dccfd4083bdc8f6915897f
+9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
 ```
 
 The local environment must use:
@@ -378,6 +378,27 @@ The gate is rejected when:
 When no eligible Python file changed, the Ruff stage must report that condition and pass.
 
 Repository-wide Ruff cleanup remains a separate engineering task.
+
+### 7.2.1 Resolver Contract Test Matrix
+
+Before the workflow commit is created, the resolver implementation must pass a deterministic temporary-repository simulation covering:
+
+| Scenario | Expected Result |
+|---|---|
+| Documentation-only change | No Ruff invocation |
+| Nested `backend/` Python modification | General Ruff invocation |
+| `backend/core/config.py` modification | Ruff with only `S105` ignored |
+| Root-level `scripts/release_gate.py` modification | Ruff with only `E501,I001,UP035` ignored |
+| Deleted Python file | Excluded from Ruff |
+| Renamed Python file | Resulting path linted |
+| Non-Python file under `backend/` or `scripts/` | Excluded from Ruff |
+| Python filename containing spaces | Exact path preserved and linted |
+| Combined general and controlled-exception changes | Every required Ruff invocation executed |
+| Push event with an all-zero `before` SHA | Fallback to `HEAD^` and correct changed-file result |
+
+The simulation must also validate the Bash block with `bash -n`.
+
+A root-level `scripts/release_gate.py` change that produces no Ruff invocation is a release-blocking resolver defect.
 
 ### 7.3 MyPy Deferral Acceptance
 
@@ -1344,6 +1365,7 @@ Approval does not authorize:
 | 2026-07-23 | 0.1.0 | Draft for Approval | Initial testing and rollback contract covering local validation, remote workflow verification, test matrix, failure classification, retry policy, evidence retention, rollback procedures, post-merge verification, and completion criteria |
 | 2026-07-23 | 0.1.1 | Draft for Approval | Corrected Ruff acceptance and failure testing to use the baseline-aware changed-Python-file gate rather than the non-green repository-wide scope |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Replaced the invalid full-backend MyPy success requirement with a deferral audit based on the locked-head 744-error diagnostic and a separate future enablement gate |
+| 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the pre-workflow head and added a resolver simulation matrix covering root-level scripts, NUL-delimited paths, rename/deletion behavior, spaces, and zero-`before` fallback |
 
 ---
 
