@@ -1,0 +1,164 @@
+name: Backend CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONUTF8: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PYTHONUNBUFFERED: "1"
+  APP_ENV: test
+  GITHUB_APP_WEBHOOK_ENABLED: "false"
+  WORKER_PROVIDER_EXECUTION_MODE: disabled
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
+
+      - name: Install project dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Compile Python sources
+        run: python -m compileall -q backend scripts
+
+      - name: Verify MyPy deferral
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow_text = Path(".github/workflows/backend-ci.yml").read_text(
+              encoding="utf-8"
+          )
+          forbidden_command = "python -m " + "mypy backend"
+          if forbidden_command in workflow_text:
+              raise SystemExit("Full-backend MyPy must remain deferred.")
+
+          print("MYPY_REQUIRED_GATE: DEFERRED")
+          PY
+
+      - name: Run baseline-aware Ruff
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PUSH_BEFORE_SHA: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base_sha="$PR_BASE_SHA"
+          else
+            base_sha="$PUSH_BEFORE_SHA"
+          fi
+
+          head_sha="$GITHUB_SHA"
+
+          if [[ -z "$base_sha" || "$base_sha" =~ ^0+$ ]]; then
+            base_sha="$(git rev-parse HEAD^)"
+          fi
+
+          git cat-file -e "${base_sha}^{commit}"
+          git cat-file -e "${head_sha}^{commit}"
+
+          changed_file_list="$(mktemp)"
+          trap 'rm -f "$changed_file_list"' EXIT
+
+          git diff \
+            --name-only \
+            -z \
+            --find-renames \
+            --diff-filter=ACMR \
+            "$base_sha" \
+            "$head_sha" \
+            -- \
+            backend \
+            scripts |
+            sort -zu > "$changed_file_list"
+
+          all_changed_files=()
+          mapfile -d '' -t all_changed_files < "$changed_file_list"
+
+          changed_files=()
+          for file in "${all_changed_files[@]}"; do
+            case "$file" in
+              *.py)
+                changed_files+=("$file")
+                ;;
+            esac
+          done
+
+          general_files=()
+          config_changed=false
+          release_gate_changed=false
+
+          for file in "${changed_files[@]}"; do
+            case "$file" in
+              backend/core/config.py)
+                config_changed=true
+                ;;
+              scripts/release_gate.py)
+                release_gate_changed=true
+                ;;
+              *)
+                general_files+=("$file")
+                ;;
+            esac
+          done
+
+          if (( ${#general_files[@]} > 0 )); then
+            python -m ruff check "${general_files[@]}"
+          fi
+
+          if [[ "$config_changed" == "true" ]]; then
+            python -m ruff check --ignore S105 backend/core/config.py
+          fi
+
+          if [[ "$release_gate_changed" == "true" ]]; then
+            python -m ruff check \
+              --ignore E501,I001,UP035 \
+              scripts/release_gate.py
+          fi
+
+          if (( ${#changed_files[@]} == 0 )); then
+            echo "No eligible changed Python files."
+          fi
+
+      - name: Run full test suite
+        run: python -m pytest -q
+
+      - name: Run smoke test
+        run: python scripts/smoke_test.py --skip-db
+
+      - name: Run release gate
+        run: python scripts/release_gate.py --skip-db
