@@ -1,6 +1,6 @@
 # YGIT Backend CI Testing and Rollback Specification
 
-**Version:** 0.1.3
+**Version:** 0.1.4
 **Status:** Draft for Approval
 **Product:** YGIT
 **Company:** Vib Tools
@@ -125,8 +125,23 @@ phase0/baseline-reconciliation-ag002
 Expected pre-workflow head:
 
 ```text
-9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
+controlled implementation patch manifest field:
+expected_head_before
 ```
+
+Before any workflow file is created, validation must prove:
+
+```text
+local HEAD
+=
+origin/phase0/baseline-reconciliation-ag002
+=
+PR #1 head SHA
+=
+manifest expected_head_before
+```
+
+The test contract must reject a hard-coded mutable feature-head SHA inside the versioned CI documents. The exact operation-specific SHA belongs in the controlled patch manifest and execution evidence.
 
 The local environment must use:
 
@@ -395,6 +410,8 @@ Before the workflow commit is created, the resolver implementation must pass a d
 | Python filename containing spaces | Exact path preserved and linted |
 | Combined general and controlled-exception changes | Every required Ruff invocation executed |
 | Push event with an all-zero `before` SHA | Fallback to `HEAD^` and correct changed-file result |
+| Mutable-head authority | Exact SHA supplied by patch manifest; local, remote, and PR heads match |
+| Stale hard-coded feature head in versioned documents | Validation fails before workflow creation |
 
 The simulation must also validate the Bash block with `bash -n`.
 
@@ -1366,6 +1383,7 @@ Approval does not authorize:
 | 2026-07-23 | 0.1.1 | Draft for Approval | Corrected Ruff acceptance and failure testing to use the baseline-aware changed-Python-file gate rather than the non-green repository-wide scope |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Replaced the invalid full-backend MyPy success requirement with a deferral audit based on the locked-head 744-error diagnostic and a separate future enablement gate |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the pre-workflow head and added a resolver simulation matrix covering root-level scripts, NUL-delimited paths, rename/deletion behavior, spaces, and zero-`before` fallback |
+| 2026-07-23 | 0.1.4 | Draft for Approval | Replaced the recursively stale hard-coded pre-workflow SHA with a patch-manifest authority and added head-alignment and stale-document rejection tests |
 
 ---
 

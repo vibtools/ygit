@@ -1,6 +1,6 @@
 # YGIT Backend CI Implementation Plan
 
-**Version:** 0.1.3
+**Version:** 0.1.4
 **Status:** Draft for Approval
 **Product:** YGIT
 **Company:** Vib Tools
@@ -41,8 +41,11 @@ vibtools/ygit
 Feature branch:
 phase0/baseline-reconciliation-ag002
 
-Current approved head:
-9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
+Pre-workflow head authority:
+controlled implementation patch manifest field `expected_head_before`
+
+Required head alignment:
+local HEAD = origin feature branch = PR head = manifest `expected_head_before`
 
 Base branch:
 main
@@ -785,16 +788,26 @@ Current branch:
 phase0/baseline-reconciliation-ag002
 
 Expected current head:
-9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
+resolved from the controlled implementation patch manifest field `expected_head_before`
+
+Required equality:
+local HEAD = origin/phase0/baseline-reconciliation-ag002 = PR #1 head SHA = `expected_head_before`
 
 Working tree:
 clean
 
 Remote main:
 b9019b79d1af3fe73d1a74769792ebb6958c4f4c
+```
 
-Remote feature branch:
-9ea20663f990fe924f5b4933c7ca8a4450e0fdbb
+The versioned documentation must not hard-code a mutable feature-branch head as an operational precondition. A documentation correction commit changes that head immediately and would make the same document stale.
+
+The implementation patch manifest is the operation-specific immutable authority. The patch must fail closed before file creation unless all three feature-head observations match the manifest:
+
+```text
+local HEAD
+origin/phase0/baseline-reconciliation-ag002
+PR #1 head SHA
 ```
 
 ### 9.2 Workflow Syntax
@@ -1184,6 +1197,7 @@ It does not authorize:
 | 2026-07-23 | 0.1.1 | Draft for Approval | Replaced repository-wide Ruff execution with a deterministic changed-Python-file resolver and retained approved file-specific legacy exceptions |
 | 2026-07-23 | 0.1.2 | Draft for Approval | Removed full-backend MyPy from the initial workflow plan after deterministic baseline failure; added static deferral verification and a separate future enablement requirement |
 | 2026-07-23 | 0.1.3 | Draft for Approval | Corrected the workflow starting head to the Patch 05 documentation commit and replaced wildcard Ruff pathspecs with NUL-delimited source-root diffing plus explicit `.py` filtering |
+| 2026-07-23 | 0.1.4 | Draft for Approval | Replaced the recursively stale hard-coded feature-head precondition with a manifest-driven equality contract across local HEAD, remote feature head, and PR head |
 
 ---
 
