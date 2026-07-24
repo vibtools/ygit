@@ -34,12 +34,12 @@
     "migration_head": "0012_notification_engine"
   },
   "development_snapshot": {
-    "date": "2026-07-21",
+    "date": "2026-07-24",
     "status": "ready_for_controlled_live_redeploy",
     "mvp_completion_estimate": "approximately_97_percent",
     "controlled_live_path_estimate": "approximately_98_percent",
     "authoritative_status_document": "PROJECT_STATUS.md",
-    "full_test_suite": "514_passed_1_warning",
+    "full_test_suite": "579_passed_1_warning",
     "release_gate_skip_db": "pass",
     "live_provider_execution_verified": false,
     "live_readiness_tooling": {
@@ -75,6 +75,31 @@
         "receiver_endpoint": null,
         "live_verified": false
       }
+    },
+    "baseline_lock": {
+      "status": "locked",
+      "commit": "b9019b79d1af3fe73d1a74769792ebb6958c4f4c",
+      "tag": "ygit-baseline-mvp-pre-completion-2026-07-23",
+      "branch": "baseline/mvp-pre-completion-2026-07-23",
+      "full_test_suite": "570_passed_1_warning"
+    },
+    "backend_ci": {
+      "status": "implemented_pr_verified_post_merge_pending",
+      "workflow_path": ".github/workflows/backend-ci.yml",
+      "workflow_name": "Backend CI",
+      "job_id": "validate",
+      "job_name": "Validate",
+      "required_status": "Backend CI / Validate",
+      "implementation_commit": "7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2",
+      "pull_request_number": 1,
+      "pull_request_run_id": 30061513976,
+      "pull_request_job_id": 89383928195,
+      "pull_request_run_verified": true,
+      "post_merge_push_verified": false,
+      "branch_protection_enabled": false,
+      "provider_execution": false,
+      "production_secrets_required": false,
+      "deployment_execution": false
     }
   },
   "domain": {
@@ -194,6 +219,27 @@
       "status": "created",
       "script": "scripts/live_runtime_smoke_test.py",
       "report": "LIVE_RUNTIME_SMOKE_TEST_REPORT.json"
+    },
+    "backend_ci": {
+      "version": "0.1.0",
+      "status": "implemented_pr_verified_post_merge_pending",
+      "workflow": ".github/workflows/backend-ci.yml",
+      "workflow_name": "Backend CI",
+      "job_name": "Validate",
+      "required_status": "Backend CI / Validate",
+      "python": "3.12",
+      "permissions": {
+        "contents": "read"
+      },
+      "mypy_required_gate": "deferred",
+      "pull_request_run_id": 30061513976,
+      "pull_request_job_id": 89383928195,
+      "pull_request_conclusion": "success",
+      "post_merge_push_verified": false,
+      "branch_protection_enabled": false,
+      "provider_execution": false,
+      "deployment_execution": false,
+      "coolify_redeploy_required": false
     }
   },
   "release": "0.1.0-live-runtime-smoke-test-plan",
@@ -258,6 +304,26 @@
       "build_target_resolution": true,
       "app_engine_created": false,
       "live_execution": false
+    },
+    "ag_002_repository_provider_gate": {
+      "audit_name": "AG-002 Repository Provider Gate",
+      "engine": "repository_engine",
+      "status": "foundation_ready_not_runtime_wired",
+      "default_provider": "github",
+      "missing_provider_resolution": "github",
+      "explicit_provider_resolution": "selected_provider",
+      "current_repository_logic_changed": false,
+      "runtime_wired": false,
+      "provider_access": false,
+      "database_access": false,
+      "api_routes_added": false,
+      "migration_added": false,
+      "future_providers": [
+        "github",
+        "gitlab",
+        "bitbucket",
+        "azure_devops"
+      ]
     }
   }
 }
