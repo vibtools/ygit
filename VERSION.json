@@ -84,7 +84,7 @@
       "full_test_suite": "570_passed_1_warning"
     },
     "backend_ci": {
-      "status": "implemented_pr_verified_post_merge_pending",
+      "status": "implemented_pr_and_main_verified",
       "workflow_path": ".github/workflows/backend-ci.yml",
       "workflow_name": "Backend CI",
       "job_id": "validate",
@@ -95,11 +95,33 @@
       "pull_request_run_id": 30061513976,
       "pull_request_job_id": 89383928195,
       "pull_request_run_verified": true,
-      "post_merge_push_verified": false,
+      "post_merge_push_verified": true,
       "branch_protection_enabled": false,
       "provider_execution": false,
       "production_secrets_required": false,
-      "deployment_execution": false
+      "deployment_execution": false,
+      "final_head_pull_request_run_id": 30096212556,
+      "final_head_pull_request_job_id": 89490793519,
+      "merge_commit": "6e44866de9ec3a3a745777afc12276f903259709",
+      "merged_at": "2026-07-24T15:37:52Z",
+      "post_merge_push_run_id": 30106115262,
+      "post_merge_push_job_id": 89523839117,
+      "post_merge_push_conclusion": "success"
+    },
+    "phase0": {
+      "status": "complete",
+      "pull_request": 1,
+      "feature_branch": "phase0/baseline-reconciliation-ag002",
+      "feature_head": "06071e5f41c5b727edc620469a1c0504b7a1676b",
+      "locked_base": "b9019b79d1af3fe73d1a74769792ebb6958c4f4c",
+      "merge_commit": "6e44866de9ec3a3a745777afc12276f903259709",
+      "merged_at": "2026-07-24T15:37:52Z",
+      "post_merge_push_run_id": 30106115262,
+      "post_merge_push_job_id": 89523839117,
+      "completion_record": "docs/phase0/PHASE0_COMPLETION_RECORD.md",
+      "deployment_performed": false,
+      "coolify_redeploy_performed": false,
+      "branch_protection_enabled": false
     }
   },
   "domain": {
@@ -222,7 +244,7 @@
     },
     "backend_ci": {
       "version": "0.1.0",
-      "status": "implemented_pr_verified_post_merge_pending",
+      "status": "implemented_pr_and_main_verified",
       "workflow": ".github/workflows/backend-ci.yml",
       "workflow_name": "Backend CI",
       "job_name": "Validate",
@@ -235,11 +257,17 @@
       "pull_request_run_id": 30061513976,
       "pull_request_job_id": 89383928195,
       "pull_request_conclusion": "success",
-      "post_merge_push_verified": false,
+      "post_merge_push_verified": true,
       "branch_protection_enabled": false,
       "provider_execution": false,
       "deployment_execution": false,
-      "coolify_redeploy_required": false
+      "coolify_redeploy_required": false,
+      "final_head_pull_request_run_id": 30096212556,
+      "final_head_pull_request_job_id": 89490793519,
+      "merge_commit": "6e44866de9ec3a3a745777afc12276f903259709",
+      "post_merge_push_run_id": 30106115262,
+      "post_merge_push_job_id": 89523839117,
+      "post_merge_push_conclusion": "success"
     }
   },
   "release": "0.1.0-live-runtime-smoke-test-plan",

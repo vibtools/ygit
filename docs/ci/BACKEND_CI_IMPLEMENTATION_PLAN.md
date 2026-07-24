@@ -1,7 +1,7 @@
 # YGIT Backend CI Implementation Plan
 
-**Version:** 0.1.5
-**Status:** Implemented / Verified
+**Version:** 0.1.6
+**Status:** Implemented / PR and Main Verified
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Implementation Plan
@@ -19,20 +19,23 @@ This document defines the controlled implementation plan for the first YGIT Back
 
 The plan translates the approved Backend CI specification into an exact, reviewable, rollbackable implementation sequence.
 
-The controlled implementation defined by this plan has been completed and verified on Draft PR #1.
+The controlled implementation defined by this plan was verified on PR #1, merged through `6e44866de9ec3a3a745777afc12276f903259709`, and push-verified on the resulting `main` commit.
 
 Implementation evidence:
 
 ```text
 Workflow file: .github/workflows/backend-ci.yml
 Workflow commit: 7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2
-Workflow run: 30061513976
-Validate job: 89383928195
+Final-head PR run: 30096212556
+Final-head Validate job: 89490793519
+Merge commit: 6e44866de9ec3a3a745777afc12276f903259709
+Post-merge push run: 30106115262
+Post-merge Validate job: 89523839117
 Required status: Backend CI / Validate
 Conclusion: success
 ```
 
-This completion record does not authorize Ready transition, merge, branch protection, deployment, or the next MVP implementation area.
+This record confirms CI implementation and Phase 0 merge closure. It does not authorize branch-protection enforcement or deployment.
 
 ---
 
@@ -1249,7 +1252,7 @@ Pull-request evidence:
 run 30061513976 / job 89383928195 / success
 
 Post-merge evidence:
-PENDING
+SUCCESS — run 30106115262 / job 89523839117 on 6e44866de9ec3a3a745777afc12276f903259709
 
 Runner:
 ubuntu-latest
@@ -1284,7 +1287,7 @@ Provider execution:
 disabled
 
 Target:
-existing Draft PR #1
+PR #1 CLOSED / MERGED; main verified
 
 Direct push to main:
 forbidden

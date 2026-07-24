@@ -1,7 +1,7 @@
 # YGIT Backend CI Specification
 
-**Version:** 0.1.4
-**Status:** Approved / Implemented
+**Version:** 0.1.5
+**Status:** Approved / Implemented / Main Verified
 **Product:** YGIT
 **Company:** Vib Tools
 **Document Type:** Engineering Specification
@@ -49,9 +49,9 @@ Architecture boundaries: PASS
 Basic secret scan: PASS
 ```
 
-Draft Pull Request #1 contains the Phase 0 baseline reconciliation, AG-002 Repository Provider Gate foundation, Backend CI documentation, and the implemented Backend CI workflow.
+Pull Request #1 contained the Phase 0 baseline reconciliation, AG-002 Repository Provider Gate foundation, Backend CI documentation, and the implemented Backend CI workflow. It is now merged through `6e44866de9ec3a3a745777afc12276f903259709`.
 
-The workflow is implemented at `.github/workflows/backend-ci.yml`. Pull-request run `30061513976` completed successfully for workflow commit `7f383ba6b0c17b92de9a27e0abe4cbeb8adbbac2`; `Validate` job `89383928195` completed with conclusion `success`.
+The workflow is implemented at `.github/workflows/backend-ci.yml`. Final-head pull-request run `30096212556` / job `89490793519` and merged-main push run `30106115262` / job `89523839117` completed with conclusion `success`.
 
 This specification is the approved and implemented CI contract. Post-merge push validation and any branch-protection enforcement remain separate pending gates.
 
@@ -994,7 +994,7 @@ Post-merge `push` validation and branch-protection enforcement remain separate c
 
 ```text
 Implementation status:
-APPROVED / IMPLEMENTED / PR VERIFIED
+APPROVED / IMPLEMENTED / PR AND MAIN VERIFIED
 
 Workflow:
 Backend CI
@@ -1003,10 +1003,10 @@ Required status:
 Backend CI / Validate
 
 Pull-request validation:
-SUCCESS — run 30061513976 / job 89383928195
+SUCCESS — run 30096212556 / job 89490793519
 
 Post-merge push validation:
-PENDING
+SUCCESS — run 30106115262 / job 89523839117 on 6e44866de9ec3a3a745777afc12276f903259709
 
 Triggers:
 pull_request → main
@@ -1035,7 +1035,7 @@ Deployment:
 Not allowed
 
 Current PR:
-Remain draft
+#1 CLOSED / MERGED
 
 Automatic merge:
 Forbidden

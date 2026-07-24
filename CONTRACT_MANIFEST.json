@@ -138,7 +138,9 @@
     "mvp_completion_estimate": "approximately_97_percent",
     "latest_full_suite": "579_passed_1_warning",
     "release_gate_skip_db": "pass",
-    "backend_ci_status": "implemented_pr_verified_post_merge_pending"
+    "backend_ci_status": "implemented_pr_and_main_verified",
+    "phase0_status": "complete",
+    "phase0_merge_commit": "6e44866de9ec3a3a745777afc12276f903259709"
   },
   "engine_contract": "1.0",
   "engine_contract_version": "1.0",
@@ -255,7 +257,8 @@
     "backend_ci_workflow": ".github/workflows/backend-ci.yml",
     "backend_ci_specification": "docs/ci/BACKEND_CI_SPECIFICATION.md",
     "backend_ci_implementation_plan": "docs/ci/BACKEND_CI_IMPLEMENTATION_PLAN.md",
-    "backend_ci_testing_and_rollback": "docs/ci/BACKEND_CI_TESTING_AND_ROLLBACK_SPECIFICATION.md"
+    "backend_ci_testing_and_rollback": "docs/ci/BACKEND_CI_TESTING_AND_ROLLBACK_SPECIFICATION.md",
+    "phase0_completion_record": "docs/phase0/PHASE0_COMPLETION_RECORD.md"
   },
   "release_gate": {
     "new_migration": null,
@@ -416,7 +419,7 @@
   },
   "backend_ci": {
     "contract_version": "0.1.0",
-    "status": "implemented_pr_verified_post_merge_pending",
+    "status": "implemented_pr_and_main_verified",
     "workflow_path": ".github/workflows/backend-ci.yml",
     "workflow_name": "Backend CI",
     "job_id": "validate",
@@ -443,12 +446,51 @@
       "conclusion": "success"
     },
     "post_merge_push_validation": {
-      "verified": false,
-      "status": "pending_approved_merge"
+      "verified": true,
+      "status": "success",
+      "run_id": 30106115262,
+      "job_id": 89523839117,
+      "head_branch": "main",
+      "head_sha": "6e44866de9ec3a3a745777afc12276f903259709",
+      "event": "push",
+      "conclusion": "success"
     },
     "branch_protection": {
       "enabled": false,
       "authorized": false
+    },
+    "final_head_pull_request_validation": {
+      "verified": true,
+      "run_id": 30096212556,
+      "job_id": 89490793519,
+      "head_sha": "06071e5f41c5b727edc620469a1c0504b7a1676b",
+      "conclusion": "success"
+    },
+    "merge": {
+      "verified": true,
+      "pull_request": 1,
+      "merge_method": "merge",
+      "merge_commit": "6e44866de9ec3a3a745777afc12276f903259709",
+      "parents": [
+        "b9019b79d1af3fe73d1a74769792ebb6958c4f4c",
+        "06071e5f41c5b727edc620469a1c0504b7a1676b"
+      ],
+      "merged_at": "2026-07-24T15:37:52Z",
+      "feature_branch_deleted": false
     }
+  },
+  "phase0_completion": {
+    "status": "complete",
+    "completion_record": "docs/phase0/PHASE0_COMPLETION_RECORD.md",
+    "pull_request": 1,
+    "feature_head": "06071e5f41c5b727edc620469a1c0504b7a1676b",
+    "locked_base": "b9019b79d1af3fe73d1a74769792ebb6958c4f4c",
+    "merge_commit": "6e44866de9ec3a3a745777afc12276f903259709",
+    "merged_at": "2026-07-24T15:37:52Z",
+    "post_merge_push_run_id": 30106115262,
+    "post_merge_push_job_id": 89523839117,
+    "deployment_performed": false,
+    "coolify_redeploy_performed": false,
+    "branch_protection_enabled": false
   }
 }
